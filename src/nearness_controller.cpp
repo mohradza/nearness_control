@@ -35,31 +35,31 @@ void NearnessController::init() {
 
     // Import parameters
     // Sensor
-    nh_.param("nearness_param/total_horiz_scan_points", total_h_scan_points_, 1440);
-    nh_.param("nearness_param/num_horiz_scan_points", num_h_scan_points_, 720);
-    nh_.param("nearness_param/horiz_scan_limit", h_scan_limit_, M_PI);
-    //nh_.param("nearness_param/scan_start_location", scan_start_loc_, "back");
-    nh_.param("nearness_param/sensor_min_distance", sensor_min_dist_, .1);
-    nh_.param("nearness_param/sensor_max_distance", sensor_max_dist_, 25.0);
-    nh_.param("nearness_param/horiz_scan_start_index", h_scan_start_index_, 0);
-    nh_.param("nearness_param/sensor_min_noise", sensor_min_noise_ , .1);
-    nh_.param("nearness_param/reverse_horiz_scan", reverse_h_scan_, false);
+    nh_.param("/nearness_control_node/total_horiz_scan_points", total_h_scan_points_, 1440);
+    nh_.param("/nearness_control_node/num_horiz_scan_points", num_h_scan_points_, 720);
+    nh_.param("/nearness_control_node/horiz_scan_limit", h_scan_limit_, M_PI);
+    //nh_.param("/nearness_control_node/scan_start_location", scan_start_loc_, "back");
+    nh_.param("/nearness_control_node/sensor_min_distance", sensor_min_dist_, .1);
+    nh_.param("/nearness_control_node/sensor_max_distance", sensor_max_dist_, 25.0);
+    nh_.param("/nearness_control_node/horiz_scan_start_index", h_scan_start_index_, 0);
+    nh_.param("/nearness_control_node/sensor_min_noise", sensor_min_noise_ , .1);
+    nh_.param("/nearness_control_node/reverse_horiz_scan", reverse_h_scan_, false);
 
     // Safety
-    nh_.param("nearness_param/enable_safety_boundary", enable_safety_boundary_, false);
-    nh_.param("nearness_param/enable_safety_box", enable_safety_box_, false);
-    nh_.param("nearness_param/enable_safety_radius", enable_safety_radius_, false);
-    nh_.param("nearness_param/front_safety_distance", f_dist_, .5);
-    nh_.param("nearness_param/side_safety_distance", s_dist_, .5);
-    nh_.param("nearness_param/safety_radius", safety_radius_, .5);
+    nh_.param("/nearness_control_node/enable_safety_boundary", enable_safety_boundary_, false);
+    nh_.param("/nearness_control_node/enable_safety_box", enable_safety_box_, false);
+    nh_.param("/nearness_control_node/enable_safety_radius", enable_safety_radius_, false);
+    nh_.param("/nearness_control_node/front_safety_distance", f_dist_, .5);
+    nh_.param("/nearness_control_node/side_safety_distance", s_dist_, .5);
+    nh_.param("/nearness_control_node/safety_radius", safety_radius_, .5);
 
-    nh_.param("nearness_param/forward_speed_k_1", u_k_1_, 0.0);
-    nh_.param("nearness_param/forward_speed_k_2", u_k_2_, 3.5);
-    nh_.param("nearness_param/forward_speed_min", u_min_, .1);
-    nh_.param("nearness_param/forward_speed_max", u_max_, 5.0);
-    nh_.param("nearness_param/yaw_rate_k_1", r_k_1_, 2.0);
-    nh_.param("nearness_param/yaw_rate_k_2", r_k_1_, 2.0);
-    nh_.param("nearness_param/yaw_rate_max", r_max_, 2.0);
+    nh_.param("/nearness_control_node/forward_speed_k_1", u_k_1_, 0.0);
+    nh_.param("/nearness_control_node/forward_speed_k_2", u_k_2_, 3.5);
+    nh_.param("/nearness_control_node/forward_speed_min", u_min_, .1);
+    nh_.param("/nearness_control_node/forward_speed_max", u_max_, 5.0);
+    nh_.param("/nearness_control_node/yaw_rate_k_1", r_k_1_, 2.0);
+    nh_.param("/nearness_control_node/yaw_rate_k_2", r_k_1_, 2.0);
+    nh_.param("/nearness_control_node/yaw_rate_max", r_max_, 2.0);
 
     // Generate the gamma vector
     for(int i=0; i<num_h_scan_points_; i++){
@@ -96,6 +96,7 @@ void NearnessController::configCb(Config &config, uint32_t level)
     r_k_1_ = config_.yaw_rate_k_1;
     r_k_2_ = config_.yaw_rate_k_2;
     r_max_ = config_.yaw_rate_max;
+    ROS_INFO("%f", r_max_);
 }
 
 void NearnessController::horizLaserscanCb(const sensor_msgs::LaserScanPtr h_laserscan_msg){
