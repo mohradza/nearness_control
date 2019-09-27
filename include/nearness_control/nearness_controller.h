@@ -28,7 +28,7 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf/tf.h>
-//#include <nearness_control/FourierCoefsMsg.h>
+#include <nearness_control/FourierCoefsMsg.h>
 #include <numeric>
 #include <iterator>
 #include <vector>
@@ -59,9 +59,10 @@ class NearnessController {
     //void imuCb(const sensor_msgs::ImuConstPtr& imu_msg);
     void sonarHeightCb(const sensor_msgs::RangeConstPtr& range_msg);
     void convertLaserscan2CVMat(const sensor_msgs::LaserScanPtr h_laserscan_msg);
-    //void calc_h_wfi_fourier_coefficients(int h_width_cropped, float h_gamma_start_FOV, float h_gamma_end_FOV);
-    //void calc_forward_velocity_command();
-    //void calc_wf_yaw_rate_command();
+    void computeHorizFourierCoeffs();
+    void computeForwardSpeedCommand();
+    void computeWFYawRateCommand();
+    void publishControlCommandMsg();
     //void calc_sf_yaw_rate_command();
     //void pub_control_command_msg();
 
@@ -99,6 +100,8 @@ class NearnessController {
     typedef dynamic_reconfigure::Server<Config> ReconfigureServer;
     boost::shared_ptr<ReconfigureServer> reconfigure_server_;
     Config config_;
+    void configCb(Config &config, uint32_t level);
+
 
     // FUNCTIONS //
     int sgn(double v);
@@ -108,30 +111,61 @@ class NearnessController {
 
     // GLOBAL VARIABLES //
 
-    // Init
+    // PARAMETERS
+    // Sensor
     int total_h_scan_points_;
     int num_h_scan_points_;
-    float h_scan_limit_;
-    std::vector<float> h_gamma_vector_;
-    std::vector<float> safety_boundary_;
+    double h_scan_limit_;
+    std_msgs::String scan_start_loc_;
+    double sensor_max_dist_;
+    double sensor_min_dist_;
+    int h_scan_start_index_;
+    double sensor_min_noise_;
+    bool reverse_h_scan_;
+
+    // Safety
     bool enable_safety_boundary_;
     bool enable_safety_box_;
-    float f_dist_;
-    float s_dist_;
-    int left_corner_index_;
     bool enable_safety_radius_;
     double safety_radius_;
-    bool flag_too_close_;
+    double f_dist_;
+    double s_dist_;
 
-    // Sensor parameters
-    float sensor_max_dist_;
-    float sensor_min_dist_;
-    std_msgs::String scan_start_loc;
-    int h_scan_start_index_;
-    float sensor_min_noise_;
-    cv::Mat h_depth_cvmat_;
+    // Controller
+    double u_k_1_;
+    double u_k_2_;
+    double u_max_;
+    double u_min_;
+    double r_k_1_;
+    double r_k_2_;
+    double r_max_;
+
+
+    // Init
+    std::vector<float> h_gamma_vector_;
+    std::vector<float> safety_boundary_;
+    int left_corner_index_;
+    bool flag_too_close_;
+    float dg_;
     float range_agl_;
-    bool reverse_h_scan_;
+    bool debug_;
+
+    // convertLaserscan2CVMat
+    int h_num_fourier_terms_;
+    cv::Mat h_depth_cvmat_;
+
+    // computeHorizFourierCoeffs
+    float h_a_[10], h_b_[10];
+    cv::Mat h_nearness_;
+
+    // computeForwardSpeedCommand
+    float u_cmd_;
+
+    // computeWFYawRateCommand
+    float h_wf_r_cmd_;
+
+    // publishControlCommandMsg
+    geometry_msgs::TwistStamped control_command_;
 
 }; // class SimpleNodeClass
 

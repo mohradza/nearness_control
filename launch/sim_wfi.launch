@@ -1,0 +1,55 @@
+<launch>
+
+
+    <arg name="camera"      default="camera"/>
+    <arg name="bond"        default="false" />
+    <arg name="respawn"     default="$(arg bond)" />
+    <arg name="manager"     default="centering_manager"/>
+
+    <!-- Nodelet Manager -->
+    <node pkg="nodelet" type="nodelet" name="$(arg manager)" args="manager" output="screen"/>
+
+    <!-- Gene's WFI Nodelet -->
+    <node pkg="nodelet" type="nodelet" output="screen"
+
+        args="load wfi_from_depth_sensor/nearness_controller_nodelet $(arg manager) $(arg bond)" respawn="$(arg respawn)"
+        	name="wfi_from_depth_sensor_scan">
+
+        <!-- SUBSCRIBED TOPICS -->
+        <remap from="horiz_scan" to="scan"/>
+        <!--<remap from="joy" to="joy_teleop/joy"/>
+        <remap from="odometry" to="odometry_map" /> -->
+
+        <!-- Sensor Parameters -->
+        <param name="total_horiz_scan_points" type="int" value="1440"/>
+        <param name="num_horiz_scan_points" type="int" value="720"/>
+        <param name="horiz_scan_limit" type="double" value="${M_PI}"/>
+        <param name="scan_start_location" type="string" value="back" /> <!-- Valid args: 'forward', 'back', 'left', 'right' -->
+        <param name="sensor_min_distance" type="double" value="0.1"/>
+        <param name="sensor_max_distance" type="double" value="25.0"/>
+        <param name="horiz_scan_start_index" type="int" value="0"/>
+        <param name="sensor_min_noise" type="double" value="0.1"/>
+        <param name="reverse_horiz_scan", type="bool" value="true"/>
+
+        <!-- Safety Parameters -->
+        <param name="enable_safety_boundary" type="bool" value="false"/>
+        <param name="enable_safety_box" type="bool" value="false"/>
+        <param name="front_safety_distance" type="double" value=".5"/>
+        <param name="side_safety_distance" type="double" value=".4"/>
+        <param name="safety_radius" type="double" value=".5"/>
+
+        <!-- Parameters for Forward Speed Controller -->
+        <param name="forward_speed_k_1" type="double" value="0.0"/>
+        <param name="forward_speed_k_2" type="double" value="3.5"/>
+        <param name="forward_speed_min" type="double" value="0.1"/>
+        <param name="forward_speed_max" type="double" value="1.5"/>
+
+        <!-- Parameters for Yaw Rate Controller -->
+        <param name="yaw_rate_k_1" type="double" value="2.0"/>
+        <param name="yaw_rate_k_2" type="double" value="2.0"/>  <!-- -2 -->
+        <param name="yaw_rate_max" type="double" value="1.0"/>
+
+    </node>
+
+    <node pkg="topic_tools" name="control_relay" type="relay" args="/wfi/command/twist command/twist" />
+</launch>
