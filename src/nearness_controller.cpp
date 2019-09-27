@@ -15,6 +15,7 @@ void NearnessController::init() {
     reconfigure_server_->setCallback(f);
 
     debug_ = true;
+    control_command_.header.frame_id = "/base_stabilized";
 
     // Set up subscribers and callbacks
     sub_horiz_laserscan_ = nh_.subscribe("horiz_scan", 1, &NearnessController::horizLaserscanCb, this);
@@ -35,6 +36,7 @@ void NearnessController::init() {
 
     // Import parameters
     // Sensor
+    h_num_fourier_terms_ = 3;
     nh_.param("/nearness_control_node/total_horiz_scan_points", total_h_scan_points_, 1440);
     nh_.param("/nearness_control_node/num_horiz_scan_points", num_h_scan_points_, 720);
     nh_.param("/nearness_control_node/horiz_scan_limit", h_scan_limit_, M_PI);
@@ -110,6 +112,8 @@ void NearnessController::horizLaserscanCb(const sensor_msgs::LaserScanPtr h_lase
     // Feed back fourier coefficients for forward speed regulation
     computeForwardSpeedCommand();
 
+    computeWFYawRateCommand();
+
     publishControlCommandMsg();
 
 
@@ -167,7 +171,9 @@ void NearnessController::convertLaserscan2CVMat(const sensor_msgs::LaserScanPtr 
     }
 
     // Check to see if anything has entered the safety boundary
-    checkSafetyBoundary(h_depth_vector_trimmed);
+    if(enable_safety_boundary_){
+        checkSafetyBoundary(h_depth_vector_trimmed);
+    }
 
      // Publish the reformatted scan
      if(debug_){
@@ -183,6 +189,7 @@ void NearnessController::convertLaserscan2CVMat(const sensor_msgs::LaserScanPtr 
     std::memcpy(h_depth_cvmat_.data, h_depth_vector_trimmed.data(), h_depth_vector_trimmed.size()*sizeof(float));
     h_depth_cvmat_.setTo(sensor_min_dist_, h_depth_cvmat_ < sensor_min_dist_);
     h_depth_cvmat_.setTo(sensor_max_dist_, h_depth_cvmat_ > sensor_max_dist_);
+
 } // End of convertLaserscan2CVMat
 
 void NearnessController::computeHorizFourierCoeffs(){
@@ -246,7 +253,7 @@ void NearnessController::computeForwardSpeedCommand(){
 void NearnessController::computeWFYawRateCommand(){
 
     h_wf_r_cmd_ = r_k_1_*h_b_[1] + r_k_2_*h_b_[2];
-
+    ROS_INFO("%f", h_wf_r_cmd_);
     // Saturate the wide field yaw rate command
     if(h_wf_r_cmd_ < -r_max_) {
         h_wf_r_cmd_ = -r_max_;
@@ -266,7 +273,7 @@ void NearnessController::publishControlCommandMsg(){
     control_command_.header.stamp = ros::Time::now();
     control_command_.twist.linear.x = u_cmd_;
     control_command_.twist.angular.z = h_wf_r_cmd_;
-
+    ROS_INFO_THROTTLE(1, "Publishing command");
     pub_control_commands_.publish(control_command_);
 
 }
@@ -298,6 +305,7 @@ void NearnessController::generateSafetyBox(){
 
 void NearnessController::checkSafetyBoundary(std::vector<float> scan){
     flag_too_close_ = false;
+
     for(int i = 0; i < num_h_scan_points_; i++){
         if((scan[i] < safety_boundary_[i]) && (scan[i] > sensor_min_noise_)){
             if((i <= left_corner_index_) || (i >= (num_h_scan_points_ - left_corner_index_))) {

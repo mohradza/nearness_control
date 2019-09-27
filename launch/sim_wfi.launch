@@ -3,18 +3,16 @@
     <node pkg="nearness_control" type="nearness_controller_node" name="nearness_control_node" output="screen">
 
         <!-- SUBSCRIBED TOPICS -->
-        <remap from="horiz_scan" to="scan"/>
-        <!--<remap from="joy" to="joy_teleop/joy"/>
-        <remap from="odometry" to="odometry_map" /> -->
+        <remap from="/nearness_controller/horiz_scan" to="scan"/>
 
         <!-- Sensor Parameters -->
-        <param name="total_horiz_scan_points" type="int" value="1440"/>
+        <param name="total_horiz_scan_points" type="int" value="1081"/>
         <param name="num_horiz_scan_points" type="int" value="720"/>
-        <param name="horiz_scan_limit" type="double" value="3.1415"/>
+        <param name="horiz_scan_limit" type="double" value="1.5707"/>
         <param name="scan_start_location" type="string" value="back" /> <!-- Valid args: 'forward', 'back', 'left', 'right' -->
         <param name="sensor_min_distance" type="double" value="0.1"/>
         <param name="sensor_max_distance" type="double" value="25.0"/>
-        <param name="horiz_scan_start_index" type="int" value="0"/>
+        <param name="horiz_scan_start_index" type="int" value="180"/>
         <param name="sensor_min_noise" type="double" value="0.1"/>
         <param name="reverse_horiz_scan" type="bool" value="true"/>
 
@@ -38,5 +36,5 @@
 
     </node>
 
-    <node pkg="topic_tools" name="control_relay" type="relay" args="/wfi/command/twist command/twist" />
+    <node pkg="topic_tools" name="control_relay" type="relay" args="/nearness_controller/control_commands command/twist" />
 </launch>
