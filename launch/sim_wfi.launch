@@ -47,12 +47,10 @@
         <param name="yaw_rate_k_hb_2" type="double" value="4.0"/>  <!-- -2 -->
         <param name="yaw_rate_max" type="double" value="1.0"/>
 
-        <param name="vert_speed_k_vb_1" type="double" value="8.0"/>
-        <param name="vert_speed_k_vb_2" type="double" value="4.0"/>  <!-- -2 -->
+        <param name="vert_speed_k_vb_1" type="double" value="-3.0"/>
+        <param name="vert_speed_k_vb_2" type="double" value="-1.0"/>  <!-- -2 -->
         <param name="vert_speed_max" type="double" value="1.0"/>
 
     </node>
-
     <node pkg="topic_tools" name="control_relay" type="relay" args="/nearness_controller/control_commands command/twist" />
-
 </launch>

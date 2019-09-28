@@ -446,8 +446,8 @@ void NearnessController::publishControlCommandMsg(){
 
     control_command_.header.stamp = ros::Time::now();
     control_command_.twist.linear.x = u_cmd_;
-    //control_command_.twist.linear.z = v_wf_w_cmd_;
-    control_command_.twist.linear.z = -.5*(range_agl_ - 2.0);
+    control_command_.twist.linear.z = v_wf_w_cmd_;
+    //control_command_.twist.linear.z = -.5*(range_agl_ - 2.0);
     control_command_.twist.angular.z = h_wf_r_cmd_;
     pub_control_commands_.publish(control_command_);
 
