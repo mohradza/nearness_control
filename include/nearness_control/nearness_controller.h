@@ -66,6 +66,7 @@ class NearnessController {
     void computeVertFourierCoeffs();
     void computeForwardSpeedCommand();
     void computeWFYawRateCommand();
+    void computeLateralSpeedCommand();
     void computeWFVerticalSpeedCommand();
     void publishControlCommandMsg();
     //void calc_sf_yaw_rate_command();
@@ -164,6 +165,8 @@ class NearnessController {
     double r_k_vb_1_;
     double r_k_vb_2_;
     double r_max_;
+    double v_k_hb_1_;
+    double v_max_;
     double w_k_1_;
     double w_k_2_;
     double w_max_;
@@ -201,6 +204,9 @@ class NearnessController {
 
     // computeWFYawRateCommand
     float h_wf_r_cmd_;
+
+    // computeLateralSpeedCommand
+    float h_wf_v_cmd_;
 
     // computeVertFourierCoeffs
     float v_wf_w_cmd_;

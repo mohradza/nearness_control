@@ -132,11 +132,14 @@ void NearnessController::configCb(Config &config, uint32_t level)
     r_k_hb_2_ = config_.yaw_rate_k_hb_2;
     r_max_ = config_.yaw_rate_max;
 
+    v_k_hb_1_ = config_.lateral_speed_k_hb_1;
+    v_max_ = config_.lateral_speed_max;
+
     w_k_1_ = config_.vert_speed_k_vb_1;
     w_k_2_ = config_.vert_speed_k_vb_2;
     w_max_ = config_.vert_speed_max;
 
-    ROS_INFO("%f", r_max_);
+    ROS_INFO("%f, %f", w_max_, u_min_);
 }
 
 void NearnessController::horizLaserscanCb(const sensor_msgs::LaserScanPtr h_laserscan_msg){
@@ -151,6 +154,8 @@ void NearnessController::horizLaserscanCb(const sensor_msgs::LaserScanPtr h_lase
     computeForwardSpeedCommand();
 
     computeWFYawRateCommand();
+
+    computeLateralSpeedCommand();
 
     publishControlCommandMsg();
 
@@ -426,6 +431,15 @@ void NearnessController::computeWFYawRateCommand(){
     }
 } // End of computeWFYawRateCommand
 
+void NearnessController::computeLateralSpeedCommand(){
+    h_wf_v_cmd_ = v_k_hb_1_*h_b_[1];
+    if(h_wf_v_cmd_ < -v_max_) {
+        h_wf_v_cmd_ = -v_max_;
+    } else if(h_wf_v_cmd_ > v_max_) {
+        h_wf_v_cmd_ = v_max_;
+    }
+}
+
 void NearnessController::computeWFVerticalSpeedCommand(){
 
     v_wf_w_cmd_ = w_k_1_*v_b_[1] + w_k_2_*v_b_[2];
@@ -440,12 +454,13 @@ void NearnessController::computeWFVerticalSpeedCommand(){
 void NearnessController::publishControlCommandMsg(){
 
     // Unused controller inputs
-    control_command_.twist.linear.y = 0;
+
     control_command_.twist.angular.x = 0;
     control_command_.twist.angular.y = 0;
 
     control_command_.header.stamp = ros::Time::now();
     control_command_.twist.linear.x = u_cmd_;
+    control_command_.twist.linear.y = h_wf_v_cmd_;
     control_command_.twist.linear.z = v_wf_w_cmd_;
     //control_command_.twist.linear.z = -.5*(range_agl_ - 2.0);
     control_command_.twist.angular.z = h_wf_r_cmd_;
