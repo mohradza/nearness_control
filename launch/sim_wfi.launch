@@ -15,7 +15,7 @@
         <param name="horiz_sensor_max_distance" type="double" value="25.0"/>
         <param name="horiz_scan_start_index" type="int" value="180"/>
         <param name="horiz_sensor_min_noise" type="double" value="0.1"/>
-        <param name="reverse_horiz_scan" type="bool" value="true"/>
+        <param name="reverse_horiz_scan" type="bool" value="false"/>
 
         <param name="total_vert_scan_points" type="int" value="1081"/>
         <param name="num_vert_scan_points" type="int" value="720"/>
@@ -52,4 +52,5 @@
     </node>
 
     <node pkg="topic_tools" name="control_relay" type="relay" args="/nearness_controller/control_commands command/twist" />
+
 </launch>

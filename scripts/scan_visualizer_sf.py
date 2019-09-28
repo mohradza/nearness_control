@@ -3,7 +3,7 @@
 import numpy as np
 from numpy import pi
 from math import sin, cos
-import rospy 
+import rospy
 from sensor_msgs.msg import LaserScan
 from std_msgs.msg import Float32MultiArray
 from geometry_msgs.msg import Twist
@@ -48,7 +48,7 @@ def WF_recon_cb( msg ):
     global lastWFReconScan
     """ Process the nearness array """
     lastWFReconScan = msg.data  #lastDepthImageScan = [ elem/25.50 for elem in msg.data ] # scale [0,255] to [0,10]
-    
+
 def SF_cb( msg ):
     global lastSFScan
     """ Process the nearness array """
@@ -57,7 +57,7 @@ def SF_cb( msg ):
 minAng = -pi
 maxAng = pi
 rospy.init_node( 'scan_plot' , anonymous = True )
-	
+
 # rospy.Subscriber( "wfi/horiz/image_scan" , Float32MultiArray , image_scan_cb )
 rospy.Subscriber( "/nearness_controller/horiz_depth_reformat" , Float32MultiArray , depth_scan_cb )
 rospy.Subscriber( "/nearness_controller/horiz_nearness" , Float32MultiArray , nearness_cb )
@@ -76,32 +76,32 @@ try:
 		plt.figure(1)
 		plt.subplot(3,1,1)
 		# Horizontal Depth Scan: Array Index vs. Depth [m]
-		# plt.figure(num=1, figsize=(9, 6), dpi=80, facecolor='w', edgecolor='k')	
+		# plt.figure(num=1, figsize=(9, 6), dpi=80, facecolor='w', edgecolor='k')
 		plt.plot( lastDepthScanNP , 'b.' )
 		plt.hold( False )
 		plt.xlim( [ 0 , 720 ] )
-		plt.ylim( [ 0 , 32 ] )
+		plt.ylim( [ 0 , 15 ] )
 		plt.xlabel("Array Index")
 		plt.ylabel("Depth [m]")
 		plt.title("Horiz. Depth (Array Values)")
 
 		plt.subplot(3,1,2)
 		# Horizontal Depth Scan: X [m] vs Y [m]
-		# plt.figure(num=2, figsize=(9, 6), dpi=80, facecolor='w', edgecolor='k')	
+		# plt.figure(num=2, figsize=(9, 6), dpi=80, facecolor='w', edgecolor='k')
 		plt.plot( lastNearnessScanNP , 'b.' )
 		plt.hold( True )
                 plt.plot(lastWFReconScanNP , 'r.' )
 		plt.hold( False )
-                
+
 		plt.xlim( [ 0 , 720 ] )
 		plt.ylim( [ 0 , 2 ] )
 		plt.xlabel("Array Index")
 		plt.ylabel("Nearness [1/m]")
 		plt.title("Horiz. Nearness (Array Values)")
-		
+
 		plt.subplot(3,1,3)
 		# Horizontal Nearness Scan: X [1/m] vs Y [1/m]
-		# plt.figure(num=4, figsize=(9, 6), dpi=80, facecolor='w', edgecolor='k')	
+		# plt.figure(num=4, figsize=(9, 6), dpi=80, facecolor='w', edgecolor='k')
 		plt.plot( lastSFScanNP , 'b.' )
 		plt.hold( False )
 		plt.xlim( [ 0 , 720 ] )
@@ -114,4 +114,3 @@ try:
 	plt.show()
 except KeyboardInterrupt:
 	pass
-

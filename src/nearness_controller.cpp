@@ -42,9 +42,10 @@ void NearnessController::init() {
 
     // Import parameters
     // Sensor
-    h_num_fourier_terms_ = 3;
-    v_num_fourier_terms_ = 3;
+    h_num_fourier_terms_ = 5;
+    v_num_fourier_terms_ = 5;
     nh_.param("/nearness_control_node/total_horiz_scan_points", total_h_scan_points_, 1440);
+    ROS_INFO("%d", total_h_scan_points_);
     nh_.param("/nearness_control_node/num_horiz_scan_points", num_h_scan_points_, 720);
     nh_.param("/nearness_control_node/horiz_scan_limit", h_scan_limit_, M_PI);
     //nh_.param("/nearness_control_node/scan_start_location", scan_start_loc_, "back");
@@ -77,7 +78,7 @@ void NearnessController::init() {
     nh_.param("/nearness_control_node/forward_speed_min", u_min_, .1);
     nh_.param("/nearness_control_node/forward_speed_max", u_max_, 5.0);
     nh_.param("/nearness_control_node/yaw_rate_k_1", r_k_1_, 2.0);
-    nh_.param("/nearness_control_node/yaw_rate_k_2", r_k_1_, 2.0);
+    nh_.param("/nearness_control_node/yaw_rate_k_2", r_k_2_, 2.0);
     nh_.param("/nearness_control_node/yaw_rate_max", r_max_, 2.0);
     nh_.param("/nearness_control_node/vert_speed_k_1", w_k_1_, 2.0);
     nh_.param("/nearness_control_node/vert_speed_k_2", w_k_2_, 2.0);
@@ -177,7 +178,7 @@ void NearnessController::convertHLaserscan2CVMat(const sensor_msgs::LaserScanPtr
     // Reformat the depth scan depending on the orientation of the scanner
     // scan_start_loc describes the location of the first scan index
     std::vector<float> h_depth_vector_reformat;
-    h_scan_start_loc_.data = "back";
+    h_scan_start_loc_.data = "sim";
     if (h_scan_start_loc_.data == "forward"){
         h_depth_vector_reformat = h_depth_vector;
     } else if (h_scan_start_loc_.data == "right"){
@@ -201,6 +202,8 @@ void NearnessController::convertHLaserscan2CVMat(const sensor_msgs::LaserScanPtr
         for (int i = 0; i < num_h_scan_points_/4; i++){
             h_depth_vector_reformat.push_back(h_depth_vector[i]);
         }
+    } else {
+        h_depth_vector_reformat = h_depth_vector;
     }
 
     // Trim the scan down if the entire scan is not being used
@@ -250,7 +253,7 @@ void NearnessController::convertVLaserscan2CVMat(const sensor_msgs::LaserScanPtr
     // Reformat the depth scan depending on the orientation of the scanner
     // scan_start_loc describes the location of the first scan index
     std::vector<float> v_depth_vector_reformat;
-    v_scan_start_loc_.data = "back";
+    v_scan_start_loc_.data = "sim";
     if (v_scan_start_loc_.data == "forward"){
         v_depth_vector_reformat = v_depth_vector;
     } else if (v_scan_start_loc_.data == "right"){
@@ -274,7 +277,10 @@ void NearnessController::convertVLaserscan2CVMat(const sensor_msgs::LaserScanPtr
         for (int i = 0; i < num_v_scan_points_/4; i++){
             v_depth_vector_reformat.push_back(v_depth_vector[i]);
         }
+    } else {
+        v_depth_vector_reformat = v_depth_vector;
     }
+
 
     // Trim the scan down if the entire scan is not being used
     std::vector<float> v_depth_vector_trimmed;
