@@ -44,6 +44,7 @@ void NearnessController::init() {
     // Sensor
     h_num_fourier_terms_ = 5;
     v_num_fourier_terms_ = 5;
+    enable_gain_scaling_ = true;
     nh_.param("/nearness_control_node/total_horiz_scan_points", total_h_scan_points_, 1440);
     ROS_INFO("%d", total_h_scan_points_);
     nh_.param("/nearness_control_node/num_horiz_scan_points", num_h_scan_points_, 720);
@@ -87,6 +88,11 @@ void NearnessController::init() {
     nh_.param("/nearness_control_node/vert_speed_k_vb_1", w_k_1_, 2.0);
     nh_.param("/nearness_control_node/vert_speed_k_vb_2", w_k_2_, 2.0);
     nh_.param("/nearness_control_node/vert_speed_max", w_max_, 2.0);
+
+    if(enable_gain_scaling_){
+      r_k_hb_2_ = 1.0*u_max_;
+      v_k_hb_1_ = 1.0*u_max_;
+    }
 
     // Generate the gamma vector
     for(int i=0; i<num_h_scan_points_; i++){
@@ -138,6 +144,11 @@ void NearnessController::configCb(Config &config, uint32_t level)
     w_k_1_ = config_.vert_speed_k_vb_1;
     w_k_2_ = config_.vert_speed_k_vb_2;
     w_max_ = config_.vert_speed_max;
+
+    if(enable_gain_scaling_){
+      r_k_hb_2_ = 1.0*u_max_;
+      v_k_hb_1_ = 1.0*u_max_;
+    }
 
     ROS_INFO("%f, %f", w_max_, u_min_);
 }

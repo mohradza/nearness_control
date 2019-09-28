@@ -170,6 +170,7 @@ class NearnessController {
     double w_k_1_;
     double w_k_2_;
     double w_max_;
+    bool enable_gain_scaling_;
 
 
     // Init
