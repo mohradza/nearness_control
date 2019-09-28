@@ -153,12 +153,16 @@ class NearnessController {
     double s_dist_;
 
     // Controller
-    double u_k_1_;
-    double u_k_2_;
+    double u_k_hb_1_;
+    double u_k_hb_2_;
+    double u_k_vb_1_;
+    double u_k_vb_2_;
     double u_max_;
     double u_min_;
-    double r_k_1_;
-    double r_k_2_;
+    double r_k_hb_1_;
+    double r_k_hb_2_;
+    double r_k_vb_1_;
+    double r_k_vb_2_;
     double r_max_;
     double w_k_1_;
     double w_k_2_;

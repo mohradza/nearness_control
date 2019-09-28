@@ -73,15 +73,19 @@ void NearnessController::init() {
     nh_.param("/nearness_control_node/side_safety_distance", s_dist_, .5);
     nh_.param("/nearness_control_node/safety_radius", safety_radius_, .5);
 
-    nh_.param("/nearness_control_node/forward_speed_k_1", u_k_1_, 0.0);
-    nh_.param("/nearness_control_node/forward_speed_k_2", u_k_2_, 3.5);
+    nh_.param("/nearness_control_node/forward_speed_k_hb_1", u_k_hb_1_, 0.0);
+    nh_.param("/nearness_control_node/forward_speed_k_hb_2", u_k_hb_2_, 3.5);
+    nh_.param("/nearness_control_node/forward_speed_k_vb_1", u_k_vb_1_, 0.0);
+    nh_.param("/nearness_control_node/forward_speed_k_vb_2", u_k_vb_2_, 3.5);
     nh_.param("/nearness_control_node/forward_speed_min", u_min_, .1);
     nh_.param("/nearness_control_node/forward_speed_max", u_max_, 5.0);
-    nh_.param("/nearness_control_node/yaw_rate_k_1", r_k_1_, 2.0);
-    nh_.param("/nearness_control_node/yaw_rate_k_2", r_k_2_, 2.0);
+    nh_.param("/nearness_control_node/yaw_rate_k_hb_1", r_k_hb_1_, 2.0);
+    nh_.param("/nearness_control_node/yaw_rate_k_hb_2", r_k_hb_2_, 2.0);
+    nh_.param("/nearness_control_node/yaw_rate_k_vb_1", r_k_vb_1_, 2.0);
+    nh_.param("/nearness_control_node/yaw_rate_k_vb_2", r_k_vb_2_, 2.0);
     nh_.param("/nearness_control_node/yaw_rate_max", r_max_, 2.0);
-    nh_.param("/nearness_control_node/vert_speed_k_1", w_k_1_, 2.0);
-    nh_.param("/nearness_control_node/vert_speed_k_2", w_k_2_, 2.0);
+    nh_.param("/nearness_control_node/vert_speed_k_vb_1", w_k_1_, 2.0);
+    nh_.param("/nearness_control_node/vert_speed_k_vb_2", w_k_2_, 2.0);
     nh_.param("/nearness_control_node/vert_speed_max", w_max_, 2.0);
 
     // Generate the gamma vector
@@ -117,17 +121,19 @@ void NearnessController::configCb(Config &config, uint32_t level)
     config_ = config;
 
     // Controller gains
-    u_k_1_ = config_.forward_speed_k_1;
-    u_k_2_ = config_.forward_speed_k_2;
+    u_k_hb_1_ = config_.forward_speed_k_hb_1;
+    u_k_hb_2_ = config_.forward_speed_k_hb_2;
+    u_k_vb_1_ = config_.forward_speed_k_vb_1;
+    u_k_vb_2_ = config_.forward_speed_k_vb_2;
     u_min_ = config_.forward_speed_min;
     u_max_ = config_.forward_speed_max;
 
-    r_k_1_ = config_.yaw_rate_k_1;
-    r_k_2_ = config_.yaw_rate_k_2;
+    r_k_hb_1_ = config_.yaw_rate_k_hb_1;
+    r_k_hb_2_ = config_.yaw_rate_k_hb_2;
     r_max_ = config_.yaw_rate_max;
 
-    w_k_1_ = config_.vert_speed_k_1;
-    w_k_2_ = config_.vert_speed_k_2;
+    w_k_1_ = config_.vert_speed_k_vb_1;
+    w_k_2_ = config_.vert_speed_k_vb_2;
     w_max_ = config_.vert_speed_max;
 
     ROS_INFO("%f", r_max_);
@@ -399,7 +405,7 @@ void NearnessController::computeVertFourierCoeffs(){
 
 void NearnessController::computeForwardSpeedCommand(){
 
-    u_cmd_ = u_max_ * (1 - u_k_1_*abs(h_b_[1]) - u_k_2_*abs(h_b_[2]));
+    u_cmd_ = u_max_ * (1 - u_k_hb_1_*abs(h_b_[1]) - u_k_hb_2_*abs(h_b_[2]) - u_k_vb_1_*abs(v_b_[1]) - u_k_vb_2_*abs(v_b_[2]));
 
     // Saturate forward velocity command
     if(u_cmd_ < u_min_){
@@ -411,7 +417,7 @@ void NearnessController::computeForwardSpeedCommand(){
 
 void NearnessController::computeWFYawRateCommand(){
 
-    h_wf_r_cmd_ = r_k_1_*h_b_[1] + r_k_2_*h_b_[2];
+    h_wf_r_cmd_ = r_k_hb_1_*h_b_[1] + r_k_hb_2_*h_b_[2];
     // Saturate the wide field yaw rate command
     if(h_wf_r_cmd_ < -r_max_) {
         h_wf_r_cmd_ = -r_max_;

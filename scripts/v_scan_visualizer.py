@@ -59,8 +59,8 @@ maxAng = pi
 rospy.init_node( 'scan_plot' , anonymous = True )
 
 # rospy.Subscriber( "wfi/horiz/image_scan" , Float32MultiArray , image_scan_cb )
-rospy.Subscriber( "/nearness_controller/horiz_depth_reformat" , Float32MultiArray , depth_scan_cb )
-rospy.Subscriber( "/nearness_controller/horiz_nearness" , Float32MultiArray , nearness_cb )
+rospy.Subscriber( "/nearness_controller/vert_depth_reformat" , Float32MultiArray , depth_scan_cb )
+rospy.Subscriber( "/nearness_controller/vert_nearness" , Float32MultiArray , nearness_cb )
 rospy.Subscriber( "/sf/horiz/sf_nearness" , Float32MultiArray , SF_cb )
 rospy.Subscriber( "/sf/horiz/recon_wf_nearness" , Float32MultiArray , WF_recon_cb )
 
