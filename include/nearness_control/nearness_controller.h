@@ -53,15 +53,20 @@ class NearnessController {
     void init();
 
     // FUNCTIONS //
-    void horizLaserscanCb(const sensor_msgs::LaserScanPtr laserscan_msg);
+    void horizLaserscanCb(const sensor_msgs::LaserScanPtr h_laserscan_msg);
+    void vertLaserscanCb(const sensor_msgs::LaserScanPtr v_laserscan_msg);
+
     //void joyconCb(const sensor_msgs::JoyConstPtr& joy_msg);
     //void odomCb(const nav_msgs::OdometryConstPtr& odom_msg);
     //void imuCb(const sensor_msgs::ImuConstPtr& imu_msg);
     void sonarHeightCb(const sensor_msgs::RangeConstPtr& range_msg);
-    void convertLaserscan2CVMat(const sensor_msgs::LaserScanPtr h_laserscan_msg);
+    void convertHLaserscan2CVMat(const sensor_msgs::LaserScanPtr h_laserscan_msg);
+    void convertVLaserscan2CVMat(const sensor_msgs::LaserScanPtr v_laserscan_msg);
     void computeHorizFourierCoeffs();
+    void computeVertFourierCoeffs();
     void computeForwardSpeedCommand();
     void computeWFYawRateCommand();
+    void computeWFVerticalSpeedCommand();
     void publishControlCommandMsg();
     //void calc_sf_yaw_rate_command();
     //void pub_control_command_msg();
@@ -88,6 +93,12 @@ class NearnessController {
     ros::Publisher pub_h_recon_wf_nearness_;
     ros::Publisher pub_h_fourier_coefficients_;
 
+    ros::Publisher pub_v_scan_reformat_;
+    ros::Publisher pub_v_scan_nearness_;
+    ros::Publisher pub_v_sf_nearness_;
+    ros::Publisher pub_v_recon_wf_nearness_;
+    ros::Publisher pub_v_fourier_coefficients_;
+
     ros::Publisher pub_control_commands_;
     ros::Publisher pub_sim_control_commands_;
     ros::Publisher pub_sf_control_commands_;
@@ -112,16 +123,26 @@ class NearnessController {
     // GLOBAL VARIABLES //
 
     // PARAMETERS
-    // Sensor
+    // Sensor - Horizontal
     int total_h_scan_points_;
     int num_h_scan_points_;
     double h_scan_limit_;
-    std_msgs::String scan_start_loc_;
-    double sensor_max_dist_;
-    double sensor_min_dist_;
+    std_msgs::String h_scan_start_loc_;
+    double h_sensor_max_dist_;
+    double h_sensor_min_dist_;
     int h_scan_start_index_;
-    double sensor_min_noise_;
+    double h_sensor_min_noise_;
     bool reverse_h_scan_;
+    // Sensor - Vertical
+    int total_v_scan_points_;
+    int num_v_scan_points_;
+    double v_scan_limit_;
+    std_msgs::String v_scan_start_loc_;
+    double v_sensor_max_dist_;
+    double v_sensor_min_dist_;
+    int v_scan_start_index_;
+    double v_sensor_min_noise_;
+    bool reverse_v_scan_;
 
     // Safety
     bool enable_safety_boundary_;
@@ -139,30 +160,46 @@ class NearnessController {
     double r_k_1_;
     double r_k_2_;
     double r_max_;
+    double w_k_1_;
+    double w_k_2_;
+    double w_max_;
 
 
     // Init
     std::vector<float> h_gamma_vector_;
+    std::vector<float> v_gamma_vector_;
     std::vector<float> safety_boundary_;
     int left_corner_index_;
     bool flag_too_close_;
-    float dg_;
+    float h_dg_;
+    float v_dg_;
     float range_agl_;
     bool debug_;
 
-    // convertLaserscan2CVMat
+    // converHtLaserscan2CVMat
     int h_num_fourier_terms_;
     cv::Mat h_depth_cvmat_;
+
+    // convertVLaserscan2CVMat
+    int v_num_fourier_terms_;
+    cv::Mat v_depth_cvmat_;
 
     // computeHorizFourierCoeffs
     float h_a_[10], h_b_[10];
     cv::Mat h_nearness_;
+
+    // computeVertFourierCoeffs
+    float v_a_[10], v_b_[10];
+    cv::Mat v_nearness_;
 
     // computeForwardSpeedCommand
     float u_cmd_;
 
     // computeWFYawRateCommand
     float h_wf_r_cmd_;
+
+    // computeVertFourierCoeffs
+    float v_wf_w_cmd_;
 
     // publishControlCommandMsg
     geometry_msgs::TwistStamped control_command_;
