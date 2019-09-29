@@ -37,7 +37,7 @@ void NearnessController::init() {
     pub_v_fourier_coefficients_ = nh_.advertise<nearness_control::FourierCoefsMsg>("vert_fourier_coefficients", 10);
     pub_control_commands_ = nh_.advertise<geometry_msgs::TwistStamped>("control_commands", 10);
     pub_sim_control_commands_ = nh_.advertise<geometry_msgs::TwistStamped>("sim_control_commands", 10);
-    pub_sf_control_commands_ = nh_.advertise<geometry_msgs::Twist>("sf_control_command", 10);
+    pub_h_sf_yawrate_command_ = nh_.advertise<std_msgs::Float32>("sf_yawrate_command", 10);
     pub_vehicle_status_ = nh_.advertise<std_msgs::Int32>("vehicle_status", 10);
 
     // Import parameters
@@ -74,6 +74,7 @@ void NearnessController::init() {
     nh_.param("/nearness_control_node/side_safety_distance", s_dist_, .5);
     nh_.param("/nearness_control_node/safety_radius", safety_radius_, .5);
 
+    // Wide Field controller gains
     nh_.param("/nearness_control_node/forward_speed_k_hb_1", u_k_hb_1_, 0.0);
     nh_.param("/nearness_control_node/forward_speed_k_hb_2", u_k_hb_2_, 3.5);
     nh_.param("/nearness_control_node/forward_speed_k_vb_1", u_k_vb_1_, 0.0);
@@ -85,9 +86,23 @@ void NearnessController::init() {
     nh_.param("/nearness_control_node/yaw_rate_k_vb_1", r_k_vb_1_, 2.0);
     nh_.param("/nearness_control_node/yaw_rate_k_vb_2", r_k_vb_2_, 2.0);
     nh_.param("/nearness_control_node/yaw_rate_max", r_max_, 2.0);
+    nh_.param("/nearness_control_node/h_sf_k_0", h_sf_k_0_, 2.0);
+    nh_.param("/nearness_control_node/h_sf_k_d", h_sf_k_d_, 2.0);
+    nh_.param("/nearness_control_node/h_sf_k_psi", h_sf_k_psi_, 2.0);
+    nh_.param("/nearness_control_node/h_sf_k_thresh", h_sf_k_thresh_, 2.0);
+    nh_.param("/nearness_control_node/v_sf_k_0", v_sf_k_0_, 2.0);
+    nh_.param("/nearness_control_node/v_sf_k_d", v_sf_k_d_, 2.0);
+    nh_.param("/nearness_control_node/v_sf_k_psi", v_sf_k_psi_, 2.0);
+    nh_.param("/nearness_control_node/v_sf_k_thresh", v_sf_k_thresh_, 2.0);
+
     nh_.param("/nearness_control_node/vert_speed_k_vb_1", w_k_1_, 2.0);
     nh_.param("/nearness_control_node/vert_speed_k_vb_2", w_k_2_, 2.0);
     nh_.param("/nearness_control_node/vert_speed_max", w_max_, 2.0);
+
+    // Small field controller gains
+    nh_.param("/nearness_control_node/sf_k_thresh", sf_k_thresh_, 3.0);
+
+
 
     if(enable_gain_scaling_){
       r_k_hb_2_ = 1.0*u_max_;
@@ -138,6 +153,16 @@ void NearnessController::configCb(Config &config, uint32_t level)
     r_k_hb_2_ = config_.yaw_rate_k_hb_2;
     r_max_ = config_.yaw_rate_max;
 
+    h_sf_k_thresh_ = config_.h_sf_k_thresh;
+    h_sf_k_0_ = config_.h_sf_k_0;
+    h_sf_k_psi_ = config_.h_sf_k_psi;
+    h_sf_k_d_ = config_.h_sf_k_d;
+
+    v_sf_k_thresh_ = config_.v_sf_k_thresh;
+    v_sf_k_0_ = config_.v_sf_k_0;
+    v_sf_k_psi_ = config_.v_sf_k_psi;
+    v_sf_k_d_ = config_.v_sf_k_d;
+
     v_k_hb_1_ = config_.lateral_speed_k_hb_1;
     v_max_ = config_.lateral_speed_max;
 
@@ -168,6 +193,8 @@ void NearnessController::horizLaserscanCb(const sensor_msgs::LaserScanPtr h_lase
 
     computeLateralSpeedCommand();
 
+    computeSFYawRateCommand();
+
     publishControlCommandMsg();
 
 }
@@ -179,6 +206,9 @@ void NearnessController::vertLaserscanCb(const sensor_msgs::LaserScanPtr v_laser
   computeVertFourierCoeffs();
 
   computeWFVerticalSpeedCommand();
+
+  computeSFVerticalSpeedCommand();
+
 }
 
 void NearnessController::convertHLaserscan2CVMat(const sensor_msgs::LaserScanPtr h_laserscan_msg){
@@ -419,6 +449,136 @@ void NearnessController::computeVertFourierCoeffs(){
         pub_v_fourier_coefficients_.publish(v_fourier_coefs_msg);
 } // End of computeVertFourierCoeffs
 
+void NearnessController::computeSFYawRateCommand(){
+    std::vector<float> recon_wf_nearness;
+    std::vector<float> h_sf_nearness;
+
+    // Reconstruct the WF signal
+    for(int i = 0; i < num_h_scan_points_; i++){
+        recon_wf_nearness[i] = 0.0;
+        for(int n = 0; n < h_num_fourier_terms_; n++){
+            recon_wf_nearness[i] += h_a_[n+1]*cos((n+1)*h_gamma_vector_[i]) + h_b_[n+1]*sin((n+1)*h_gamma_vector_[i]);
+        }
+        recon_wf_nearness[i] += h_a_[0]/2.0;
+    }
+
+    // Remove the reoconstructed WF signal from the measured nearness signal
+    float h_sf_mean_sum = 0.0;
+    float h_sf_mean_val = 0.0;
+    for(int i=0; i < num_h_scan_points_; i++){
+        h_sf_nearness[i] = abs(h_nearness_[i] - recon_wf_nearness[i]);
+        h_sf_mean_sum += h_sf_nearness[i];
+    }
+
+    // Compute the standard deviation of the SF signal
+    h_sf_mean_val = h_sf_mean_sum / num_h_scan_points_;
+    float h_sf_std_dev = 0.0;
+    for (int i= 0; i < num_h_scan_points_; i++){
+        h_sf_std_dev += pow((h_sf_nearness[i] - h_sf_mean_val), 2);
+    }
+    h_sf_std_dev = pow(std_dev / num_h_scan_points_, .5);
+    float h_sf_min_threshold = h_sf_k_thresh_ * h_sf_std_dev;
+
+    // Find the max value of the signal and determine if it is greaster
+    // than the dynamic threshold
+    int h_sf_max_val_index = std::max_element(h_sf_nearness.begin(), h_sf_nearness.end()) - h_sf_nearness.begin();
+    float h_sf_max_val = *std::max_element(h_sf_nearness.begin(), h_sf_nearness.end());
+
+    float d_0 = abs(h_sf_nearness[h_sf_max_val_index]);
+    float r_0 = h_gamma_vector_[h_sf_max_val_index];
+
+    // Compute the sf steering control command
+    if(d_0 > h_sf_min_threshold && ((r_0 > (-M_PI/2 + .01)) && (r_0 < (M_PI - .01)))){
+        h_sf_r_cmd_ = h_sf_k_0_ * sgn(r_0) * exp(-h_sf_k_psi_ * abs(r_0)) * exp(-h_sf_k_d_/abs(d_0));
+    }
+
+    // Publish sf nearness signal
+    if(debug_){
+        std::msgs Float32 h_sf_cmd_msg;
+        h_sf_cmd_msg.data = h_sf_r_cmd;
+        pub_h_sf_yawrate_command_.publish(h_sf_cmd_msg);
+
+        std_msgs::Float32MultiArray h_sf_nearness_msg;
+        h_sf_nearness_msg.layout.dim.push_back(std_msgs::MultiArrayDimension());
+        h_sf_nearness_msg.layout.dim[0].size = h_sf_nearness.size();
+        h_sf_nearness_msg.data.clear();
+        h_sf_nearness_msg.data.insert(h_sf_nearness_msg.data.end(), h_sf_nearness.begin(), h_sf_nearness.end());
+        pub_h_sf_nearness_.publish(h_sf_nearness_msg);
+
+        std_msgs::Float32MultiArray recon_wf_nearness_msg;
+        recon_wf_nearness_msg.layout.dim.push_back(std_msgs::MultiArrayDimension());
+        recon_wf_nearness_msg.layout.dim[0].size = recon_wf_nearness.size();
+        recon_wf_nearness_msg.data.clear();
+        recon_wf_nearness_msg.data.insert(recon_wf_nearness_msg.data.end(), recon_wf_nearness.begin(), recon_wf_nearness.end());
+        pub_h_recon_wf_nearness_.publish(recon_wf_nearness_msg);
+    }
+}
+
+void NearnessController::computeSFVerticalSpeedCommand(){
+    std::vector<float> recon_wf_nearness;
+    std::vector<float> v_sf_nearness;
+
+    // Reconstruct the WF signal
+    for(int i = 0; i < num_v_scan_points_; i++){
+        recon_wf_nearness[i] = 0.0;
+        for(int n = 0; n < v_num_fourier_terms_; n++){
+            recon_wf_nearness[i] += v_a_[n+1]*cos((n+1)*v_gamma_vector_[i]) + v_b_[n+1]*sin((n+1)*v_gamma_vector_[i]);
+        }
+        recon_wf_nearness[i] += v_a_[0]/2.0;
+    }
+
+    // Remove the reoconstructed WF signal from the measured nearness signal
+    float v_sf_mean_sum = 0.0;
+    float v_sf_mean_val = 0.0;
+    for(int i=0; i < num_v_scan_points_; i++){
+        v_sf_nearness[i] = abs(v_nearness_[i] - recon_wf_nearness[i]);
+        v_sf_mean_sum += v_sf_nearness[i];
+    }
+
+    // Compute the standard deviation of the SF signal
+    v_sf_mean_val = v_sf_mean_sum / num_v_scan_points_;
+    float v_sf_std_dev = 0.0;
+    for (int i= 0; i < num_v_scan_points_; i++){
+        v_sf_std_dev += pow((v_sf_nearness[i] - v_sf_mean_val), 2);
+    }
+    v_sf_std_dev = pow(std_dev / num_v_scan_points_, .5);
+    float v_sf_min_threshold = v_sf_k_thresh_ * v_sf_std_dev;
+
+    // Find the max value of the signal and determine if it is greaster
+    // than the dynamic threshold
+    int v_sf_max_val_index = std::max_element(v_sf_nearness.begin(), v_sf_nearness.end()) - v_sf_nearness.begin();
+    float v_sf_max_val = *std::max_element(v_sf_nearness.begin(), v_sf_nearness.end());
+
+    float d_0 = abs(v_sf_nearness[v_sf_max_val_index]);
+    float r_0 = v_gamma_vector_[v_sf_max_val_index];
+
+    // Compute the sf steering control command
+    if(d_0 > v_sf_min_threshold && ((r_0 > (-M_PI/2 + .01)) && (r_0 < (M_PI - .01)))){
+        v_sf_w_cmd_ = v_sf_k_0_ * sgn(r_0) * exp(-v_sf_k_psi_ * abs(r_0)) * exp(-v_sf_k_d_/abs(d_0));
+    }
+
+    // Publish sf nearness signal
+    if(debug_){
+        std::msgs Float32 v_sf_cmd_msg;
+        v_sf_cmd_msg.data = v_sf_r_cmd;
+        pub_v_sf_vertspeed_command_.publish(v_sf_cmd_msg);
+
+        std_msgs::Float32MultiArray v_sf_nearness_msg;
+        v_sf_nearness_msg.layout.dim.push_back(std_msgs::MultiArrayDimension());
+        v_sf_nearness_msg.layout.dim[0].size = v_sf_nearness.size();
+        v_sf_nearness_msg.data.clear();
+        v_sf_nearness_msg.data.insert(v_sf_nearness_msg.data.end(), v_sf_nearness.begin(), v_sf_nearness.end());
+        pub_v_sf_nearness_.publish(v_sf_nearness_msg);
+
+        std_msgs::Float32MultiArray recon_wf_nearness_msg;
+        recon_wf_nearness_msg.layout.dim.push_back(std_msgs::MultiArrayDimension());
+        recon_wf_nearness_msg.layout.dim[0].size = recon_wf_nearness.size();
+        recon_wf_nearness_msg.data.clear();
+        recon_wf_nearness_msg.data.insert(recon_wf_nearness_msg.data.end(), recon_wf_nearness.begin(), recon_wf_nearness.end());
+        pub_v_recon_wf_nearness_.publish(recon_wf_nearness_msg);
+    }
+}
+
 void NearnessController::computeForwardSpeedCommand(){
 
     u_cmd_ = u_max_ * (1 - u_k_hb_1_*abs(h_b_[1]) - u_k_hb_2_*abs(h_b_[2]) - u_k_vb_1_*abs(v_b_[1]) - u_k_vb_2_*abs(v_b_[2]));
@@ -472,9 +632,15 @@ void NearnessController::publishControlCommandMsg(){
     control_command_.header.stamp = ros::Time::now();
     control_command_.twist.linear.x = u_cmd_;
     control_command_.twist.linear.y = h_wf_v_cmd_;
-    control_command_.twist.linear.z = v_wf_w_cmd_;
+
     //control_command_.twist.linear.z = -.5*(range_agl_ - 2.0);
-    control_command_.twist.angular.z = h_wf_r_cmd_;
+    if(enable_sf_control_){
+        control_command_.twist.angular.z = h_wf_r_cmd_ + h_sf_r_cmd_;
+        control_command_.twist.linear.z = v_wf_w_cmd_ + v_sf_w_cmd_;
+    } else {
+         control_command_.twist.angular.z = h_wf_r_cmd_;
+         control_command_.twist.linear.z = v_wf_w_cmd_;
+    }
     pub_control_commands_.publish(control_command_);
 
 }
@@ -516,6 +682,10 @@ void NearnessController::checkSafetyBoundary(std::vector<float> scan){
             }
         }
     }
+}
+
+float NearnessController::sgn(double v) {
+    return (v < 0.0) ? -1.0 : ((v > 0.0) ? 1.0 : 0.0);
 }
 
  // end of class

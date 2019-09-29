@@ -66,8 +66,10 @@ class NearnessController {
     void computeVertFourierCoeffs();
     void computeForwardSpeedCommand();
     void computeWFYawRateCommand();
+    void computeSFYawRateCommand();
     void computeLateralSpeedCommand();
     void computeWFVerticalSpeedCommand();
+    void computeSFVerticalSpeedCommand();
     void publishControlCommandMsg();
     //void calc_sf_yaw_rate_command();
     //void pub_control_command_msg();
@@ -93,16 +95,18 @@ class NearnessController {
     ros::Publisher pub_h_sf_nearness_;
     ros::Publisher pub_h_recon_wf_nearness_;
     ros::Publisher pub_h_fourier_coefficients_;
+    ros::Publisher pub_h_sf_yawrate_commands_;
 
     ros::Publisher pub_v_scan_reformat_;
     ros::Publisher pub_v_scan_nearness_;
     ros::Publisher pub_v_sf_nearness_;
     ros::Publisher pub_v_recon_wf_nearness_;
     ros::Publisher pub_v_fourier_coefficients_;
+    ros::Publisher pub_v_sf_vertspeed_commands_;
+
 
     ros::Publisher pub_control_commands_;
     ros::Publisher pub_sim_control_commands_;
-    ros::Publisher pub_sf_control_commands_;
     ros::Publisher pub_vehicle_status_;
 
     // DYNAMIC RECONFIGURE //
@@ -116,7 +120,7 @@ class NearnessController {
 
 
     // FUNCTIONS //
-    int sgn(double v);
+    float sgn(double v);
     double shortest_angle_err(const float angle1, const float angle2);
     void generateSafetyBox();
     void checkSafetyBoundary(std::vector<float> scan);
@@ -149,6 +153,7 @@ class NearnessController {
     bool enable_safety_boundary_;
     bool enable_safety_box_;
     bool enable_safety_radius_;
+    bool enable_sf_control_;
     double safety_radius_;
     double f_dist_;
     double s_dist_;
@@ -165,6 +170,14 @@ class NearnessController {
     double r_k_vb_1_;
     double r_k_vb_2_;
     double r_max_;
+    double h_sf_k_0_;
+    double h_sf_k_d_;
+    double h_sf_k_psi_;
+    double h_sf_k_thresh_;
+    double v_sf_k_0_;
+    double v_sf_k_d_;
+    double v_sf_k_psi_;
+    double v_sf_k_thresh_;
     double v_k_hb_1_;
     double v_max_;
     double w_k_1_;
@@ -199,6 +212,9 @@ class NearnessController {
     // computeVertFourierCoeffs
     float v_a_[10], v_b_[10];
     cv::Mat v_nearness_;
+
+    // computeSFYawRateCommand
+    float h_sf_r_cmd_;
 
     // computeForwardSpeedCommand
     float u_cmd_;
