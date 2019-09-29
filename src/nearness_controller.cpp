@@ -99,8 +99,6 @@ void NearnessController::init() {
     nh_.param("/nearness_control_node/vert_speed_k_vb_2", w_k_2_, 2.0);
     nh_.param("/nearness_control_node/vert_speed_max", w_max_, 2.0);
 
-    // Small field controller gains
-    nh_.param("/nearness_control_node/sf_k_thresh", sf_k_thresh_, 3.0);
 
 
 
@@ -450,6 +448,7 @@ void NearnessController::computeVertFourierCoeffs(){
 } // End of computeVertFourierCoeffs
 
 void NearnessController::computeSFYawRateCommand(){
+    std::vector<float> h_nearness(h_nearness_.begin<float>(), h_nearness_.end<float>());
     std::vector<float> recon_wf_nearness;
     std::vector<float> h_sf_nearness;
 
@@ -466,7 +465,7 @@ void NearnessController::computeSFYawRateCommand(){
     float h_sf_mean_sum = 0.0;
     float h_sf_mean_val = 0.0;
     for(int i=0; i < num_h_scan_points_; i++){
-        h_sf_nearness[i] = abs(h_nearness_[i] - recon_wf_nearness[i]);
+        h_sf_nearness[i] = abs(h_nearness[i] - recon_wf_nearness[i]);
         h_sf_mean_sum += h_sf_nearness[i];
     }
 
@@ -476,7 +475,7 @@ void NearnessController::computeSFYawRateCommand(){
     for (int i= 0; i < num_h_scan_points_; i++){
         h_sf_std_dev += pow((h_sf_nearness[i] - h_sf_mean_val), 2);
     }
-    h_sf_std_dev = pow(std_dev / num_h_scan_points_, .5);
+    h_sf_std_dev = pow(h_sf_std_dev / num_h_scan_points_, .5);
     float h_sf_min_threshold = h_sf_k_thresh_ * h_sf_std_dev;
 
     // Find the max value of the signal and determine if it is greaster
@@ -494,8 +493,8 @@ void NearnessController::computeSFYawRateCommand(){
 
     // Publish sf nearness signal
     if(debug_){
-        std::msgs Float32 h_sf_cmd_msg;
-        h_sf_cmd_msg.data = h_sf_r_cmd;
+        std_msgs::Float32 h_sf_cmd_msg;
+        h_sf_cmd_msg.data = h_sf_r_cmd_;
         pub_h_sf_yawrate_command_.publish(h_sf_cmd_msg);
 
         std_msgs::Float32MultiArray h_sf_nearness_msg;
@@ -515,6 +514,7 @@ void NearnessController::computeSFYawRateCommand(){
 }
 
 void NearnessController::computeSFVerticalSpeedCommand(){
+    std::vector<float> v_nearness(v_nearness_.begin<float>(), v_nearness_.end<float>());
     std::vector<float> recon_wf_nearness;
     std::vector<float> v_sf_nearness;
 
@@ -531,7 +531,7 @@ void NearnessController::computeSFVerticalSpeedCommand(){
     float v_sf_mean_sum = 0.0;
     float v_sf_mean_val = 0.0;
     for(int i=0; i < num_v_scan_points_; i++){
-        v_sf_nearness[i] = abs(v_nearness_[i] - recon_wf_nearness[i]);
+        v_sf_nearness[i] = abs(v_nearness[i] - recon_wf_nearness[i]);
         v_sf_mean_sum += v_sf_nearness[i];
     }
 
@@ -541,7 +541,7 @@ void NearnessController::computeSFVerticalSpeedCommand(){
     for (int i= 0; i < num_v_scan_points_; i++){
         v_sf_std_dev += pow((v_sf_nearness[i] - v_sf_mean_val), 2);
     }
-    v_sf_std_dev = pow(std_dev / num_v_scan_points_, .5);
+    v_sf_std_dev = pow(v_sf_std_dev / num_v_scan_points_, .5);
     float v_sf_min_threshold = v_sf_k_thresh_ * v_sf_std_dev;
 
     // Find the max value of the signal and determine if it is greaster
@@ -559,8 +559,8 @@ void NearnessController::computeSFVerticalSpeedCommand(){
 
     // Publish sf nearness signal
     if(debug_){
-        std::msgs Float32 v_sf_cmd_msg;
-        v_sf_cmd_msg.data = v_sf_r_cmd;
+        std_msgs::Float32 v_sf_cmd_msg;
+        v_sf_cmd_msg.data = v_sf_w_cmd_;
         pub_v_sf_vertspeed_command_.publish(v_sf_cmd_msg);
 
         std_msgs::Float32MultiArray v_sf_nearness_msg;

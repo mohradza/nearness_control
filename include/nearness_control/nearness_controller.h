@@ -95,14 +95,14 @@ class NearnessController {
     ros::Publisher pub_h_sf_nearness_;
     ros::Publisher pub_h_recon_wf_nearness_;
     ros::Publisher pub_h_fourier_coefficients_;
-    ros::Publisher pub_h_sf_yawrate_commands_;
+    ros::Publisher pub_h_sf_yawrate_command_;
 
     ros::Publisher pub_v_scan_reformat_;
     ros::Publisher pub_v_scan_nearness_;
     ros::Publisher pub_v_sf_nearness_;
     ros::Publisher pub_v_recon_wf_nearness_;
     ros::Publisher pub_v_fourier_coefficients_;
-    ros::Publisher pub_v_sf_vertspeed_commands_;
+    ros::Publisher pub_v_sf_vertspeed_command_;
 
 
     ros::Publisher pub_control_commands_;
@@ -215,6 +215,9 @@ class NearnessController {
 
     // computeSFYawRateCommand
     float h_sf_r_cmd_;
+
+    // computeSFVerticalSpeedCommand
+    float v_sf_w_cmd_;
 
     // computeForwardSpeedCommand
     float u_cmd_;
