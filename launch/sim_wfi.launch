@@ -35,12 +35,12 @@
         <param name="safety_radius" type="double" value=".5"/>
 
         <!-- Parameters for Forward Speed Controller -->
-        <param name="forward_speed_k_hb_1" type="double" value="2.0"/>
-        <param name="forward_speed_k_hb_2" type="double" value="2.0"/>
-        <param name="forward_speed_k_vb_1" type="double" value="0.5"/>
-        <param name="forward_speed_k_vb_2" type="double" value="2.0"/>
+        <param name="forward_speed_k_hb_1" type="double" value="10.0"/>
+        <param name="forward_speed_k_hb_2" type="double" value="10.0"/>
+        <param name="forward_speed_k_vb_1" type="double" value="5.0"/>
+        <param name="forward_speed_k_vb_2" type="double" value="10.0"/>
         <param name="forward_speed_min" type="double" value="0.0"/>
-        <param name="forward_speed_max" type="double" value="4.0"/>
+        <param name="forward_speed_max" type="double" value="2.0"/>
 
         <!-- Parameters for Yaw Rate Controller -->
         <param name="yaw_rate_k_hb_1" type="double" value="0.0"/>
@@ -56,5 +56,6 @@
         <param name="vert_speed_max" type="double" value="2.0"/>
 
     </node>
+
     <node pkg="topic_tools" name="control_relay" type="relay" args="/nearness_controller/control_commands command/twist" />
 </launch>
