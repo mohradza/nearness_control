@@ -29,6 +29,7 @@
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf/tf.h>
 #include <nearness_control/FourierCoefsMsg.h>
+#include <math.h>
 #include <numeric>
 #include <iterator>
 #include <vector>
@@ -98,7 +99,7 @@ class NearnessController {
     ros::Publisher pub_h_sf_nearness_;
     ros::Publisher pub_h_recon_wf_nearness_;
     ros::Publisher pub_h_fourier_coefficients_;
-    ros::Publisher pub_h_sf_yawrate_commands_;
+    ros::Publisher pub_h_sf_yawrate_command_;
 
     ros::Publisher pub_v_scan_reformat_;
     ros::Publisher pub_v_scan_nearness_;
@@ -181,6 +182,7 @@ class NearnessController {
     double v_sf_k_d_;
     double v_sf_k_psi_;
     double v_sf_k_thresh_;
+    double v_sf_w_cmd_;
     double v_k_hb_1_;
     double v_max_;
     double w_k_1_;
@@ -189,7 +191,6 @@ class NearnessController {
     double r_k_att_0_;
     double r_k_att_d_;
     bool enable_gain_scaling_;
-    bool enable_sf_control_;
     bool enable_attractor_control_;
 
 
@@ -246,9 +247,9 @@ class NearnessController {
 
     // odomCb
     geometry_msgs::Point current_pos_;
-    float current_roll_;
-    float current_pitch_;
-    float current_heading_;
+    double current_roll_;
+    double current_pitch_;
+    double current_heading_;
 
 
 }; // class SimpleNodeClass

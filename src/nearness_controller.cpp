@@ -104,10 +104,6 @@ void NearnessController::init() {
     nh_.param("/nearness_control_node/vert_speed_k_vb_2", w_k_2_, 2.0);
     nh_.param("/nearness_control_node/vert_speed_max", w_max_, 2.0);
 
-    // Small field controller gains
-    nh_.param("/nearness_control_node/sf_k_thresh", sf_k_thresh_, 3.0);
-
-
 
     if(enable_gain_scaling_){
       r_k_hb_2_ = 1.0*u_max_;
@@ -617,9 +613,9 @@ void NearnessController::computeAttractorCommand(){
     float attractor_x_pos = next_waypoint_pos_.x;
     float attractor_y_pos = next_waypoint_pos_.y;
     float attractor_d = sqrt(pow((current_pos_.x - attractor_x_pos), 2) + pow((current_pos_.y - attractor_y_pos), 2));
-    float relative_attractor_heading = math.atan((attractor_y_pos - current_pos_.y), (attractor_x_pos - current_pos_.x));
+    float relative_attractor_heading = atan((attractor_y_pos - current_pos_.y)/(attractor_x_pos - current_pos_.x));
 
-    atttractor_yaw_cmd_ = r_k_att_0_*(current_heading_ - relative_attractor_heading)*exp(-r_k_att_d_*attractor_d);
+    attractor_yaw_cmd_ = r_k_att_0_*(current_heading_ - relative_attractor_heading)*exp(-r_k_att_d_*attractor_d);
 }
 
 void NearnessController::computeLateralSpeedCommand(){
