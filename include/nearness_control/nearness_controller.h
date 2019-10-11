@@ -29,6 +29,7 @@
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf/tf.h>
 #include <nearness_control/FourierCoefsMsg.h>
+#include <math.h>
 #include <numeric>
 #include <iterator>
 #include <vector>
@@ -57,9 +58,10 @@ class NearnessController {
     void vertLaserscanCb(const sensor_msgs::LaserScanPtr v_laserscan_msg);
 
     //void joyconCb(const sensor_msgs::JoyConstPtr& joy_msg);
-    //void odomCb(const nav_msgs::OdometryConstPtr& odom_msg);
+    void odomCb(const nav_msgs::OdometryConstPtr& odom_msg);
     //void imuCb(const sensor_msgs::ImuConstPtr& imu_msg);
     void sonarHeightCb(const sensor_msgs::RangeConstPtr& range_msg);
+    void nextWaypointCb(const geometry_msgs::PoseStampedConstPtr& next_waypoint_msg);
     void convertHLaserscan2CVMat(const sensor_msgs::LaserScanPtr h_laserscan_msg);
     void convertVLaserscan2CVMat(const sensor_msgs::LaserScanPtr v_laserscan_msg);
     void computeHorizFourierCoeffs();
@@ -67,6 +69,7 @@ class NearnessController {
     void computeForwardSpeedCommand();
     void computeWFYawRateCommand();
     void computeSFYawRateCommand();
+    void computeAttractorCommand();
     void computeLateralSpeedCommand();
     void computeWFVerticalSpeedCommand();
     void computeSFVerticalSpeedCommand();
@@ -88,6 +91,7 @@ class NearnessController {
     ros::Subscriber sub_odom_;
     ros::Subscriber sub_imu_;
     ros::Subscriber sub_sonar_height_;
+    ros::Subscriber sub_next_waypoint_;
 
     // PUBLISHERS //
     ros::Publisher pub_h_scan_reformat_;
@@ -178,12 +182,16 @@ class NearnessController {
     double v_sf_k_d_;
     double v_sf_k_psi_;
     double v_sf_k_thresh_;
+    double v_sf_w_cmd_;
     double v_k_hb_1_;
     double v_max_;
     double w_k_1_;
     double w_k_2_;
     double w_max_;
+    double r_k_att_0_;
+    double r_k_att_d_;
     bool enable_gain_scaling_;
+    bool enable_attractor_control_;
 
 
     // Init
@@ -216,8 +224,8 @@ class NearnessController {
     // computeSFYawRateCommand
     float h_sf_r_cmd_;
 
-    // computeSFVerticalSpeedCommand
-    float v_sf_w_cmd_;
+    // computeAttractorCommand
+    float attractor_yaw_cmd_;
 
     // computeForwardSpeedCommand
     float u_cmd_;
@@ -233,6 +241,16 @@ class NearnessController {
 
     // publishControlCommandMsg
     geometry_msgs::TwistStamped control_command_;
+
+    // nextWaypointCb
+    geometry_msgs::Point next_waypoint_pos_;
+
+    // odomCb
+    geometry_msgs::Point current_pos_;
+    double current_roll_;
+    double current_pitch_;
+    double current_heading_;
+
 
 }; // class SimpleNodeClass
 

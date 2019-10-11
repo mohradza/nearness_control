@@ -20,9 +20,11 @@ void NearnessController::init() {
     // Set up subscribers and callbacks
     sub_horiz_laserscan_ = nh_.subscribe("horiz_scan", 1, &NearnessController::horizLaserscanCb, this);
     sub_vert_laserscan_ = nh_.subscribe("vert_scan", 1, &NearnessController::vertLaserscanCb, this);
-    //sub_odom_ = nh_.subscribe("odometry", 1, &NearnessController::odomCb, this);
+    sub_odom_ = nh_.subscribe("odometry", 1, &NearnessController::odomCb, this);
     //sub_imu_ = nh_.subscribe("imu_raw", 1, &NearnessController::imuCb, this);
     sub_sonar_height_ = nh_.subscribe("/sonar_height", 1, &NearnessController::sonarHeightCb, this);
+
+    sub_next_waypoint_ = nh_.subscribe("next_waypoint", 1, &NearnessController::nextWaypointCb, this);
 
     // Set up publishers
     pub_h_scan_reformat_ = nh_.advertise<std_msgs::Float32MultiArray>("horiz_depth_reformat", 10);
@@ -45,6 +47,9 @@ void NearnessController::init() {
     h_num_fourier_terms_ = 5;
     v_num_fourier_terms_ = 5;
     enable_gain_scaling_ = true;
+    enable_sf_control_ = false;
+    enable_attractor_control_ = false;
+
     nh_.param("/nearness_control_node/total_horiz_scan_points", total_h_scan_points_, 1440);
     ROS_INFO("%d", total_h_scan_points_);
     nh_.param("/nearness_control_node/num_horiz_scan_points", num_h_scan_points_, 720);
@@ -98,8 +103,6 @@ void NearnessController::init() {
     nh_.param("/nearness_control_node/vert_speed_k_vb_1", w_k_1_, 2.0);
     nh_.param("/nearness_control_node/vert_speed_k_vb_2", w_k_2_, 2.0);
     nh_.param("/nearness_control_node/vert_speed_max", w_max_, 2.0);
-
-
 
 
     if(enable_gain_scaling_){
@@ -191,7 +194,13 @@ void NearnessController::horizLaserscanCb(const sensor_msgs::LaserScanPtr h_lase
 
     computeLateralSpeedCommand();
 
-    computeSFYawRateCommand();
+    if(enable_sf_control_){
+        computeSFYawRateCommand();
+    }
+
+    if(enable_attractor_control_){
+        computeAttractorCommand();
+    }
 
     publishControlCommandMsg();
 
@@ -602,6 +611,15 @@ void NearnessController::computeWFYawRateCommand(){
     }
 } // End of computeWFYawRateCommand
 
+void NearnessController::computeAttractorCommand(){
+    float attractor_x_pos = next_waypoint_pos_.x;
+    float attractor_y_pos = next_waypoint_pos_.y;
+    float attractor_d = sqrt(pow((current_pos_.x - attractor_x_pos), 2) + pow((current_pos_.y - attractor_y_pos), 2));
+    float relative_attractor_heading = atan((attractor_y_pos - current_pos_.y)/(attractor_x_pos - current_pos_.x));
+
+    attractor_yaw_cmd_ = r_k_att_0_*(current_heading_ - relative_attractor_heading)*exp(-r_k_att_d_*attractor_d);
+}
+
 void NearnessController::computeLateralSpeedCommand(){
     h_wf_v_cmd_ = v_k_hb_1_*h_b_[1];
     if(h_wf_v_cmd_ < -v_max_) {
@@ -641,13 +659,29 @@ void NearnessController::publishControlCommandMsg(){
          control_command_.twist.angular.z = h_wf_r_cmd_;
          control_command_.twist.linear.z = v_wf_w_cmd_;
     }
+
+    if(enable_attractor_control_){
+        control_command_.twist.angular.z += attractor_yaw_cmd_;
+    }
+
     pub_control_commands_.publish(control_command_);
 
 }
 
+void NearnessController::odomCb(const nav_msgs::OdometryConstPtr& odom_msg){
+    current_pos_ = odom_msg->pose.pose.position;
+    geometry_msgs::Quaternion vehicle_quat_msg = odom_msg->pose.pose.orientation;
+    tf::Quaternion vehicle_quat_tf;
+    tf::quaternionMsgToTF(vehicle_quat_msg, vehicle_quat_tf);
+    tf::Matrix3x3(vehicle_quat_tf).getRPY(current_roll_, current_pitch_, current_heading_);
+}
 
 void NearnessController::sonarHeightCb(const sensor_msgs::RangeConstPtr& range_msg){
     range_agl_ = range_msg->range;
+}
+
+void NearnessController::nextWaypointCb(const geometry_msgs::PoseStampedConstPtr& next_waypoint_msg){
+    next_waypoint_pos_ = next_waypoint_msg->pose.position;
 }
 
 void NearnessController::generateSafetyBox(){
