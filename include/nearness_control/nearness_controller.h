@@ -57,7 +57,7 @@ class NearnessController {
     void horizLaserscanCb(const sensor_msgs::LaserScanPtr h_laserscan_msg);
     void vertLaserscanCb(const sensor_msgs::LaserScanPtr v_laserscan_msg);
 
-    //void joyconCb(const sensor_msgs::JoyConstPtr& joy_msg);
+    void joyconCb(const sensor_msgs::JoyConstPtr& joy_msg);
     void odomCb(const nav_msgs::OdometryConstPtr& odom_msg);
     //void imuCb(const sensor_msgs::ImuConstPtr& imu_msg);
     void sonarHeightCb(const sensor_msgs::RangeConstPtr& range_msg);
@@ -160,6 +160,7 @@ class NearnessController {
     bool enable_safety_box_;
     bool enable_safety_radius_;
     bool enable_sf_control_;
+    bool flag_estop_;
     double safety_radius_;
     double f_dist_;
     double s_dist_;

@@ -16,12 +16,15 @@ void NearnessController::init() {
 
     debug_ = true;
     is_ground_vehicle_ = true;
+    flag_estop_ = true;
     control_command_.header.frame_id = "/base_stabilized";
 
     // Set up subscribers and callbacks
     sub_horiz_laserscan_ = nh_.subscribe("horiz_scan", 1, &NearnessController::horizLaserscanCb, this);
     sub_vert_laserscan_ = nh_.subscribe("vert_scan", 1, &NearnessController::vertLaserscanCb, this);
     sub_odom_ = nh_.subscribe("odometry", 1, &NearnessController::odomCb, this);
+    sub_bluetooth_joy_ = nh_.subscribe("joy", 1, &NearnessController::joyconCb, this);
+
     //sub_imu_ = nh_.subscribe("imu_raw", 1, &NearnessController::imuCb, this);
     sub_sonar_height_ = nh_.subscribe("/sonar_height", 1, &NearnessController::sonarHeightCb, this);
 
@@ -49,9 +52,9 @@ void NearnessController::init() {
     v_num_fourier_terms_ = 5;
     enable_gain_scaling_ = true;
     enable_sf_control_ = false;
-    enable_attractor_control_ = true;
+    enable_attractor_control_ = false;
     have_attractor_ = false;
-    enable_wf_control_ = false;
+    enable_wf_control_ = true;
 
     nh_.param("/nearness_control_node/total_horiz_scan_points", total_h_scan_points_, 1440);
     ROS_INFO("%d", total_h_scan_points_);
@@ -692,11 +695,21 @@ void NearnessController::publishControlCommandMsg(){
         control_command_.twist.linear.y = 0.0;
     }
 
-    if(!have_attractor_){
+    if(!have_attractor_ && enable_attractor_control_){
         control_command_.twist.linear.x = 0.0;
     }
 
     saturateControls();
+
+    if(flag_estop_){
+        control_command_.twist.linear.x = 0.0;
+        control_command_.twist.linear.y = 0.0;
+        control_command_.twist.linear.z = 0.0;
+
+        control_command_.twist.angular.x = 0.0;
+        control_command_.twist.angular.y = 0.0;
+        control_command_.twist.angular.z = 0.0;
+    }
 
     pub_control_commands_.publish(control_command_);
 
@@ -716,6 +729,17 @@ void NearnessController::odomCb(const nav_msgs::OdometryConstPtr& odom_msg){
 
 void NearnessController::sonarHeightCb(const sensor_msgs::RangeConstPtr& range_msg){
     range_agl_ = range_msg->range;
+}
+
+void NearnessController::joyconCb(const sensor_msgs::JoyConstPtr& joy_msg)
+{
+    if((joy_msg->buttons[7] == 1)){
+        flag_estop_ = false;
+    }
+	  if(joy_msg->buttons[6] == 1){
+        flag_estop_ = true;
+	      ROS_INFO_THROTTLE(2,"Controller ESTOP engaged");
+    }
 }
 
 void NearnessController::nextWaypointCb(const geometry_msgs::PointStampedConstPtr& next_waypoint_msg){
