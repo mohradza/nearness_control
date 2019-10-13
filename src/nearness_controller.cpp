@@ -15,6 +15,7 @@ void NearnessController::init() {
     reconfigure_server_->setCallback(f);
 
     debug_ = true;
+    is_ground_vehicle_ = true;
     control_command_.header.frame_id = "/base_stabilized";
 
     // Set up subscribers and callbacks
@@ -38,7 +39,7 @@ void NearnessController::init() {
     pub_v_recon_wf_nearness_ = nh_.advertise<std_msgs::Float32MultiArray>("vert_recon_wf_nearness", 10);
     pub_v_fourier_coefficients_ = nh_.advertise<nearness_control::FourierCoefsMsg>("vert_fourier_coefficients", 10);
     pub_control_commands_ = nh_.advertise<geometry_msgs::TwistStamped>("control_commands", 10);
-    pub_sim_control_commands_ = nh_.advertise<geometry_msgs::TwistStamped>("sim_control_commands", 10);
+    pub_sim_control_commands_ = nh_.advertise<geometry_msgs::Twist>("sim_control_commands", 10);
     pub_h_sf_yawrate_command_ = nh_.advertise<std_msgs::Float32>("sf_yawrate_command", 10);
     pub_vehicle_status_ = nh_.advertise<std_msgs::Int32>("vehicle_status", 10);
 
@@ -48,7 +49,9 @@ void NearnessController::init() {
     v_num_fourier_terms_ = 5;
     enable_gain_scaling_ = true;
     enable_sf_control_ = false;
-    enable_attractor_control_ = false;
+    enable_attractor_control_ = true;
+    have_attractor_ = false;
+    enable_wf_control_ = false;
 
     nh_.param("/nearness_control_node/total_horiz_scan_points", total_h_scan_points_, 1440);
     ROS_INFO("%d", total_h_scan_points_);
@@ -90,6 +93,8 @@ void NearnessController::init() {
     nh_.param("/nearness_control_node/yaw_rate_k_hb_2", r_k_hb_2_, 2.0);
     nh_.param("/nearness_control_node/yaw_rate_k_vb_1", r_k_vb_1_, 2.0);
     nh_.param("/nearness_control_node/yaw_rate_k_vb_2", r_k_vb_2_, 2.0);
+    nh_.param("/nearness_control_node/yaw_rate_k_att_0", r_k_att_0_, 1.0);
+    nh_.param("/nearness_control_node/yaw_rate_k_att_d_", r_k_att_d_, 0.1);
     nh_.param("/nearness_control_node/yaw_rate_max", r_max_, 2.0);
     nh_.param("/nearness_control_node/h_sf_k_0", h_sf_k_0_, 2.0);
     nh_.param("/nearness_control_node/h_sf_k_d", h_sf_k_d_, 2.0);
@@ -154,6 +159,9 @@ void NearnessController::configCb(Config &config, uint32_t level)
     r_k_hb_2_ = config_.yaw_rate_k_hb_2;
     r_max_ = config_.yaw_rate_max;
 
+    r_k_att_0_ = config.yaw_rate_k_att_0;
+    r_k_att_d_ = config.yaw_rate_k_att_d;
+
     h_sf_k_thresh_ = config_.h_sf_k_thresh;
     h_sf_k_0_ = config_.h_sf_k_0;
     h_sf_k_psi_ = config_.h_sf_k_psi;
@@ -192,7 +200,9 @@ void NearnessController::horizLaserscanCb(const sensor_msgs::LaserScanPtr h_lase
 
     computeWFYawRateCommand();
 
-    computeLateralSpeedCommand();
+    if(!is_ground_vehicle_){
+        computeLateralSpeedCommand();
+    }
 
     if(enable_sf_control_){
         computeSFYawRateCommand();
@@ -612,12 +622,20 @@ void NearnessController::computeWFYawRateCommand(){
 } // End of computeWFYawRateCommand
 
 void NearnessController::computeAttractorCommand(){
-    float attractor_x_pos = next_waypoint_pos_.x;
-    float attractor_y_pos = next_waypoint_pos_.y;
-    float attractor_d = sqrt(pow((current_pos_.x - attractor_x_pos), 2) + pow((current_pos_.y - attractor_y_pos), 2));
-    float relative_attractor_heading = atan((attractor_y_pos - current_pos_.y)/(attractor_x_pos - current_pos_.x));
+    if(have_attractor_){
+        float attractor_x_pos = next_waypoint_pos_.x;
+        float attractor_y_pos = next_waypoint_pos_.y;
+        //ROS_INFO_THROTTLE(.5,"x: %f, y: %f", current_pos_.x, current_pos_.y);
+        float attractor_d = sqrt(pow((current_pos_.x - attractor_x_pos), 2) + pow((current_pos_.y - attractor_y_pos), 2));
+        float relative_attractor_heading = atan2((attractor_y_pos - current_pos_.y),(attractor_x_pos - current_pos_.x));
 
-    attractor_yaw_cmd_ = r_k_att_0_*(current_heading_ - relative_attractor_heading)*exp(-r_k_att_d_*attractor_d);
+        attractor_yaw_cmd_ = r_k_att_0_*wrapAngle(current_heading_ - relative_attractor_heading)*exp(-r_k_att_d_*attractor_d);
+        //float attractor_yaw_cmd = r_k_att_0_*wrapAngle(current_heading_ - relative_attractor_heading)*exp(-r_k_att_d_*attractor_d);
+        //ROS_INFO_THROTTLE(.5,"del_t: %1.2f, e: %1.2f, yaw_cmd: %1.2f", wrapAngle(current_heading_ - relative_attractor_heading), exp(-r_k_att_d_*attractor_d), attractor_yaw_cmd);
+
+    } else {
+        attractor_yaw_cmd_ = 0.0;
+    }
 }
 
 void NearnessController::computeLateralSpeedCommand(){
@@ -642,29 +660,49 @@ void NearnessController::computeWFVerticalSpeedCommand(){
 
 void NearnessController::publishControlCommandMsg(){
 
-    // Unused controller inputs
-
-    control_command_.twist.angular.x = 0;
-    control_command_.twist.angular.y = 0;
-
     control_command_.header.stamp = ros::Time::now();
     control_command_.twist.linear.x = u_cmd_;
-    control_command_.twist.linear.y = h_wf_v_cmd_;
+    control_command_.twist.linear.y = 0.0;
+    control_command_.twist.linear.z = 0.0;
+
+    control_command_.twist.angular.x = 0.0;
+    control_command_.twist.angular.y = 0.0;
+    control_command_.twist.angular.z = 0.0;
+
+    if(enable_wf_control_){
+        control_command_.twist.linear.y = h_wf_v_cmd_;
+        control_command_.twist.linear.z = v_wf_w_cmd_;
+        control_command_.twist.angular.z = h_wf_r_cmd_;
+
+    }
 
     //control_command_.twist.linear.z = -.5*(range_agl_ - 2.0);
     if(enable_sf_control_){
-        control_command_.twist.angular.z = h_wf_r_cmd_ + h_sf_r_cmd_;
-        control_command_.twist.linear.z = v_wf_w_cmd_ + v_sf_w_cmd_;
-    } else {
-         control_command_.twist.angular.z = h_wf_r_cmd_;
-         control_command_.twist.linear.z = v_wf_w_cmd_;
+        control_command_.twist.angular.z += h_sf_r_cmd_;
+        control_command_.twist.linear.z += v_sf_w_cmd_;
     }
 
     if(enable_attractor_control_){
         control_command_.twist.angular.z += attractor_yaw_cmd_;
+        control_command_.twist.linear.x = .25;
     }
 
+    if(is_ground_vehicle_){
+        control_command_.twist.linear.z = 0.0;
+        control_command_.twist.linear.y = 0.0;
+    }
+
+    if(!have_attractor_){
+        control_command_.twist.linear.x = 0.0;
+    }
+
+    saturateControls();
+
     pub_control_commands_.publish(control_command_);
+
+    geometry_msgs::Twist sim_cmd_msg;
+    sim_cmd_msg = control_command_.twist;
+    pub_sim_control_commands_.publish(sim_cmd_msg);
 
 }
 
@@ -680,8 +718,12 @@ void NearnessController::sonarHeightCb(const sensor_msgs::RangeConstPtr& range_m
     range_agl_ = range_msg->range;
 }
 
-void NearnessController::nextWaypointCb(const geometry_msgs::PoseStampedConstPtr& next_waypoint_msg){
-    next_waypoint_pos_ = next_waypoint_msg->pose.position;
+void NearnessController::nextWaypointCb(const geometry_msgs::PointStampedConstPtr& next_waypoint_msg){
+    ROS_INFO("Received waypoint");
+    next_waypoint_pos_ = next_waypoint_msg->point;
+    if (!have_attractor_){
+        have_attractor_ = true;
+    }
 }
 
 void NearnessController::generateSafetyBox(){
@@ -720,6 +762,25 @@ void NearnessController::checkSafetyBoundary(std::vector<float> scan){
 
 float NearnessController::sgn(double v) {
     return (v < 0.0) ? -1.0 : ((v > 0.0) ? 1.0 : 0.0);
+}
+
+void NearnessController::saturateControls(){
+    if(control_command_.twist.angular.z > r_max_){
+        control_command_.twist.angular.z = r_max_;
+    } else if (control_command_.twist.angular.z < -r_max_){
+        control_command_.twist.angular.z = -r_max_;
+    }
+}
+
+float NearnessController::wrapAngle(float angle){
+    if (angle > M_PI){
+        angle -= 2*M_PI;
+    } else if( angle < -M_PI){
+        angle += 2*M_PI;
+    }
+
+    return angle;
+
 }
 
  // end of class

@@ -61,7 +61,7 @@ class NearnessController {
     void odomCb(const nav_msgs::OdometryConstPtr& odom_msg);
     //void imuCb(const sensor_msgs::ImuConstPtr& imu_msg);
     void sonarHeightCb(const sensor_msgs::RangeConstPtr& range_msg);
-    void nextWaypointCb(const geometry_msgs::PoseStampedConstPtr& next_waypoint_msg);
+    void nextWaypointCb(const geometry_msgs::PointStampedConstPtr& next_waypoint_msg);
     void convertHLaserscan2CVMat(const sensor_msgs::LaserScanPtr h_laserscan_msg);
     void convertVLaserscan2CVMat(const sensor_msgs::LaserScanPtr v_laserscan_msg);
     void computeHorizFourierCoeffs();
@@ -128,6 +128,8 @@ class NearnessController {
     double shortest_angle_err(const float angle1, const float angle2);
     void generateSafetyBox();
     void checkSafetyBoundary(std::vector<float> scan);
+    void saturateControls();
+    float wrapAngle(float angle);
 
     // GLOBAL VARIABLES //
 
@@ -192,6 +194,9 @@ class NearnessController {
     double r_k_att_d_;
     bool enable_gain_scaling_;
     bool enable_attractor_control_;
+    bool is_ground_vehicle_;
+    bool have_attractor_;
+    bool enable_wf_control_;
 
 
     // Init

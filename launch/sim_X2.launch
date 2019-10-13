@@ -1,16 +1,10 @@
 <launch>
 
-    <include file="$(find husky_gazebo)/launch/husky_test_world.launch"/>
-
-    <node pkg="tf" name="world2odom" type="static_transform_publisher" args="0 0 0 0 0 0 /world /odom 100"/>
-
     <node pkg="nearness_control" type="nearness_controller_node" name="nearness_control_node" output="screen">
 
         <!-- SUBSCRIBED TOPICS -->
         <remap from="/nearness_controller/horiz_scan" to="scan"/>
         <remap from="/nearness_controller/vert_scan" to="scan1"/>
-        <remap from="/nearness_controller/next_waypoint" to="clicked_point"/>
-        <remap from="/nearness_controller/odometry" to="odometry/filtered"/>
 
         <!-- Sensor Parameters -->
         <param name="total_horiz_scan_points" type="int" value="1081"/>
@@ -51,10 +45,7 @@
         <!-- Parameters for Yaw Rate Controller -->
         <param name="yaw_rate_k_hb_1" type="double" value="0.0"/>
         <param name="yaw_rate_k_hb_2" type="double" value="4.0"/>  <!-- -2 -->
-        <param name="yaw_rate_max" type="double" value=".5"/>
-
-        <param name="yaw_rate_k_att_0" type="double" value="-.5"/>
-        <param name="yaw_rate_k_att_d" type="double" value="1.0"/>
+        <param name="yaw_rate_max" type="double" value="1.5"/>
 
         <param name="lateral_speed_k_hb_1" type="double" value="4.0"/>
         <param name="lateral_speed_max" type="double" value="2.0"/>
@@ -65,5 +56,5 @@
         <param name="vert_speed_max" type="double" value="2.0"/>
 
     </node>
-    <node pkg="topic_tools" name="control_relay" type="relay" args="/nearness_controller/sim_control_commands /cmd_vel" />
+    <node pkg="topic_tools" name="control_relay" type="relay" args="/nearness_controller/control_commands command/twist" />
 </launch>
