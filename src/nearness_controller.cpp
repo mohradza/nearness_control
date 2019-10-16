@@ -45,6 +45,8 @@ void NearnessController::init() {
     pub_sim_control_commands_ = nh_.advertise<geometry_msgs::Twist>("sim_control_commands", 10);
     pub_h_sf_yawrate_command_ = nh_.advertise<std_msgs::Float32>("sf_yawrate_command", 10);
     pub_vehicle_status_ = nh_.advertise<std_msgs::Int32>("vehicle_status", 10);
+    pub_estop_engage_ = nh_.advertise<std_msgs::Bool>("estop_cmd", 10);
+
 
     // Import parameters
     // Sensor
@@ -56,61 +58,61 @@ void NearnessController::init() {
     have_attractor_ = false;
     enable_wf_control_ = true;
 
-    nh_.param("/nearness_control_node/total_horiz_scan_points", total_h_scan_points_, 1440);
-    ROS_INFO("%d", total_h_scan_points_);
-    nh_.param("/nearness_control_node/num_horiz_scan_points", num_h_scan_points_, 720);
-    nh_.param("/nearness_control_node/horiz_scan_limit", h_scan_limit_, M_PI);
+    nh_.param("/H01/nearness_control_node/total_horiz_scan_points", total_h_scan_points_, 1440);
+    nh_.param("/H01/nearness_control_node/horiz_scan_limit", h_scan_limit_, M_PI);
+    nh_.param("/H01/nearness_control_node/num_horiz_scan_points", num_h_scan_points_, 720);
     //nh_.param("/nearness_control_node/scan_start_location", scan_start_loc_, "back");
-    nh_.param("/nearness_control_node/horiz_sensor_min_distance", h_sensor_min_dist_, .1);
-    nh_.param("/nearness_control_node/horiz_sensor_max_distance", h_sensor_max_dist_, 25.0);
-    nh_.param("/nearness_control_node/horiz_scan_start_index", h_scan_start_index_, 0);
-    nh_.param("/nearness_control_node/horiz_sensor_min_noise", h_sensor_min_noise_ , .1);
-    nh_.param("/nearness_control_node/reverse_horiz_scan", reverse_h_scan_, true);
+    nh_.param("/H01/nearness_control_node/horiz_sensor_min_distance", h_sensor_min_dist_, .1);
+    nh_.param("/H01/nearness_control_node/horiz_sensor_max_distance", h_sensor_max_dist_, 25.0);
+    nh_.param("/H01/nearness_control_node/horiz_scan_start_index", h_scan_start_index_, 0);
+    ROS_INFO("%d", h_scan_start_index_);
+    nh_.param("/H01/nearness_control_node/horiz_sensor_min_noise", h_sensor_min_noise_ , .1);
+    nh_.param("/H01/nearness_control_node/reverse_horiz_scan", reverse_h_scan_, true);
 
-    nh_.param("/nearness_control_node/total_vert_scan_points", total_v_scan_points_, 1440);
-    nh_.param("/nearness_control_node/num_vert_scan_points", num_v_scan_points_, 720);
-    nh_.param("/nearness_control_node/vert_scan_limit", v_scan_limit_, M_PI);
-    //nh_.param("/nearness_control_node/scan_start_location", scan_start_loc_, "back");
-    nh_.param("/nearness_control_node/vert_sensor_min_distance", v_sensor_min_dist_, .1);
-    nh_.param("/nearness_control_node/vert_sensor_max_distance", v_sensor_max_dist_, 25.0);
-    nh_.param("/nearness_control_node/vert_scan_start_index", v_scan_start_index_, 0);
-    nh_.param("/nearness_control_node/vert_sensor_min_noise", v_sensor_min_noise_ , .1);
-    nh_.param("/nearness_control_node/reverse_vert_scan", reverse_v_scan_, false);
+    nh_.param("/H01/nearness_control_node/total_vert_scan_points", total_v_scan_points_, 1440);
+    nh_.param("/H01/nearness_control_node/num_vert_scan_points", num_v_scan_points_, 720);
+    nh_.param("/H01/nearness_control_node/vert_scan_limit", v_scan_limit_, M_PI);
+    //nh_.param("//H01/nearness_control_node/scan_start_location", scan_start_loc_, "back");
+    nh_.param("/H01/nearness_control_node/vert_sensor_min_distance", v_sensor_min_dist_, .1);
+    nh_.param("/H01/nearness_control_node/vert_sensor_max_distance", v_sensor_max_dist_, 25.0);
+    nh_.param("/H01/nearness_control_node/vert_scan_start_index", v_scan_start_index_, 0);
+    nh_.param("/H01/nearness_control_node/vert_sensor_min_noise", v_sensor_min_noise_ , .1);
+    nh_.param("/H01/nearness_control_node/reverse_vert_scan", reverse_v_scan_, false);
 
     // Safety
-    nh_.param("/nearness_control_node/enable_safety_boundary", enable_safety_boundary_, false);
-    nh_.param("/nearness_control_node/enable_safety_box", enable_safety_box_, false);
-    nh_.param("/nearness_control_node/enable_safety_radius", enable_safety_radius_, false);
-    nh_.param("/nearness_control_node/front_safety_distance", f_dist_, .5);
-    nh_.param("/nearness_control_node/side_safety_distance", s_dist_, .5);
-    nh_.param("/nearness_control_node/safety_radius", safety_radius_, .5);
+    nh_.param("/H01/nearness_control_node/enable_safety_boundary", enable_safety_boundary_, false);
+    nh_.param("/H01/nearness_control_node/enable_safety_box", enable_safety_box_, false);
+    nh_.param("/H01/nearness_control_node/enable_safety_radius", enable_safety_radius_, false);
+    nh_.param("/H01/nearness_control_node/front_safety_distance", f_dist_, .5);
+    nh_.param("/H01/nearness_control_node/side_safety_distance", s_dist_, .5);
+    nh_.param("/H01/nearness_control_node/safety_radius", safety_radius_, .5);
 
     // Wide Field controller gains
-    nh_.param("/nearness_control_node/forward_speed_k_hb_1", u_k_hb_1_, 0.0);
-    nh_.param("/nearness_control_node/forward_speed_k_hb_2", u_k_hb_2_, 3.5);
-    nh_.param("/nearness_control_node/forward_speed_k_vb_1", u_k_vb_1_, 0.0);
-    nh_.param("/nearness_control_node/forward_speed_k_vb_2", u_k_vb_2_, 3.5);
-    nh_.param("/nearness_control_node/forward_speed_min", u_min_, .1);
-    nh_.param("/nearness_control_node/forward_speed_max", u_max_, 5.0);
-    nh_.param("/nearness_control_node/yaw_rate_k_hb_1", r_k_hb_1_, 2.0);
-    nh_.param("/nearness_control_node/yaw_rate_k_hb_2", r_k_hb_2_, 2.0);
-    nh_.param("/nearness_control_node/yaw_rate_k_vb_1", r_k_vb_1_, 2.0);
-    nh_.param("/nearness_control_node/yaw_rate_k_vb_2", r_k_vb_2_, 2.0);
-    nh_.param("/nearness_control_node/yaw_rate_k_att_0", r_k_att_0_, 1.0);
-    nh_.param("/nearness_control_node/yaw_rate_k_att_d_", r_k_att_d_, 0.1);
-    nh_.param("/nearness_control_node/yaw_rate_max", r_max_, 2.0);
-    nh_.param("/nearness_control_node/h_sf_k_0", h_sf_k_0_, 2.0);
-    nh_.param("/nearness_control_node/h_sf_k_d", h_sf_k_d_, 2.0);
-    nh_.param("/nearness_control_node/h_sf_k_psi", h_sf_k_psi_, 2.0);
-    nh_.param("/nearness_control_node/h_sf_k_thresh", h_sf_k_thresh_, 2.0);
-    nh_.param("/nearness_control_node/v_sf_k_0", v_sf_k_0_, 2.0);
-    nh_.param("/nearness_control_node/v_sf_k_d", v_sf_k_d_, 2.0);
-    nh_.param("/nearness_control_node/v_sf_k_psi", v_sf_k_psi_, 2.0);
-    nh_.param("/nearness_control_node/v_sf_k_thresh", v_sf_k_thresh_, 2.0);
+    nh_.param("/H01/nearness_control_node/forward_speed_k_hb_1", u_k_hb_1_, 0.0);
+    nh_.param("/H01/nearness_control_node/forward_speed_k_hb_2", u_k_hb_2_, 3.5);
+    nh_.param("/H01/nearness_control_node/forward_speed_k_vb_1", u_k_vb_1_, 0.0);
+    nh_.param("/H01/nearness_control_node/forward_speed_k_vb_2", u_k_vb_2_, 3.5);
+    nh_.param("/H01/nearness_control_node/forward_speed_min", u_min_, .1);
+    nh_.param("/H01/nearness_control_node/forward_speed_max", u_max_, 5.0);
+    nh_.param("/H01/nearness_control_node/yaw_rate_k_hb_1", r_k_hb_1_, 2.0);
+    nh_.param("/H01/nearness_control_node/yaw_rate_k_hb_2", r_k_hb_2_, 2.0);
+    nh_.param("/H01/nearness_control_node/yaw_rate_k_vb_1", r_k_vb_1_, 2.0);
+    nh_.param("/H01/nearness_control_node/yaw_rate_k_vb_2", r_k_vb_2_, 2.0);
+    nh_.param("/H01/nearness_control_node/yaw_rate_k_att_0", r_k_att_0_, 1.0);
+    nh_.param("/H01/nearness_control_node/yaw_rate_k_att_d_", r_k_att_d_, 0.1);
+    nh_.param("/H01/nearness_control_node/yaw_rate_max", r_max_, 2.0);
+    nh_.param("/H01/nearness_control_node/h_sf_k_0", h_sf_k_0_, 2.0);
+    nh_.param("/H01/nearness_control_node/h_sf_k_d", h_sf_k_d_, 2.0);
+    nh_.param("/H01/nearness_control_node/h_sf_k_psi", h_sf_k_psi_, 2.0);
+    nh_.param("/H01/nearness_control_node/h_sf_k_thresh", h_sf_k_thresh_, 2.0);
+    nh_.param("/H01/nearness_control_node/v_sf_k_0", v_sf_k_0_, 2.0);
+    nh_.param("/H01/nearness_control_node/v_sf_k_d", v_sf_k_d_, 2.0);
+    nh_.param("/H01/nearness_control_node/v_sf_k_psi", v_sf_k_psi_, 2.0);
+    nh_.param("/H01/nearness_control_node/v_sf_k_thresh", v_sf_k_thresh_, 2.0);
 
-    nh_.param("/nearness_control_node/vert_speed_k_vb_1", w_k_1_, 2.0);
-    nh_.param("/nearness_control_node/vert_speed_k_vb_2", w_k_2_, 2.0);
-    nh_.param("/nearness_control_node/vert_speed_max", w_max_, 2.0);
+    nh_.param("/H01/nearness_control_node/vert_speed_k_vb_1", w_k_1_, 2.0);
+    nh_.param("/H01/nearness_control_node/vert_speed_k_vb_2", w_k_2_, 2.0);
+    nh_.param("/H01/nearness_control_node/vert_speed_max", w_max_, 2.0);
 
 
     if(enable_gain_scaling_){
@@ -250,28 +252,28 @@ void NearnessController::convertHLaserscan2CVMat(const sensor_msgs::LaserScanPtr
     // Reformat the depth scan depending on the orientation of the scanner
     // scan_start_loc describes the location of the first scan index
     std::vector<float> h_depth_vector_reformat;
-    h_scan_start_loc_.data = "sim";
+    h_scan_start_loc_.data = "back";
     if (h_scan_start_loc_.data == "forward"){
         h_depth_vector_reformat = h_depth_vector;
     } else if (h_scan_start_loc_.data == "right"){
-        for (int i = 3*num_h_scan_points_/4; i < num_h_scan_points_; i++) {
+        for (int i = 3*total_h_scan_points_/4; i < total_h_scan_points_; i++) {
             h_depth_vector_reformat.push_back(h_depth_vector[i]);
         }
-        for (int i = 0; i < 3*num_h_scan_points_/4; i++){
+        for (int i = 0; i < 3*total_h_scan_points_/4; i++){
             h_depth_vector_reformat.push_back(h_depth_vector[i]);
         }
     } else if (h_scan_start_loc_.data == "back"){
-        for (int i = num_h_scan_points_/2; i < num_h_scan_points_; i++) {
+        for (int i = total_h_scan_points_/2; i < total_h_scan_points_; i++) {
             h_depth_vector_reformat.push_back(h_depth_vector[i]);
         }
-        for (int i = 0; i < num_h_scan_points_/2; i++){
+        for (int i = 0; i < total_h_scan_points_/2; i++){
             h_depth_vector_reformat.push_back(h_depth_vector[i]);
         }
     } else if (h_scan_start_loc_.data == "left"){
-        for (int i = num_h_scan_points_/4; i < num_h_scan_points_; i++) {
+        for (int i = total_h_scan_points_/4; i < total_h_scan_points_; i++) {
             h_depth_vector_reformat.push_back(h_depth_vector[i]);
         }
-        for (int i = 0; i < num_h_scan_points_/4; i++){
+        for (int i = 0; i < total_h_scan_points_/4; i++){
             h_depth_vector_reformat.push_back(h_depth_vector[i]);
         }
     } else {
@@ -280,6 +282,7 @@ void NearnessController::convertHLaserscan2CVMat(const sensor_msgs::LaserScanPtr
 
     // Trim the scan down if the entire scan is not being used
     std::vector<float> h_depth_vector_trimmed;
+    //ROS_INFO("%d", h_scan_start_index_);
     for(int i=0; i<num_h_scan_points_; i++){
         h_depth_vector_trimmed.push_back(h_depth_vector_reformat[i+h_scan_start_index_]);
     }
@@ -295,6 +298,7 @@ void NearnessController::convertHLaserscan2CVMat(const sensor_msgs::LaserScanPtr
         h_depth_scan_reformat_msg.layout.dim.push_back(std_msgs::MultiArrayDimension());
         h_depth_scan_reformat_msg.data.clear();
         h_depth_scan_reformat_msg.data = h_depth_vector_trimmed;
+        //h_depth_scan_reformat_msg.data = h_depth_vector;
         pub_h_scan_reformat_.publish(h_depth_scan_reformat_msg);
     }
 
@@ -733,12 +737,27 @@ void NearnessController::sonarHeightCb(const sensor_msgs::RangeConstPtr& range_m
 
 void NearnessController::joyconCb(const sensor_msgs::JoyConstPtr& joy_msg)
 {
-    if((joy_msg->buttons[7] == 1)){
+    if((joy_msg->buttons[2] == 1)){
         flag_estop_ = false;
+        ROS_INFO_THROTTLE(2,"Controller ESTOP disengaged");
+
     }
-	  if(joy_msg->buttons[6] == 1){
+	  if(joy_msg->buttons[1] == 1){
         flag_estop_ = true;
 	      ROS_INFO_THROTTLE(2,"Controller ESTOP engaged");
+    }
+
+    if(joy_msg->buttons[7] == 1){
+        ROS_INFO_THROTTLE(1,"Disable estop");
+        std_msgs::Bool engage_msg;
+        engage_msg.data = false;
+        pub_estop_engage_.publish(engage_msg);
+    }
+    if(joy_msg->buttons[6] == 1){
+        ROS_INFO_THROTTLE(1,"Enable estop");
+        std_msgs::Bool engage_msg;
+        engage_msg.data = true;
+        pub_estop_engage_.publish(engage_msg);
     }
 }
 

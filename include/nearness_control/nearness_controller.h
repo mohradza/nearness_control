@@ -108,10 +108,11 @@ class NearnessController {
     ros::Publisher pub_v_fourier_coefficients_;
     ros::Publisher pub_v_sf_vertspeed_command_;
 
-
     ros::Publisher pub_control_commands_;
     ros::Publisher pub_sim_control_commands_;
     ros::Publisher pub_vehicle_status_;
+
+    ros::Publisher pub_estop_engage_;
 
     // DYNAMIC RECONFIGURE //
     boost::mutex connect_mutex_;
