@@ -134,10 +134,12 @@ void NearnessController::init() {
 
     // Create safety boundary
     if(enable_safety_boundary_){
+      ROS_INFO("Enabling safety boundary.");
         // Generate safety box or radius around vehicle
         if(enable_safety_box_ && !enable_safety_radius_){
             generateSafetyBox();
         } else if(enable_safety_radius_ && !enable_safety_box_){
+            ROS_INFO("Generating safety radius.");
             for(int i=0; i<num_h_scan_points_; i++){
                 safety_boundary_.push_back(safety_radius_);
             }
@@ -772,6 +774,7 @@ void NearnessController::nextWaypointCb(const geometry_msgs::PointStampedConstPt
 }
 
 void NearnessController::generateSafetyBox(){
+    ROS_INFO("Generating safety box.");
     bool safety_box_corner_switch = false;
     // Generate the left boundary
     for(int i = 0; i < num_h_scan_points_/2; i++){
@@ -793,7 +796,7 @@ void NearnessController::generateSafetyBox(){
 
 void NearnessController::checkSafetyBoundary(std::vector<float> scan){
     flag_too_close_ = false;
-    
+
     for(int i = 0; i < num_h_scan_points_; i++){
         if((scan[i] < safety_boundary_[i]) && (scan[i] > h_sensor_min_noise_)){
             if((i <= left_corner_index_) || (i >= (num_h_scan_points_ - left_corner_index_))) {
