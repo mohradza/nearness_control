@@ -14,9 +14,9 @@ void NearnessController::init() {
     ReconfigureServer::CallbackType f = boost::bind(&NearnessController::configCb, this, _1, _2);
     reconfigure_server_->setCallback(f);
 
-    debug_ = true;
+    debug_ = false;
     is_ground_vehicle_ = false;
-    flag_estop_ = false;
+    flag_estop_ = true;
     control_command_.header.frame_id = "/base_stabilized";
 
     // Set up subscribers and callbacks
@@ -53,7 +53,7 @@ void NearnessController::init() {
     h_num_fourier_terms_ = 5;
     v_num_fourier_terms_ = 5;
     enable_gain_scaling_ = false;
-    enable_sf_control_ = true;
+    enable_sf_control_ = false;
     enable_attractor_control_ = false;
     have_attractor_ = false;
     enable_wf_control_ = true;
