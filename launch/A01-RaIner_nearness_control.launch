@@ -50,13 +50,13 @@
 
         <!-- Parameters for Yaw Rate Controller -->
         <param name="yaw_rate_k_hb_1" type="double" value="0.0"/>
-        <param name="yaw_rate_k_hb_2" type="double" value="4.0"/>  <!-- -2 -->
+        <param name="yaw_rate_k_hb_2" type="double" value="-2.0"/>  <!-- -2 -->
         <param name="yaw_rate_max" type="double" value=".5"/>
 
         <param name="yaw_rate_k_att_0" type="double" value="-.5"/>
         <param name="yaw_rate_k_att_d" type="double" value="1.0"/>
 
-        <param name="lateral_speed_k_hb_1" type="double" value="4.0"/>
+        <param name="lateral_speed_k_hb_1" type="double" value="-1.0"/>
         <param name="lateral_speed_max" type="double" value="2.0"/>
 
 

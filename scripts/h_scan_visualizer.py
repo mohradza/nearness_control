@@ -7,12 +7,11 @@ import rospy
 from sensor_msgs.msg import LaserScan
 from std_msgs.msg import Float32MultiArray
 from geometry_msgs.msg import Twist
-from wfi_from_depth_sensor.msg import FourierCoefsMsg
 import matplotlib.pyplot as plt
 import pandas as pd
 
 # ~~ Setting and Constants ~~
-numReadings   = 720
+numReadings   = 360
 threshold     =   9.0
 preturn_thresh = 5.0
 plotCarts     =   1
@@ -62,7 +61,7 @@ rospy.init_node( 'scan_plot' , anonymous = True )
 rospy.Subscriber( "/nearness_controller/horiz_depth_reformat" , Float32MultiArray , depth_scan_cb )
 rospy.Subscriber( "/nearness_controller/horiz_nearness" , Float32MultiArray , nearness_cb )
 rospy.Subscriber( "/sf/horiz/sf_nearness" , Float32MultiArray , SF_cb )
-rospy.Subscriber( "/sf/horiz/recon_wf_nearness" , Float32MultiArray , WF_recon_cb )
+rospy.Subscriber( "/nearness_controller/horiz_recon_wf_nearness" , Float32MultiArray , WF_recon_cb )
 
 try:
 	while ( not rospy.is_shutdown() ):
@@ -79,8 +78,8 @@ try:
 		# plt.figure(num=1, figsize=(9, 6), dpi=80, facecolor='w', edgecolor='k')
 		plt.plot( lastDepthScanNP , 'b.' )
 		plt.hold( False )
-		plt.xlim( [ 0 , 720 ] )
-		plt.ylim( [ 0 , 15 ] )
+		plt.xlim( [ 0 , 360 ] )
+		plt.ylim( [ 0 , 15] )
 		plt.xlabel("Array Index")
 		plt.ylabel("Depth [m]")
 		plt.title("Horiz. Depth (Array Values)")
@@ -89,11 +88,8 @@ try:
 		# Horizontal Depth Scan: X [m] vs Y [m]
 		# plt.figure(num=2, figsize=(9, 6), dpi=80, facecolor='w', edgecolor='k')
 		plt.plot( lastNearnessScanNP , 'b.' )
-		plt.hold( True )
-                plt.plot(lastWFReconScanNP , 'r.' )
 		plt.hold( False )
-
-		plt.xlim( [ 0 , 720 ] )
+		plt.xlim( [ 0 , 360 ] )
 		plt.ylim( [ 0 , 2 ] )
 		plt.xlabel("Array Index")
 		plt.ylabel("Nearness [1/m]")
@@ -102,9 +98,9 @@ try:
 		plt.subplot(3,1,3)
 		# Horizontal Nearness Scan: X [1/m] vs Y [1/m]
 		# plt.figure(num=4, figsize=(9, 6), dpi=80, facecolor='w', edgecolor='k')
-		plt.plot( lastSFScanNP , 'b.' )
+		plt.plot( lastWFReconScan , 'b.' )
 		plt.hold( False )
-		plt.xlim( [ 0 , 720 ] )
+		plt.xlim( [ 0 , 360 ] )
 		plt.ylim( [ 0 , 3 ] )
 		plt.xlabel("Array Index")
 		plt.ylabel("Nearness [1/m]")

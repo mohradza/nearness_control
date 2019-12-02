@@ -16,7 +16,7 @@ void NearnessController::init() {
 
     debug_ = true;
     is_ground_vehicle_ = false;
-    flag_estop_ = true;
+    flag_estop_ = false;
     control_command_.header.frame_id = "/base_stabilized";
 
     // Set up subscribers and callbacks
@@ -52,8 +52,8 @@ void NearnessController::init() {
     // Sensor
     h_num_fourier_terms_ = 5;
     v_num_fourier_terms_ = 5;
-    enable_gain_scaling_ = true;
-    enable_sf_control_ = false;
+    enable_gain_scaling_ = false;
+    enable_sf_control_ = true;
     enable_attractor_control_ = false;
     have_attractor_ = false;
     enable_wf_control_ = true;
@@ -65,7 +65,6 @@ void NearnessController::init() {
     nh_.param("/nearness_control_node/horiz_sensor_min_distance", h_sensor_min_dist_, .1);
     nh_.param("/nearness_control_node/horiz_sensor_max_distance", h_sensor_max_dist_, 25.0);
     nh_.param("/nearness_control_node/horiz_scan_start_index", h_scan_start_index_, 0);
-    ROS_INFO("%d", h_scan_start_index_);
     nh_.param("/nearness_control_node/horiz_sensor_min_noise", h_sensor_min_noise_ , .1);
     nh_.param("/nearness_control_node/reverse_horiz_scan", reverse_h_scan_, true);
 
@@ -96,8 +95,6 @@ void NearnessController::init() {
     nh_.param("/nearness_control_node/forward_speed_max", u_max_, 5.0);
     nh_.param("/nearness_control_node/yaw_rate_k_hb_1", r_k_hb_1_, 2.0);
     nh_.param("/nearness_control_node/yaw_rate_k_hb_2", r_k_hb_2_, 2.0);
-    nh_.param("/nearness_control_node/yaw_rate_k_vb_1", r_k_vb_1_, 2.0);
-    nh_.param("/nearness_control_node/yaw_rate_k_vb_2", r_k_vb_2_, 2.0);
     nh_.param("/nearness_control_node/yaw_rate_k_att_0", r_k_att_0_, 1.0);
     nh_.param("/nearness_control_node/yaw_rate_k_att_d_", r_k_att_d_, 0.1);
     nh_.param("/nearness_control_node/yaw_rate_max", r_max_, 2.0);
@@ -114,6 +111,8 @@ void NearnessController::init() {
     nh_.param("/nearness_control_node/vert_speed_k_vb_2", w_k_2_, 2.0);
     nh_.param("/nearness_control_node/vert_speed_max", w_max_, 2.0);
 
+    nh_.param("/nearness_control_node/lateral_speed_k_hb_1", v_k_hb_1_, 2.0);
+    nh_.param("/nearness_control_node/lateral_speed_max", v_max_, 2.0);
 
     if(enable_gain_scaling_){
       r_k_hb_2_ = 1.0*u_max_;
@@ -200,7 +199,7 @@ void NearnessController::horizLaserscanCb(const sensor_msgs::LaserScanPtr h_lase
 
     // Convert incoming scan to cv matrix and reformat
     convertHLaserscan2CVMat(h_laserscan_msg);
-/*
+
     // Compute the Fourier harmonics of the signal
     computeHorizFourierCoeffs();
 
@@ -222,7 +221,7 @@ void NearnessController::horizLaserscanCb(const sensor_msgs::LaserScanPtr h_lase
     }
 
     publishControlCommandMsg();
-*/
+
 }
 
 void NearnessController::vertLaserscanCb(const sensor_msgs::LaserScanPtr v_laserscan_msg){
@@ -239,12 +238,33 @@ void NearnessController::vertLaserscanCb(const sensor_msgs::LaserScanPtr v_laser
 
 void NearnessController::convertHLaserscan2CVMat(const sensor_msgs::LaserScanPtr h_laserscan_msg){
     std::vector<float> h_depth_vector = h_laserscan_msg->ranges;
+    std::vector<float> h_depth_vector_noinfs = h_depth_vector;
 
     // handle infs due to sensor max distance
     for(int i = 0; i<total_h_scan_points_; i++){
         if(isinf(h_depth_vector[i])){
-            h_depth_vector[i] = h_sensor_max_dist_;
+            //h_depth_vector[i] = h_sensor_max_dist_;
+            if(i == 0){
+                if(isinf(h_depth_vector[i+1])){
+                    h_depth_vector_noinfs[i] = h_sensor_max_dist_;
+                } else {
+                    h_depth_vector_noinfs[i] = h_depth_vector[i+1];
+                }
+            } else if(i == total_h_scan_points_){
+                if(isinf(h_depth_vector[i-1])){
+                    h_depth_vector_noinfs[i] = h_sensor_max_dist_;
+                } else {
+                    h_depth_vector_noinfs[i] = h_depth_vector[i-1];
+                }
+            } else {
+                if(isinf(h_depth_vector[i-1]) && isinf(h_depth_vector[i+1])){
+                    h_depth_vector_noinfs[i] = h_sensor_max_dist_;
+                } else {
+                    h_depth_vector_noinfs[i] = (h_depth_vector[i-1] + h_depth_vector[i+1])/2.0;
+                }
+            }
         }
+        h_depth_vector = h_depth_vector_noinfs;
     }
 
     // Reverse the direction
@@ -295,7 +315,7 @@ void NearnessController::convertHLaserscan2CVMat(const sensor_msgs::LaserScanPtr
     if(enable_safety_boundary_){
         checkSafetyBoundary(h_depth_vector_trimmed);
     }
-/*
+
      // Publish the reformatted scan
      if(debug_){
         std_msgs::Float32MultiArray h_depth_scan_reformat_msg;
@@ -311,7 +331,7 @@ void NearnessController::convertHLaserscan2CVMat(const sensor_msgs::LaserScanPtr
     std::memcpy(h_depth_cvmat_.data, h_depth_vector_trimmed.data(), h_depth_vector_trimmed.size()*sizeof(float));
     h_depth_cvmat_.setTo(h_sensor_min_dist_, h_depth_cvmat_ < h_sensor_min_dist_);
     h_depth_cvmat_.setTo(h_sensor_max_dist_, h_depth_cvmat_ > h_sensor_max_dist_);
-*/
+
 } // End of convertHLaserscan2CVMat
 
 void NearnessController::convertVLaserscan2CVMat(const sensor_msgs::LaserScanPtr v_laserscan_msg){
@@ -479,12 +499,11 @@ void NearnessController::computeVertFourierCoeffs(){
 
 void NearnessController::computeSFYawRateCommand(){
     std::vector<float> h_nearness(h_nearness_.begin<float>(), h_nearness_.end<float>());
-    std::vector<float> recon_wf_nearness;
-    std::vector<float> h_sf_nearness;
+    std::vector<float> recon_wf_nearness(num_h_scan_points_, 0.0);
+    std::vector<float> h_sf_nearness(num_h_scan_points_, 0.0);
 
     // Reconstruct the WF signal
     for(int i = 0; i < num_h_scan_points_; i++){
-        recon_wf_nearness[i] = 0.0;
         for(int n = 0; n < h_num_fourier_terms_; n++){
             recon_wf_nearness[i] += h_a_[n+1]*cos((n+1)*h_gamma_vector_[i]) + h_b_[n+1]*sin((n+1)*h_gamma_vector_[i]);
         }
@@ -541,6 +560,7 @@ void NearnessController::computeSFYawRateCommand(){
         recon_wf_nearness_msg.data.insert(recon_wf_nearness_msg.data.end(), recon_wf_nearness.begin(), recon_wf_nearness.end());
         pub_h_recon_wf_nearness_.publish(recon_wf_nearness_msg);
     }
+
 }
 
 void NearnessController::computeSFVerticalSpeedCommand(){
@@ -690,7 +710,7 @@ void NearnessController::publishControlCommandMsg(){
     //control_command_.twist.linear.z = -.5*(range_agl_ - 2.0);
     if(enable_sf_control_){
         control_command_.twist.angular.z += h_sf_r_cmd_;
-        control_command_.twist.linear.z += v_sf_w_cmd_;
+        //control_command_.twist.linear.z += v_sf_w_cmd_;
     }
 
     if(enable_attractor_control_){
