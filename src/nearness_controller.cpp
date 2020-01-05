@@ -57,6 +57,7 @@ void NearnessController::init() {
     enable_attractor_control_ = false;
     have_attractor_ = false;
     enable_wf_control_ = true;
+    enable_command_weighting_ = true;
 
     nh_.param("/nearness_control_node/total_horiz_scan_points", total_h_scan_points_, 1440);
     nh_.param("/nearness_control_node/horiz_scan_limit", h_scan_limit_, M_PI);
@@ -413,6 +414,14 @@ void NearnessController::computeHorizFourierCoeffs(){
     h_nearness_ = cv::Mat::zeros(cv::Size(1, num_h_scan_points_), CV_32FC1);
     h_nearness_ = 1.0/ h_depth_cvmat_;
 
+    // Pull out the L2 norm of the measured nearness signal
+    float norm_sum = 0.0;
+    //std::accumulate(h_depth_vector_reformat.begin(), h_depth_vector_reformat.end
+    for(int i=0; i<num_h_scan_points_; i++){
+        norm_sum += pow(h_nearness[i],2);
+    }
+    h_nearness_l2_norm = sqrt(norm_sum);
+
     // Publish horizontal nearness
     if(debug_){
         std::vector<float> h_nearness_array(h_nearness_.begin<float>(), h_nearness_.end<float>());
@@ -517,6 +526,14 @@ void NearnessController::computeSFYawRateCommand(){
         h_sf_nearness[i] = abs(h_nearness[i] - recon_wf_nearness[i]);
         h_sf_mean_sum += h_sf_nearness[i];
     }
+
+    // Pull out the L2 norm of the measured nearness signal
+    float norm_sum = 0.0;
+    //std::accumulate(h_depth_vector_reformat.begin(), h_depth_vector_reformat.end
+    for(int i=0; i<num_h_scan_points_; i++){
+        norm_sum += pow(h_sf_nearness[i],2);
+    }
+    h_sf_nearness_l2_norm = sqrt(norm_sum);
 
     // Compute the standard deviation of the SF signal
     h_sf_mean_val = h_sf_mean_sum / num_h_scan_points_;
@@ -700,31 +717,38 @@ void NearnessController::publishControlCommandMsg(){
     control_command_.twist.angular.y = 0.0;
     control_command_.twist.angular.z = 0.0;
 
-    if(enable_wf_control_){
-        control_command_.twist.linear.y = h_wf_v_cmd_;
-        control_command_.twist.linear.z = v_wf_w_cmd_;
-        control_command_.twist.angular.z = h_wf_r_cmd_;
 
-    }
+    if(is_ground_vehicle_ && enable_command_weighting_){
+      float wf_att_cmd = sat(h_nearness_l2_norm, 0.0 , 1.0)*h_wf_r_cmd_ + (1.0 - sat(h_nearness_l2_norm, 0.0 , 1.0)*attractor_yaw_cmd_);
+      control_command_.twist.angular.z = sat(h_sf_nearness_l2_norm, 0.0, 1.0)*h_sf_r_cmd_ + (1.0 - sat(h_sf_nearness_l2_norm, 0.0, 1.0))*wf_att_cmd;
+    } else {
 
-    //control_command_.twist.linear.z = -.5*(range_agl_ - 2.0);
-    if(enable_sf_control_){
-        control_command_.twist.angular.z += h_sf_r_cmd_;
-        //control_command_.twist.linear.z += v_sf_w_cmd_;
-    }
+        if(enable_wf_control_){
+            control_command_.twist.linear.y = h_wf_v_cmd_;
+            control_command_.twist.linear.z = v_wf_w_cmd_;
+            control_command_.twist.angular.z = h_wf_r_cmd_;
 
-    if(enable_attractor_control_){
-        control_command_.twist.angular.z += attractor_yaw_cmd_;
-        control_command_.twist.linear.x = .25;
-    }
+        }
 
-    if(is_ground_vehicle_){
-        control_command_.twist.linear.z = 0.0;
-        control_command_.twist.linear.y = 0.0;
-    }
+        //control_command_.twist.linear.z = -.5*(range_agl_ - 2.0);
+        if(enable_sf_control_){
+            control_command_.twist.angular.z += h_sf_r_cmd_;
+            //control_command_.twist.linear.z += v_sf_w_cmd_;
+        }
 
-    if(!have_attractor_ && enable_attractor_control_){
-        control_command_.twist.linear.x = 0.0;
+        if(enable_attractor_control_){
+            control_command_.twist.angular.z += attractor_yaw_cmd_;
+            //control_command_.twist.linear.x = .25;
+        }
+
+        if(is_ground_vehicle_){
+            control_command_.twist.linear.z = 0.0;
+            control_command_.twist.linear.y = 0.0;
+        }
+
+        if(!have_attractor_ && enable_attractor_control_){
+            control_command_.twist.linear.x = 0.0;
+        }
     }
 
     saturateControls();
@@ -849,6 +873,16 @@ float NearnessController::wrapAngle(float angle){
 
     return angle;
 
+}
+
+float NearnessController::sat(float num, float min_val, float max_val){
+    if (num >= max_val){
+        return max_val;
+    } else if( num <= min_val){
+         return min_val;
+    } else {
+      return num;
+    }
 }
 
  // end of class

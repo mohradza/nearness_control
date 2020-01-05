@@ -199,6 +199,7 @@ class NearnessController {
     bool is_ground_vehicle_;
     bool have_attractor_;
     bool enable_wf_control_;
+    bool enable_command_weighting_;
 
 
     // Init
@@ -223,6 +224,7 @@ class NearnessController {
     // computeHorizFourierCoeffs
     float h_a_[10], h_b_[10];
     cv::Mat h_nearness_;
+    float h_nearness_l2_norm;
 
     // computeVertFourierCoeffs
     float v_a_[10], v_b_[10];
@@ -230,6 +232,7 @@ class NearnessController {
 
     // computeSFYawRateCommand
     float h_sf_r_cmd_;
+    float h_sf_nearness_l2_norm;
 
     // computeAttractorCommand
     float attractor_yaw_cmd_;
