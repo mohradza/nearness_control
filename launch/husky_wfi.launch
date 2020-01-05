@@ -11,6 +11,14 @@
         <remap from="nearness_controller/estop_cmd" to="estop_cmd"/>
         <remap from="nearness_controller/control_commands" to="cmd_vel"/>
 
+        <!-- Enable switches -->
+        <param name="enable_debug" type="bool" value="true"/>
+        <param name="is_ground_vehicle" type="bool" value="true"/>
+        <param name="enable_wf_control" type="bool" value="true"/>
+        <param name="enable_sf_control" type="bool" value="true"/>
+        <param name="enable_attractor_control" type="bool" value="true"/>
+        <param name="enable_command_weighting" type="bool" value="false"/>
+
         <!-- Sensor Parameters -->
         <param name="total_horiz_scan_points" type="int" value="1440"/>
         <param name="num_horiz_scan_points" type="int" value="720"/>
@@ -21,6 +29,8 @@
         <param name="horiz_scan_start_index" type="int" value="360"/>
         <param name="horiz_sensor_min_noise" type="double" value="0.1"/>
         <param name="reverse_horiz_scan" type="bool" value="true"/>
+        <param name="num_horiz_fourier_terms" type="int" value="5"/>
+        <param name="num_vert_fourier_terms" type="int" value="5"/>
 
         <param name="total_vert_scan_points" type="int" value="1081"/>
         <param name="num_vert_scan_points" type="int" value="720"/>

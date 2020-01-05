@@ -14,11 +14,6 @@ void NearnessController::init() {
     ReconfigureServer::CallbackType f = boost::bind(&NearnessController::configCb, this, _1, _2);
     reconfigure_server_->setCallback(f);
 
-    debug_ = false;
-    is_ground_vehicle_ = false;
-    flag_estop_ = true;
-    control_command_.header.frame_id = "/base_stabilized";
-
     // Set up subscribers and callbacks
     sub_horiz_laserscan_ = nh_.subscribe("horiz_scan", 1, &NearnessController::horizLaserscanCb, this);
     sub_vert_laserscan_ = nh_.subscribe("vert_scan", 1, &NearnessController::vertLaserscanCb, this);
@@ -50,14 +45,32 @@ void NearnessController::init() {
 
     // Import parameters
     // Sensor
-    h_num_fourier_terms_ = 5;
-    v_num_fourier_terms_ = 5;
+    //h_num_fourier_terms_ = 5;
+    //v_num_fourier_terms_ = 5;
     enable_gain_scaling_ = false;
-    enable_sf_control_ = false;
-    enable_attractor_control_ = false;
+    //enable_sf_control_ = false;
+    //enable_attractor_control_ = false;
     have_attractor_ = false;
-    enable_wf_control_ = true;
-    enable_command_weighting_ = true;
+    //enable_wf_control_ = true;
+    //enable_command_weighting_ = true;
+
+
+    //debug_ = false;
+    //is_ground_vehicle_ = false;
+    flag_estop_ = true;
+    control_command_.header.frame_id = "/base_stabilized";
+
+
+    nh_.param("/nearness_control_node/enable_debug", debug_, false);
+    nh_.param("/nearness_control_node/is_ground_vehicle", is_ground_vehicle_, true);
+    nh_.param("/nearness_control_node/num_horiz_fourier_terms", h_num_fourier_terms_, 5);
+    nh_.param("/nearness_control_node/num_vert_fourier_terms", v_num_fourier_terms_, 5);
+    nh_.param("/nearness_control_node/enable_wf_control", enable_wf_control_, true);
+    nh_.param("/nearness_control_node/enable_sf_control", enable_sf_control_, false);
+    nh_.param("/nearness_control_node/enable_attractor_control", enable_attractor_control_, false);
+    nh_.param("/nearness_control_node/enable_command_weighting", enable_command_weighting_, false);
+    //nh_.param("/nearness_control_node/", ,);
+    //nh_.param("/nearness_control_node/", ,);
 
     nh_.param("/nearness_control_node/total_horiz_scan_points", total_h_scan_points_, 1440);
     nh_.param("/nearness_control_node/horiz_scan_limit", h_scan_limit_, M_PI);
