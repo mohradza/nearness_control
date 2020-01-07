@@ -41,7 +41,6 @@ void NearnessController::init() {
     pub_h_sf_yawrate_command_ = nh_.advertise<std_msgs::Float32>("sf_yawrate_command", 10);
     pub_vehicle_status_ = nh_.advertise<std_msgs::Int32>("vehicle_status", 10);
     pub_estop_engage_ = nh_.advertise<std_msgs::Bool>("estop_cmd", 10);
-s
 
     // Import parameters
     // Sensor
@@ -423,21 +422,24 @@ void NearnessController::computeHorizFourierCoeffs(){
     float h_cos_gamma_arr[h_num_fourier_terms_ + 1][num_h_scan_points_];
     float h_sin_gamma_arr[h_num_fourier_terms_ + 1][num_h_scan_points_];
 
+
     // Compute horizontal nearness
     h_nearness_ = cv::Mat::zeros(cv::Size(1, num_h_scan_points_), CV_32FC1);
     h_nearness_ = 1.0/ h_depth_cvmat_;
+
+    std::vector<float> h_nearness_array(h_nearness_.begin<float>(), h_nearness_.end<float>());
+
 
     // Pull out the L2 norm of the measured nearness signal
     float norm_sum = 0.0;
     //std::accumulate(h_depth_vector_reformat.begin(), h_depth_vector_reformat.end
     for(int i=0; i<num_h_scan_points_; i++){
-        norm_sum += pow(h_nearness[i],2);
+        norm_sum += pow(h_nearness_array[i],2);
     }
     h_nearness_l2_norm = sqrt(norm_sum);
 
     // Publish horizontal nearness
     if(debug_){
-        std::vector<float> h_nearness_array(h_nearness_.begin<float>(), h_nearness_.end<float>());
         std_msgs::Float32MultiArray h_nearness_msg;
         h_nearness_msg.layout.dim.push_back(std_msgs::MultiArrayDimension());
         h_nearness_msg.layout.dim[0].size = h_nearness_array.size();
@@ -730,8 +732,19 @@ void NearnessController::publishControlCommandMsg(){
 
 
     if(is_ground_vehicle_ && enable_command_weighting_){
-      float wf_att_cmd = sat(h_nearness_l2_norm, 0.0 , 1.0)*h_wf_r_cmd_ + (1.0 - sat(h_nearness_l2_norm, 0.0 , 1.0)*attractor_yaw_cmd_);
-      control_command_.twist.angular.z = sat(h_sf_nearness_l2_norm, 0.0, 1.0)*h_sf_r_cmd_ + (1.0 - sat(h_sf_nearness_l2_norm, 0.0, 1.0))*wf_att_cmd;
+      //float wf_att_cmd = sat(h_nearness_l2_norm, 0.0 , 1.0)*h_wf_r_cmd_ + (1.0 - sat(h_nearness_l2_norm, 0.0 , 1.0)*attractor_yaw_cmd_);
+      //control_command_.twist.angular.z = sat(h_sf_nearness_l2_norm, 0.0, 1.0)*h_sf_r_cmd_ + (1.0 - sat(h_sf_nearness_l2_norm, 0.0, 1.0))*wf_att_cmd;
+      float nearness_r_cmd = 0.0;
+      if (enable_wf_control_){
+          nearness_r_cmd += h_wf_r_cmd_;
+      }
+
+      if (enable_sf_control_){
+          nearness_r_cmd += h_sf_r_cmd_;
+      }
+
+      control_command_.twist.angular.z = nearness_r_cmd + (1.0 - sat(h_nearness_l2_norm, 0.0 , 1.0))*attractor_yaw_cmd_;
+
     } else {
 
         if(enable_wf_control_){
@@ -749,7 +762,11 @@ void NearnessController::publishControlCommandMsg(){
 
         if(enable_attractor_control_){
             control_command_.twist.angular.z += attractor_yaw_cmd_;
-            //control_command_.twist.linear.x = .25;
+            //control_command_.twist.linear.x = u_cmd_;
+	          if(attractor_turn_){
+	              control_command_.twist.linear.x = 0.0;
+	              control_command_.twist.angular.z = attractor_yaw_cmd_;
+            }
         }
 
         if(is_ground_vehicle_){
@@ -764,7 +781,7 @@ void NearnessController::publishControlCommandMsg(){
 
     saturateControls();
     if(flag_too_close_side_){
-      control_command_.twist.linear.x = u_min_;
+      control_command_.twist.linear.x = .05;
     }
 
     if(flag_too_close_front_){

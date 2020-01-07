@@ -131,6 +131,7 @@ class NearnessController {
     void checkSafetyBoundary(std::vector<float> scan);
     void saturateControls();
     float wrapAngle(float angle);
+    float sat(float num, float min_val, float max_val);
 
     // GLOBAL VARIABLES //
 
