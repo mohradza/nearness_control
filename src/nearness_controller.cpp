@@ -14,7 +14,7 @@ void NearnessController::init() {
     ReconfigureServer::CallbackType f = boost::bind(&NearnessController::configCb, this, _1, _2);
     reconfigure_server_->setCallback(f);
 
-    debug_ = true;
+    debug_ = false;
     is_ground_vehicle_ = true;
     flag_estop_ = true;
     control_command_.header.frame_id = "/base_stabilized";
@@ -52,11 +52,15 @@ void NearnessController::init() {
     // Sensor
     h_num_fourier_terms_ = 5;
     v_num_fourier_terms_ = 5;
-    enable_gain_scaling_ = true;
-    enable_sf_control_ = false;
-    enable_attractor_control_ = false;
+    enable_gain_scaling_ = false;
+    enable_sf_control_ = true;
+    enable_attractor_control_ = true;
     have_attractor_ = false;
     enable_wf_control_ = true;
+    stagger_waypoints_ = true;
+    attractor_turn_ = false;
+
+    nh_.param("/H01/nearness_control_node/stagger_waypoints", stagger_waypoints_, false);
 
     nh_.param("/H01/nearness_control_node/total_horiz_scan_points", total_h_scan_points_, 1440);
     nh_.param("/H01/nearness_control_node/horiz_scan_limit", h_scan_limit_, M_PI);
@@ -480,7 +484,7 @@ void NearnessController::computeSFYawRateCommand(){
 
     // Reconstruct the WF signal
     for(int i = 0; i < num_h_scan_points_; i++){
-        recon_wf_nearness[i] = 0.0;
+        recon_wf_nearness.push_back(0.0);
         for(int n = 0; n < h_num_fourier_terms_; n++){
             recon_wf_nearness[i] += h_a_[n+1]*cos((n+1)*h_gamma_vector_[i]) + h_b_[n+1]*sin((n+1)*h_gamma_vector_[i]);
         }
@@ -491,7 +495,7 @@ void NearnessController::computeSFYawRateCommand(){
     float h_sf_mean_sum = 0.0;
     float h_sf_mean_val = 0.0;
     for(int i=0; i < num_h_scan_points_; i++){
-        h_sf_nearness[i] = abs(h_nearness[i] - recon_wf_nearness[i]);
+        h_sf_nearness.push_back(abs(h_nearness[i] - recon_wf_nearness[i]));
         h_sf_mean_sum += h_sf_nearness[i];
     }
 
@@ -629,19 +633,16 @@ void NearnessController::computeWFYawRateCommand(){
 } // End of computeWFYawRateCommand
 
 void NearnessController::computeAttractorCommand(){
-    if(have_attractor_){
-        float attractor_x_pos = next_waypoint_pos_.x;
-        float attractor_y_pos = next_waypoint_pos_.y;
-        //ROS_INFO_THROTTLE(.5,"x: %f, y: %f", current_pos_.x, current_pos_.y);
-        float attractor_d = sqrt(pow((current_pos_.x - attractor_x_pos), 2) + pow((current_pos_.y - attractor_y_pos), 2));
-        float relative_attractor_heading = atan2((attractor_y_pos - current_pos_.y),(attractor_x_pos - current_pos_.x));
-
-        attractor_yaw_cmd_ = r_k_att_0_*wrapAngle(current_heading_ - relative_attractor_heading)*exp(-r_k_att_d_*attractor_d);
+  float angle_error = wrapAngle(relative_attractor_heading_ - current_heading_);
+    if(have_attractor_ && (abs(angle_error) < 1.4)){
+        attractor_yaw_cmd_ = r_k_att_0_*angle_error*exp(-r_k_att_d_*attractor_d_);
         //float attractor_yaw_cmd = r_k_att_0_*wrapAngle(current_heading_ - relative_attractor_heading)*exp(-r_k_att_d_*attractor_d);
         //ROS_INFO_THROTTLE(.5,"del_t: %1.2f, e: %1.2f, yaw_cmd: %1.2f", wrapAngle(current_heading_ - relative_attractor_heading), exp(-r_k_att_d_*attractor_d), attractor_yaw_cmd);
-
+        attractor_turn_ = false;
     } else {
-        attractor_yaw_cmd_ = 0.0;
+	ROS_INFO_THROTTLE(1,"Pure attractor turn");
+	attractor_turn_ = true;
+        //u_cmd_ = 0.0;
     }
 }
 
@@ -691,19 +692,30 @@ void NearnessController::publishControlCommandMsg(){
 
     if(enable_attractor_control_){
         control_command_.twist.angular.z += attractor_yaw_cmd_;
-        control_command_.twist.linear.x = .25;
+        control_command_.twist.linear.x = u_cmd_;
+	if(attractor_turn_){
+	    control_command_.twist.linear.x = 0.0;
+	    control_command_.twist.angular.z = attractor_yaw_cmd_;
+	}
     }
 
     if(is_ground_vehicle_){
         control_command_.twist.linear.z = 0.0;
         control_command_.twist.linear.y = 0.0;
     }
-
+/*
     if(!have_attractor_ && enable_attractor_control_){
         control_command_.twist.linear.x = 0.0;
     }
-
+*/
     saturateControls();
+    if(flag_too_close_side_){
+      control_command_.twist.linear.x = u_min_;
+    }
+
+    if(flag_too_close_front_){
+      control_command_.twist.linear.x = 0.0;
+    }
 
     if(flag_estop_){
         control_command_.twist.linear.x = 0.0;
@@ -762,10 +774,20 @@ void NearnessController::joyconCb(const sensor_msgs::JoyConstPtr& joy_msg)
 }
 
 void NearnessController::nextWaypointCb(const geometry_msgs::PointStampedConstPtr& next_waypoint_msg){
-    ROS_INFO("Received waypoint");
-    next_waypoint_pos_ = next_waypoint_msg->point;
     if (!have_attractor_){
         have_attractor_ = true;
+    }
+    ROS_INFO_THROTTLE(2,"Received new waypoint");
+
+    attractor_d_ = sqrt(pow((current_pos_.x - next_waypoint_pos_.x), 2) + pow((current_pos_.y - next_waypoint_pos_.y), 2));
+    relative_attractor_heading_ = atan2((next_waypoint_pos_.y - current_pos_.y),(next_waypoint_pos_.x - current_pos_.x));
+
+    if(stagger_waypoints_){
+        if(attractor_d_ < 1.0){
+          next_waypoint_pos_ = next_waypoint_msg->point;
+        }
+    } else {
+        next_waypoint_pos_ = next_waypoint_msg->point;
     }
 }
 
@@ -790,15 +812,21 @@ void NearnessController::generateSafetyBox(){
 }
 
 void NearnessController::checkSafetyBoundary(std::vector<float> scan){
-    flag_too_close_ = false;
+  flag_too_close_front_ = false;
+  flag_too_close_side_ = false;
 
     for(int i = 0; i < num_h_scan_points_; i++){
         if((scan[i] < safety_boundary_[i]) && (scan[i] > h_sensor_min_noise_)){
             if((i <= left_corner_index_) || (i >= (num_h_scan_points_ - left_corner_index_))) {
-                flag_too_close_ = true;
+                flag_too_close_side_ = true;
+                ROS_INFO("Side");
             } else {
-                flag_too_close_ = flag_too_close_ || flag_too_close_;
+                flag_too_close_front_ = true;
+                ROS_INFO("Front");
             }
+        } else {
+          flag_too_close_front_ = flag_too_close_front_ || flag_too_close_front_;
+          flag_too_close_side_ = flag_too_close_side_ || flag_too_close_side_;
         }
     }
 }

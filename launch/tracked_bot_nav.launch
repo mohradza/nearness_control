@@ -1,0 +1,7 @@
+<launch>
+  
+  <include file="$(find marble_common)/launch/launch_sensors_T01.launch"/>
+
+  <include file="$(find marble_common)/launch/launch_nav.launch" />
+
+</launch>

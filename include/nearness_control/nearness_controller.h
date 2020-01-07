@@ -199,14 +199,15 @@ class NearnessController {
     bool is_ground_vehicle_;
     bool have_attractor_;
     bool enable_wf_control_;
-
+    bool attractor_turn_;
 
     // Init
     std::vector<float> h_gamma_vector_;
     std::vector<float> v_gamma_vector_;
     std::vector<float> safety_boundary_;
     int left_corner_index_;
-    bool flag_too_close_;
+    bool flag_too_close_front_;
+    bool flag_too_close_side_;
     float h_dg_;
     float v_dg_;
     float range_agl_;
@@ -233,6 +234,9 @@ class NearnessController {
 
     // computeAttractorCommand
     float attractor_yaw_cmd_;
+    float attractor_d_;
+    float relative_attractor_heading_;
+    bool stagger_waypoints_;
 
     // computeForwardSpeedCommand
     float u_cmd_;
