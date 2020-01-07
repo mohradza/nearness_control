@@ -5,32 +5,22 @@
         <!-- SUBSCRIBED TOPICS -->
         <remap from="nearness_controller/horiz_scan" to="scan"/>
         <remap from="nearness_controller/vert_scan" to="scan1"/>
-        <remap from="nearness_controller/next_waypoint" to="lookahead_point"/>
-        <remap from="nearness_controller/odometry" to="odometry_map"/>
+        <remap from="nearness_controller/next_waypoint" to="clicked_point"/>
+        <remap from="nearness_controller/odometry" to="odometry/filtered"/>
         <remap from="nearness_controller/joy" to="joy_teleop/joy"/>
         <remap from="nearness_controller/estop_cmd" to="estop_cmd"/>
-        <remap from="nearness_controller/sim_control_commands" to="cmd_vel"/>
-
-        <!-- Enable switches -->
-        <param name="enable_debug" type="bool" value="true"/>
-        <param name="is_ground_vehicle" type="bool" value="true"/>
-        <param name="enable_wf_control" type="bool" value="true"/>
-        <param name="enable_sf_control" type="bool" value="true"/>
-        <param name="enable_attractor_control" type="bool" value="true"/>
-        <param name="enable_command_weighting" type="bool" value="false"/>
+        <remap from="nearness_controller/control_commands" to="cmd_vel"/>
 
         <!-- Sensor Parameters -->
-        <param name="total_horiz_scan_points" type="int" value="1440"/>
-        <param name="num_horiz_scan_points" type="int" value="720"/>
-        <param name="horiz_scan_limit" type="double" value="1.5707"/>
+        <param name="total_horiz_scan_points" type="int" value="360"/>
+        <param name="num_horiz_scan_points" type="int" value="360"/>
+        <param name="horiz_scan_limit" type="double" value="3.14"/>
         <param name="scan_start_location" type="string" value="back" /> <!-- Valid args: 'forward', 'back', 'left', 'right' -->
         <param name="horiz_sensor_min_distance" type="double" value="0.1"/>
-        <param name="horiz_sensor_max_distance" type="double" value="30.0"/>
-        <param name="horiz_scan_start_index" type="int" value="360"/>
-        <param name="horiz_sensor_min_noise" type="double" value="0.15"/>
+        <param name="horiz_sensor_max_distance" type="double" value="40.0"/>
+        <param name="horiz_scan_start_index" type="int" value="0"/>
+        <param name="horiz_sensor_min_noise" type="double" value="0.1"/>
         <param name="reverse_horiz_scan" type="bool" value="true"/>
-        <param name="num_horiz_fourier_terms" type="int" value="5"/>
-        <param name="num_vert_fourier_terms" type="int" value="5"/>
 
         <param name="total_vert_scan_points" type="int" value="1081"/>
         <param name="num_vert_scan_points" type="int" value="720"/>
@@ -44,28 +34,29 @@
 
         <!-- Safety Parameters -->
         <param name="enable_safety_boundary" type="bool" value="true"/>
-        <param name="enable_safety_box" type="bool" value="true"/>
+        <param name="enable_safety_box" type="bool" value="false"/>
+        <param name="enable_safety_radius" type="bool" value="true"/>
         <param name="front_safety_distance" type="double" value=".5"/>
         <param name="side_safety_distance" type="double" value=".4"/>
         <param name="safety_radius" type="double" value=".5"/>
 
         <!-- Parameters for Forward Speed Controller -->
-        <param name="forward_speed_k_hb_1" type="double" value="1.0"/>
-        <param name="forward_speed_k_hb_2" type="double" value="1.0"/>
+        <param name="forward_speed_k_hb_1" type="double" value="2.0"/>
+        <param name="forward_speed_k_hb_2" type="double" value="2.0"/>
         <param name="forward_speed_k_vb_1" type="double" value="0.5"/>
-        <param name="forward_speed_k_vb_2" type="double" value="1.0"/>
-        <param name="forward_speed_min" type="double" value="0.1"/>
+        <param name="forward_speed_k_vb_2" type="double" value="2.0"/>
+        <param name="forward_speed_min" type="double" value="0.0"/>
         <param name="forward_speed_max" type="double" value=".75"/>
 
         <!-- Parameters for Yaw Rate Controller -->
-        <param name="yaw_rate_k_hb_1" type="double" value="2.0"/>
-        <param name="yaw_rate_k_hb_2" type="double" value="4.0"/>  <!-- -2 -->
+        <param name="yaw_rate_k_hb_1" type="double" value="0.0"/>
+        <param name="yaw_rate_k_hb_2" type="double" value="-2.0"/>  <!-- -2 -->
         <param name="yaw_rate_max" type="double" value=".5"/>
 
         <param name="yaw_rate_k_att_0" type="double" value="-.5"/>
         <param name="yaw_rate_k_att_d" type="double" value="1.0"/>
 
-        <param name="lateral_speed_k_hb_1" type="double" value="4.0"/>
+        <param name="lateral_speed_k_hb_1" type="double" value="-1.0"/>
         <param name="lateral_speed_max" type="double" value="2.0"/>
 
 

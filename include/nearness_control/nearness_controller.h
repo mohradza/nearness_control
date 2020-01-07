@@ -200,6 +200,7 @@ class NearnessController {
     bool have_attractor_;
     bool enable_wf_control_;
     bool attractor_turn_;
+    bool enable_command_weighting_;
 
     // Init
     std::vector<float> h_gamma_vector_;
@@ -224,6 +225,7 @@ class NearnessController {
     // computeHorizFourierCoeffs
     float h_a_[10], h_b_[10];
     cv::Mat h_nearness_;
+    float h_nearness_l2_norm;
 
     // computeVertFourierCoeffs
     float v_a_[10], v_b_[10];
@@ -231,6 +233,7 @@ class NearnessController {
 
     // computeSFYawRateCommand
     float h_sf_r_cmd_;
+    float h_sf_nearness_l2_norm;
 
     // computeAttractorCommand
     float attractor_yaw_cmd_;
