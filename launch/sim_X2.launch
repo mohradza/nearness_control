@@ -3,11 +3,8 @@
     <node pkg="nearness_control" type="nearness_controller_node" name="nearness_control_node" output="screen">
 
         <!-- SUBSCRIBED TOPICS -->
-        <remap from="/nearness_controller/horiz_scan" to="hokuyo_scan"/>
+        <remap from="/nearness_controller/horiz_scan" to="scan"/>
         <remap from="/nearness_controller/vert_scan" to="scan1"/>
-        <remap from="/nearness_controller/next_waypoint" to="clicked_point"/>
-        <remap from="/nearness_controller/odometry" to="odometry/filtered"/>
-        <remap from="/nearness_controller/joy" to="joy"/>
 
         <!-- Sensor Parameters -->
         <param name="total_horiz_scan_points" type="int" value="1081"/>
@@ -15,10 +12,10 @@
         <param name="horiz_scan_limit" type="double" value="1.5707"/>
         <param name="scan_start_location" type="string" value="back" /> <!-- Valid args: 'forward', 'back', 'left', 'right' -->
         <param name="horiz_sensor_min_distance" type="double" value="0.1"/>
-        <param name="horiz_sensor_max_distance" type="double" value="30.0"/>
+        <param name="horiz_sensor_max_distance" type="double" value="25.0"/>
         <param name="horiz_scan_start_index" type="int" value="180"/>
         <param name="horiz_sensor_min_noise" type="double" value="0.1"/>
-        <param name="reverse_horiz_scan" type="bool" value="true"/>
+        <param name="reverse_horiz_scan" type="bool" value="false"/>
 
         <param name="total_vert_scan_points" type="int" value="1081"/>
         <param name="num_vert_scan_points" type="int" value="720"/>
@@ -38,20 +35,17 @@
         <param name="safety_radius" type="double" value=".5"/>
 
         <!-- Parameters for Forward Speed Controller -->
-        <param name="forward_speed_k_hb_1" type="double" value="10.0"/>
-        <param name="forward_speed_k_hb_2" type="double" value="10.0"/>
-        <param name="forward_speed_k_vb_1" type="double" value="5.0"/>
-        <param name="forward_speed_k_vb_2" type="double" value="10.0"/>
+        <param name="forward_speed_k_hb_1" type="double" value="2.0"/>
+        <param name="forward_speed_k_hb_2" type="double" value="2.0"/>
+        <param name="forward_speed_k_vb_1" type="double" value="0.5"/>
+        <param name="forward_speed_k_vb_2" type="double" value="2.0"/>
         <param name="forward_speed_min" type="double" value="0.0"/>
-        <param name="forward_speed_max" type="double" value="1.5"/>
+        <param name="forward_speed_max" type="double" value="4.0"/>
 
         <!-- Parameters for Yaw Rate Controller -->
         <param name="yaw_rate_k_hb_1" type="double" value="0.0"/>
         <param name="yaw_rate_k_hb_2" type="double" value="4.0"/>  <!-- -2 -->
-        <param name="yaw_rate_max" type="double" value=".5"/>
-
-        <param name="yaw_rate_k_att_0" type="double" value="-.5"/>
-        <param name="yaw_rate_k_att_d" type="double" value="1.0"/>
+        <param name="yaw_rate_max" type="double" value="1.5"/>
 
         <param name="lateral_speed_k_hb_1" type="double" value="4.0"/>
         <param name="lateral_speed_max" type="double" value="2.0"/>
@@ -62,6 +56,5 @@
         <param name="vert_speed_max" type="double" value="2.0"/>
 
     </node>
-    <node pkg="topic_tools" name="control_relay" type="relay" args="/nearness_controller/sim_control_commands /cmd_vel" />
-
+    <node pkg="topic_tools" name="control_relay" type="relay" args="/nearness_controller/control_commands command/twist" />
 </launch>

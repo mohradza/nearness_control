@@ -29,6 +29,7 @@
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf/tf.h>
 #include <nearness_control/FourierCoefsMsg.h>
+#include <math.h>
 #include <numeric>
 #include <iterator>
 #include <vector>
@@ -56,18 +57,22 @@ class NearnessController {
     void horizLaserscanCb(const sensor_msgs::LaserScanPtr h_laserscan_msg);
     void vertLaserscanCb(const sensor_msgs::LaserScanPtr v_laserscan_msg);
 
-    //void joyconCb(const sensor_msgs::JoyConstPtr& joy_msg);
-    //void odomCb(const nav_msgs::OdometryConstPtr& odom_msg);
+    void joyconCb(const sensor_msgs::JoyConstPtr& joy_msg);
+    void odomCb(const nav_msgs::OdometryConstPtr& odom_msg);
     //void imuCb(const sensor_msgs::ImuConstPtr& imu_msg);
     void sonarHeightCb(const sensor_msgs::RangeConstPtr& range_msg);
+    void nextWaypointCb(const geometry_msgs::PointStampedConstPtr& next_waypoint_msg);
     void convertHLaserscan2CVMat(const sensor_msgs::LaserScanPtr h_laserscan_msg);
     void convertVLaserscan2CVMat(const sensor_msgs::LaserScanPtr v_laserscan_msg);
     void computeHorizFourierCoeffs();
     void computeVertFourierCoeffs();
     void computeForwardSpeedCommand();
     void computeWFYawRateCommand();
+    void computeSFYawRateCommand();
+    void computeAttractorCommand();
     void computeLateralSpeedCommand();
     void computeWFVerticalSpeedCommand();
+    void computeSFVerticalSpeedCommand();
     void publishControlCommandMsg();
     //void calc_sf_yaw_rate_command();
     //void pub_control_command_msg();
@@ -86,6 +91,7 @@ class NearnessController {
     ros::Subscriber sub_odom_;
     ros::Subscriber sub_imu_;
     ros::Subscriber sub_sonar_height_;
+    ros::Subscriber sub_next_waypoint_;
 
     // PUBLISHERS //
     ros::Publisher pub_h_scan_reformat_;
@@ -93,17 +99,20 @@ class NearnessController {
     ros::Publisher pub_h_sf_nearness_;
     ros::Publisher pub_h_recon_wf_nearness_;
     ros::Publisher pub_h_fourier_coefficients_;
+    ros::Publisher pub_h_sf_yawrate_command_;
 
     ros::Publisher pub_v_scan_reformat_;
     ros::Publisher pub_v_scan_nearness_;
     ros::Publisher pub_v_sf_nearness_;
     ros::Publisher pub_v_recon_wf_nearness_;
     ros::Publisher pub_v_fourier_coefficients_;
+    ros::Publisher pub_v_sf_vertspeed_command_;
 
     ros::Publisher pub_control_commands_;
     ros::Publisher pub_sim_control_commands_;
-    ros::Publisher pub_sf_control_commands_;
     ros::Publisher pub_vehicle_status_;
+
+    ros::Publisher pub_estop_engage_;
 
     // DYNAMIC RECONFIGURE //
     boost::mutex connect_mutex_;
@@ -116,10 +125,13 @@ class NearnessController {
 
 
     // FUNCTIONS //
-    int sgn(double v);
+    float sgn(double v);
     double shortest_angle_err(const float angle1, const float angle2);
     void generateSafetyBox();
     void checkSafetyBoundary(std::vector<float> scan);
+    void saturateControls();
+    float wrapAngle(float angle);
+    float sat(float num, float min_val, float max_val);
 
     // GLOBAL VARIABLES //
 
@@ -149,6 +161,8 @@ class NearnessController {
     bool enable_safety_boundary_;
     bool enable_safety_box_;
     bool enable_safety_radius_;
+    bool enable_sf_control_;
+    bool flag_estop_;
     double safety_radius_;
     double f_dist_;
     double s_dist_;
@@ -165,20 +179,37 @@ class NearnessController {
     double r_k_vb_1_;
     double r_k_vb_2_;
     double r_max_;
+    double h_sf_k_0_;
+    double h_sf_k_d_;
+    double h_sf_k_psi_;
+    double h_sf_k_thresh_;
+    double v_sf_k_0_;
+    double v_sf_k_d_;
+    double v_sf_k_psi_;
+    double v_sf_k_thresh_;
+    double v_sf_w_cmd_;
     double v_k_hb_1_;
     double v_max_;
     double w_k_1_;
     double w_k_2_;
     double w_max_;
+    double r_k_att_0_;
+    double r_k_att_d_;
     bool enable_gain_scaling_;
-
+    bool enable_attractor_control_;
+    bool is_ground_vehicle_;
+    bool have_attractor_;
+    bool enable_wf_control_;
+    bool attractor_turn_;
+    bool enable_command_weighting_;
 
     // Init
     std::vector<float> h_gamma_vector_;
     std::vector<float> v_gamma_vector_;
     std::vector<float> safety_boundary_;
     int left_corner_index_;
-    bool flag_too_close_;
+    bool flag_too_close_front_;
+    bool flag_too_close_side_;
     float h_dg_;
     float v_dg_;
     float range_agl_;
@@ -195,10 +226,21 @@ class NearnessController {
     // computeHorizFourierCoeffs
     float h_a_[10], h_b_[10];
     cv::Mat h_nearness_;
+    float h_nearness_l2_norm;
 
     // computeVertFourierCoeffs
     float v_a_[10], v_b_[10];
     cv::Mat v_nearness_;
+
+    // computeSFYawRateCommand
+    float h_sf_r_cmd_;
+    float h_sf_nearness_l2_norm;
+
+    // computeAttractorCommand
+    float attractor_yaw_cmd_;
+    float attractor_d_;
+    float relative_attractor_heading_;
+    bool stagger_waypoints_;
 
     // computeForwardSpeedCommand
     float u_cmd_;
@@ -214,6 +256,16 @@ class NearnessController {
 
     // publishControlCommandMsg
     geometry_msgs::TwistStamped control_command_;
+
+    // nextWaypointCb
+    geometry_msgs::Point next_waypoint_pos_;
+
+    // odomCb
+    geometry_msgs::Point current_pos_;
+    double current_roll_;
+    double current_pitch_;
+    double current_heading_;
+
 
 }; // class SimpleNodeClass
 
