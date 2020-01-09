@@ -58,7 +58,7 @@ void NearnessController::init() {
     //is_ground_vehicle_ = false;
     flag_estop_ = true;
     control_command_.header.frame_id = "/base_stabilized";
-
+    ROS_INFO("Test");
 
     nh_.param("/nearness_control_node/enable_debug", debug_, false);
     nh_.param("/nearness_control_node/is_ground_vehicle", is_ground_vehicle_, true);
@@ -205,7 +205,7 @@ void NearnessController::configCb(Config &config, uint32_t level)
       v_k_hb_1_ = 1.0*u_max_;
     }
 
-    //ROS_INFO("%f, %f", w_max_, u_min_);
+    ROS_INFO("%f, %f", w_max_, u_min_);
 }
 
 void NearnessController::horizLaserscanCb(const sensor_msgs::LaserScanPtr h_laserscan_msg){
@@ -665,7 +665,7 @@ void NearnessController::computeSFVerticalSpeedCommand(){
 void NearnessController::computeForwardSpeedCommand(){
 
     u_cmd_ = u_max_ * (1 - u_k_hb_1_*abs(h_b_[1]) - u_k_hb_2_*abs(h_b_[2]) - u_k_vb_1_*abs(v_b_[1]) - u_k_vb_2_*abs(v_b_[2]));
-
+    ROS_INFO_THROTTLE(1,"%f", u_min_);
     // Saturate forward velocity command
     if(u_cmd_ < u_min_){
         u_cmd_ = u_min_;
