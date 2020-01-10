@@ -109,7 +109,7 @@ class NearnessController {
     ros::Publisher pub_v_sf_vertspeed_command_;
 
     ros::Publisher pub_control_commands_;
-    ros::Publisher pub_sim_control_commands_;
+    ros::Publisher pub_debug_weighting_;
     ros::Publisher pub_vehicle_status_;
 
     ros::Publisher pub_estop_engage_;
@@ -234,7 +234,8 @@ class NearnessController {
 
     // computeSFYawRateCommand
     float h_sf_r_cmd_;
-    float h_sf_nearness_l2_norm;
+    float h_sf_nearness_l2_norm_;
+    float h_nearness_maxval_;
 
     // computeAttractorCommand
     float attractor_yaw_cmd_;

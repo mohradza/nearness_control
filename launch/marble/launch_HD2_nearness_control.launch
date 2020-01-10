@@ -19,6 +19,7 @@
     <arg name="horiz_sensor_max_distance"   value="40.0"/>
     <arg name="horiz_sensor_min_noise"      value="0.1"/>
     <arg name="reverse_horiz_scan"          value="true"/>
+    <arg name="num_horiz_fourier_terms"     value="5"/>
 
     <!-- Safety Parameters -->
     <arg name="enable_safety_boundary"      value="true"/>

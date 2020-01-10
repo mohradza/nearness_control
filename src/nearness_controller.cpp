@@ -37,7 +37,7 @@ void NearnessController::init() {
     pub_v_recon_wf_nearness_ = nh_.advertise<std_msgs::Float32MultiArray>("vert_recon_wf_nearness", 10);
     pub_v_fourier_coefficients_ = nh_.advertise<nearness_control::FourierCoefsMsg>("vert_fourier_coefficients", 10);
     pub_control_commands_ = nh_.advertise<geometry_msgs::TwistStamped>("control_commands", 10);
-    pub_sim_control_commands_ = nh_.advertise<geometry_msgs::Twist>("sim_control_commands", 10);
+    pub_debug_weighting_ = nh_.advertise<std_msgs::Float32MultiArray>("debug_weighting", 10);
     pub_h_sf_yawrate_command_ = nh_.advertise<std_msgs::Float32>("sf_yawrate_command", 10);
     pub_vehicle_status_ = nh_.advertise<std_msgs::Int32>("vehicle_status", 10);
     pub_estop_engage_ = nh_.advertise<std_msgs::Bool>("estop_cmd", 10);
@@ -410,7 +410,8 @@ void NearnessController::computeHorizFourierCoeffs(){
     h_nearness_ = 1.0/ h_depth_cvmat_;
 
     std::vector<float> h_nearness_array(h_nearness_.begin<float>(), h_nearness_.end<float>());
-
+    h_nearness_maxval_ = std::max_element(h_nearness_array.begin(), h_nearness_array.end());
+    ROS_INFO_THROTTLE(1,"nearness maxval: %f", h_nearness_maxval_);
 
     // Pull out the L2 norm of the measured nearness signal
     float norm_sum = 0.0;
@@ -531,7 +532,7 @@ void NearnessController::computeSFYawRateCommand(){
     for(int i=0; i<num_h_scan_points_; i++){
         norm_sum += pow(h_sf_nearness[i],2);
     }
-    h_sf_nearness_l2_norm = sqrt(norm_sum);
+    h_sf_nearness_l2_norm_ = sqrt(norm_sum);
 
     // Compute the standard deviation of the SF signal
     h_sf_mean_val = h_sf_mean_sum / num_h_scan_points_;
@@ -713,7 +714,6 @@ void NearnessController::publishControlCommandMsg(){
     control_command_.twist.angular.y = 0.0;
     control_command_.twist.angular.z = 0.0;
 
-
     if(is_ground_vehicle_ && enable_command_weighting_){
       //float wf_att_cmd = sat(h_nearness_l2_norm, 0.0 , 1.0)*h_wf_r_cmd_ + (1.0 - sat(h_nearness_l2_norm, 0.0 , 1.0)*attractor_yaw_cmd_);
       //control_command_.twist.angular.z = sat(h_sf_nearness_l2_norm, 0.0, 1.0)*h_sf_r_cmd_ + (1.0 - sat(h_sf_nearness_l2_norm, 0.0, 1.0))*wf_att_cmd;
@@ -726,8 +726,15 @@ void NearnessController::publishControlCommandMsg(){
           nearness_r_cmd += h_sf_r_cmd_;
       }
 
-      control_command_.twist.angular.z = nearness_r_cmd + (1.0 - sat(h_nearness_l2_norm, 0.0 , 1.0))*attractor_yaw_cmd_;
-
+      control_command_.twist.angular.z = nearness_r_cmd + (1.0 - sat(h_nearness_l2_norm_, 0.0 , 1.0))*attractor_yaw_cmd_;
+      if(debug_){
+          std_msgs::Float32MultiArray weighting_msg;
+          weighting_msg.data[0] = nearness_r_cmd;
+          weighting_msg.data[1] = attractor_yaw_cmd_;
+          weighting_msg.data[2] = h_nearness_l2_norm_;
+          weighting_msg.data[3] = control_command_.twist.angular.z;
+          weighting_msdg.data[4] = h_nearness_maxval_;
+      }
     } else {
 
         if(enable_wf_control_){
@@ -784,10 +791,6 @@ void NearnessController::publishControlCommandMsg(){
     }
 
     pub_control_commands_.publish(control_command_);
-
-    geometry_msgs::Twist sim_cmd_msg;
-    sim_cmd_msg = control_command_.twist;
-    pub_sim_control_commands_.publish(sim_cmd_msg);
 
 }
 

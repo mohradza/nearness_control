@@ -15,6 +15,7 @@
     <arg name="horiz_sensor_max_distance"   default="40.0"/>
     <arg name="horiz_sensor_min_noise"      default="0.1"/>
     <arg name="reverse_horiz_scan"          default="true"/>
+    <arg name="num_horiz_fourier_terms"     default="5"/>
 
     <arg name="enable_safety_boundary"      default="true"/>
     <arg name="enable_safety_box"           default="true"/>
@@ -52,7 +53,7 @@
         <param name="horiz_sensor_max_distance" type="double" value="$(arg horiz_sensor_min_distance)"/>
         <param name="horiz_sensor_min_noise" type="double" value="$(arg horiz_sensor_min_noise)"/>
         <param name="reverse_horiz_scan" type="bool" value="$(arg reverse_horiz_scan)"/>
-        <param name="num_horiz_fourier_terms" type="int" value="5"/>
+        <param name="num_horiz_fourier_terms" type="int" value="$(arg num_horiz_fourier_terms)"/>
 
         <param name="total_vert_scan_points" type="int" value="1081"/>
         <param name="num_vert_scan_points" type="int" value="720"/>
