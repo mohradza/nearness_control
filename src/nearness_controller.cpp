@@ -769,6 +769,22 @@ void NearnessController::publishControlCommandMsg(){
         if(!have_attractor_ && enable_attractor_control_){
             control_command_.twist.linear.x = 0.0;
         }
+        if(debug_){
+            float nearness_r_cmd = 0.0;
+            if (enable_wf_control_){
+                nearness_r_cmd += h_wf_r_cmd_;
+            }
+
+            if (enable_sf_control_){
+                nearness_r_cmd += h_sf_r_cmd_;
+            }
+            std_msgs::Float32MultiArray weighting_msg;
+            weighting_msg.data[0] = nearness_r_cmd;
+            weighting_msg.data[1] = attractor_yaw_cmd_;
+            weighting_msg.data[2] = h_nearness_l2_norm_;
+            weighting_msg.data[3] = control_command_.twist.angular.z;
+            weighting_msdg.data[4] = h_nearness_maxval_;
+        }
     }
 
     saturateControls();
