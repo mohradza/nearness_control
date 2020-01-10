@@ -410,7 +410,7 @@ void NearnessController::computeHorizFourierCoeffs(){
     h_nearness_ = 1.0/ h_depth_cvmat_;
 
     std::vector<float> h_nearness_array(h_nearness_.begin<float>(), h_nearness_.end<float>());
-    h_nearness_maxval_ = std::max_element(h_nearness_array.begin(), h_nearness_array.end());
+    h_nearness_maxval_ = *std::max_element(h_nearness_array.begin(), h_nearness_array.end());
     ROS_INFO_THROTTLE(1,"nearness maxval: %f", h_nearness_maxval_);
 
     // Pull out the L2 norm of the measured nearness signal
@@ -419,7 +419,7 @@ void NearnessController::computeHorizFourierCoeffs(){
     for(int i=0; i<num_h_scan_points_; i++){
         norm_sum += pow(h_nearness_array[i],2);
     }
-    h_nearness_l2_norm = sqrt(norm_sum);
+    h_nearness_l2_norm_ = sqrt(norm_sum);
 
     // Publish horizontal nearness
     if(debug_){
@@ -648,7 +648,7 @@ void NearnessController::computeSFVerticalSpeedCommand(){
 void NearnessController::computeForwardSpeedCommand(){
 
     //u_cmd_ = u_max_ * (1 - u_k_hb_1_*abs(h_b_[1]) - u_k_hb_2_*abs(h_b_[2]) - u_k_vb_1_*abs(v_b_[1]) - u_k_vb_2_*abs(v_b_[2]));
-    u_cmd_ = u_max_ * (1 - u_k_hb_1_*abs(h_b_[1]) - u_k_hb_2_*abs(h_b_[2]);
+    u_cmd_ = u_max_ * (1 - u_k_hb_1_*abs(h_b_[1]) - u_k_hb_2_*abs(h_b_[2]));
 
     // Saturate forward velocity command
     if(u_cmd_ < u_min_){
@@ -733,7 +733,7 @@ void NearnessController::publishControlCommandMsg(){
           weighting_msg.data[1] = attractor_yaw_cmd_;
           weighting_msg.data[2] = h_nearness_l2_norm_;
           weighting_msg.data[3] = control_command_.twist.angular.z;
-          weighting_msdg.data[4] = h_nearness_maxval_;
+          weighting_msg.data[4] = h_nearness_maxval_;
       }
     } else {
 
@@ -783,7 +783,7 @@ void NearnessController::publishControlCommandMsg(){
             weighting_msg.data[1] = attractor_yaw_cmd_;
             weighting_msg.data[2] = h_nearness_l2_norm_;
             weighting_msg.data[3] = control_command_.twist.angular.z;
-            weighting_msdg.data[4] = h_nearness_maxval_;
+            weighting_msg.data[4] = h_nearness_maxval_;
         }
     }
 

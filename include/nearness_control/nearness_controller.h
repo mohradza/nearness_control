@@ -209,7 +209,7 @@ class NearnessController {
     int left_corner_index_;
     bool flag_too_close_front_;
     bool flag_too_close_side_;
-    float close_side_speed_;
+    double close_side_speed_;
     float h_dg_;
     float v_dg_;
     float range_agl_;
@@ -226,7 +226,7 @@ class NearnessController {
     // computeHorizFourierCoeffs
     float h_a_[10], h_b_[10];
     cv::Mat h_nearness_;
-    float h_nearness_l2_norm;
+    float h_nearness_l2_norm_;
 
     // computeVertFourierCoeffs
     float v_a_[10], v_b_[10];

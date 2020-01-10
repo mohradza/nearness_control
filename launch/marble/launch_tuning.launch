@@ -1,0 +1,35 @@
+<launch>
+
+  <include file="$(find nearness_control)/launch/marble/nearness_control.launch">
+
+    <arg name="enable_debug"                value="true"/>
+    <arg name="is_ground_vehicle"           value="true"/>
+    <arg name="enable_wf_control"           value="true"/>
+    <arg name="enable_sf_control"           value="true"/>
+    <arg name="enable_attractor_control"    value="false"/>
+    <arg name="enable_command_weighting"    value="false"/>
+
+    <!-- Horizontal Scanner Sensor Parameters -->
+    <!-- These values correspond with the RPLidar S1 -->
+    <arg name="total_horiz_scan_points"     value="720"/>
+    <arg name="num_horiz_scan_points"       value="360"/>
+    <arg name="horiz_scan_start_index"      value="180"/>
+    <arg name="horiz_scan_limit"            value="1.5707"/>
+    <arg name="horiz_sensor_max_distance"   value="0.1"/>
+    <arg name="horiz_sensor_max_distance"   value="40.0"/>
+    <arg name="horiz_sensor_min_noise"      value="0.1"/>
+    <arg name="reverse_horiz_scan"          value="true"/>
+    <arg name="num_horiz_fourier_terms"     value="5"/>
+
+    <!-- Safety Parameters -->
+    <arg name="enable_safety_boundary"      value="true"/>
+    <arg name="enable_safety_box"           value="true"/>
+    <arg name="front_safety_distance"       value="0.35"/>
+    <arg name="side_safety_distance"        value="0.4"/>
+    <arg name="close_side_speed"            value="0.1"/>
+
+  </include>
+
+  <node pkg="dynamic_reconfigure" name="nearness_controller_parameter_config" type="rosparam" args="load $(find nearness_control)/cfg/tuning_params.yaml"/>
+
+</launch>
