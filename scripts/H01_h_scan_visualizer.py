@@ -59,9 +59,9 @@ maxAng = pi
 rospy.init_node( 'scan_plot' , anonymous = True )
 
 # rospy.Subscriber( "wfi/horiz/image_scan" , Float32MultiArray , image_scan_cb )
-rospy.Subscriber( "nearness_controller/horiz_depth_reformat" , Float32MultiArray , depth_scan_cb )
-rospy.Subscriber( "nearness_controller/horiz_nearness" , Float32MultiArray , nearness_cb )
-rospy.Subscriber( "sf/horiz/sf_nearness" , Float32MultiArray , SF_cb )
+rospy.Subscriber( "/H01/nearness_controller/horiz_depth_reformat" , Float32MultiArray , depth_scan_cb )
+rospy.Subscriber( "/H01/nearness_controller/horiz_nearness" , Float32MultiArray , nearness_cb )
+rospy.Subscriber( "/H01/nearness_controller/horiz_sf_nearness" , Float32MultiArray , SF_cb )
 rospy.Subscriber( "sf/horiz/recon_wf_nearness" , Float32MultiArray , WF_recon_cb )
 
 try:
@@ -78,8 +78,8 @@ try:
 		# Horizontal Depth Scan: Array Index vs. Depth [m]
 		# plt.figure(num=1, figsize=(9, 6), dpi=80, facecolor='w', edgecolor='k')
 		plt.plot( lastDepthScanNP , 'b.' )
-		plt.hold( False )
-		plt.xlim( [ 0 , 720 ] )
+		#plt.hold( False )
+		plt.xlim( [ 0 , 360 ] )
 		plt.ylim( [ 0 , 5 ] )
 		plt.xlabel("Array Index")
 		plt.ylabel("Depth [m]")
@@ -89,11 +89,11 @@ try:
 		# Horizontal Depth Scan: X [m] vs Y [m]
 		# plt.figure(num=2, figsize=(9, 6), dpi=80, facecolor='w', edgecolor='k')
 		plt.plot( lastNearnessScanNP , 'b.' )
-		plt.hold( True )
-                plt.plot(lastWFReconScanNP , 'r.' )
-		plt.hold( False )
+		#plt.hold( True )
+        #plt.plot(lastWFReconScanNP , 'r.' )
+		#plt.hold( False )
 
-		plt.xlim( [ 0 , 720 ] )
+		plt.xlim( [ 0 , 360 ] )
 		plt.ylim( [ 0 , 2 ] )
 		plt.xlabel("Array Index")
 		plt.ylabel("Nearness [1/m]")
@@ -103,8 +103,8 @@ try:
 		# Horizontal Nearness Scan: X [1/m] vs Y [1/m]
 		# plt.figure(num=4, figsize=(9, 6), dpi=80, facecolor='w', edgecolor='k')
 		plt.plot( lastSFScanNP , 'b.' )
-		plt.hold( False )
-		plt.xlim( [ 0 , 720 ] )
+		#plt.hold( False )
+		plt.xlim( [ 0 , 360 ] )
 		plt.ylim( [ 0 , 3 ] )
 		plt.xlabel("Array Index")
 		plt.ylabel("Nearness [1/m]")

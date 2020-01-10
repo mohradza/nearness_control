@@ -90,7 +90,6 @@ class NearnessController {
     ros::Subscriber sub_bluetooth_joy_;
     ros::Subscriber sub_odom_;
     ros::Subscriber sub_imu_;
-    ros::Subscriber sub_sonar_height_;
     ros::Subscriber sub_next_waypoint_;
 
     // PUBLISHERS //
@@ -109,6 +108,7 @@ class NearnessController {
     ros::Publisher pub_v_sf_vertspeed_command_;
 
     ros::Publisher pub_control_commands_;
+    ros::Publisher pub_control_commands_stamped_;
     ros::Publisher pub_debug_weighting_;
     ros::Publisher pub_vehicle_status_;
 

@@ -21,8 +21,6 @@ void NearnessController::init() {
     sub_bluetooth_joy_ = nh_.subscribe("joy", 1, &NearnessController::joyconCb, this);
 
     //sub_imu_ = nh_.subscribe("imu_raw", 1, &NearnessController::imuCb, this);
-    sub_sonar_height_ = nh_.subscribe("/sonar_height", 1, &NearnessController::sonarHeightCb, this);
-
     sub_next_waypoint_ = nh_.subscribe("next_waypoint", 1, &NearnessController::nextWaypointCb, this);
 
     // Set up publishers
@@ -36,7 +34,8 @@ void NearnessController::init() {
     pub_v_sf_nearness_ = nh_.advertise<std_msgs::Float32MultiArray>("vert_sf_nearness", 10);
     pub_v_recon_wf_nearness_ = nh_.advertise<std_msgs::Float32MultiArray>("vert_recon_wf_nearness", 10);
     pub_v_fourier_coefficients_ = nh_.advertise<nearness_control::FourierCoefsMsg>("vert_fourier_coefficients", 10);
-    pub_control_commands_ = nh_.advertise<geometry_msgs::TwistStamped>("control_commands", 10);
+    pub_control_commands_stamped_ = nh_.advertise<geometry_msgs::TwistStamped>("control_commands_stamped", 10);
+    pub_control_commands_ = nh_.advertise<geometry_msgs::Twist>("control_commands", 10);
     pub_debug_weighting_ = nh_.advertise<std_msgs::Float32MultiArray>("debug_weighting", 10);
     pub_h_sf_yawrate_command_ = nh_.advertise<std_msgs::Float32>("sf_yawrate_command", 10);
     pub_vehicle_status_ = nh_.advertise<std_msgs::Int32>("vehicle_status", 10);
@@ -48,77 +47,75 @@ void NearnessController::init() {
     control_command_.header.frame_id = "/base_stabilized";
 
     // Import parameters
-    nh_.param("/nearness_control_node/enable_debug", debug_, false);
-    nh_.param("/nearness_control_node/is_ground_vehicle", is_ground_vehicle_, true);
-    nh_.param("/nearness_control_node/num_vert_fourier_terms", v_num_fourier_terms_, 5);
-    nh_.param("/nearness_control_node/enable_wf_control", enable_wf_control_, true);
-    nh_.param("/nearness_control_node/enable_sf_control", enable_sf_control_, false);
-    nh_.param("/nearness_control_node/enable_attractor_control", enable_attractor_control_, false);
-    nh_.param("/nearness_control_node/enable_command_weighting", enable_command_weighting_, false);
-    //nh_.param("/nearness_control_node/", ,);
-    //nh_.param("/nearness_control_node/", ,);
+    pnh_.param("enable_debug", debug_, false);
+    pnh_.param("is_ground_vehicle", is_ground_vehicle_, true);
+    pnh_.param("num_vert_fourier_terms", v_num_fourier_terms_, 5);
+    pnh_.param("enable_wf_control", enable_wf_control_, true);
+    pnh_.param("enable_sf_control", enable_sf_control_, false);
+    pnh_.param("enable_attractor_control", enable_attractor_control_, false);
+    pnh_.param("enable_command_weighting", enable_command_weighting_, false);
 
-    nh_.param("/nearness_control_node/total_horiz_scan_points", total_h_scan_points_, 1440);
-    nh_.param("/nearness_control_node/horiz_scan_limit", h_scan_limit_, M_PI);
-    nh_.param("/nearness_control_node/num_horiz_scan_points", num_h_scan_points_, 720);
-    nh_.param("/nearness_control_node/horiz_sensor_min_distance", h_sensor_min_dist_, .1);
-    nh_.param("/nearness_control_node/horiz_sensor_max_distance", h_sensor_max_dist_, 25.0);
-    nh_.param("/nearness_control_node/horiz_scan_start_index", h_scan_start_index_, 0);
-    nh_.param("/nearness_control_node/horiz_sensor_min_noise", h_sensor_min_noise_ , .1);
-    nh_.param("/nearness_control_node/reverse_horiz_scan", reverse_h_scan_, true);
-    nh_.param("/nearness_control_node/num_horiz_fourier_terms", h_num_fourier_terms_, 5);
+    pnh_.param("total_horiz_scan_points", total_h_scan_points_, 1440);
+    pnh_.param("horiz_scan_limit", h_scan_limit_, M_PI);
+    pnh_.param("num_horiz_scan_points", num_h_scan_points_, 720);
+    pnh_.param("horiz_sensor_min_distance", h_sensor_min_dist_, .1);
+    pnh_.param("horiz_sensor_max_distance", h_sensor_max_dist_, 25.0);
+    pnh_.param("horiz_scan_start_index", h_scan_start_index_, 0);
+    pnh_.param("horiz_sensor_min_noise", h_sensor_min_noise_ , .1);
+    pnh_.param("reverse_horiz_scan", reverse_h_scan_, true);
+    pnh_.param("num_horiz_fourier_terms", h_num_fourier_terms_, 5);
 
-    nh_.param("/nearness_control_node/total_vert_scan_points", total_v_scan_points_, 1440);
-    nh_.param("/nearness_control_node/num_vert_scan_points", num_v_scan_points_, 720);
-    nh_.param("/nearness_control_node/vert_scan_limit", v_scan_limit_, M_PI);
-    nh_.param("/nearness_control_node/vert_sensor_min_distance", v_sensor_min_dist_, .1);
-    nh_.param("/nearness_control_node/vert_sensor_max_distance", v_sensor_max_dist_, 25.0);
-    nh_.param("/nearness_control_node/vert_scan_start_index", v_scan_start_index_, 0);
-    nh_.param("/nearness_control_node/vert_sensor_min_noise", v_sensor_min_noise_ , .1);
-    nh_.param("/nearness_control_node/reverse_vert_scan", reverse_v_scan_, false);
+    pnh_.param("total_vert_scan_points", total_v_scan_points_, 1440);
+    pnh_.param("num_vert_scan_points", num_v_scan_points_, 720);
+    pnh_.param("vert_scan_limit", v_scan_limit_, M_PI);
+    pnh_.param("vert_sensor_min_distance", v_sensor_min_dist_, .1);
+    pnh_.param("vert_sensor_max_distance", v_sensor_max_dist_, 25.0);
+    pnh_.param("vert_scan_start_index", v_scan_start_index_, 0);
+    pnh_.param("vert_sensor_min_noise", v_sensor_min_noise_ , .1);
+    pnh_.param("reverse_vert_scan", reverse_v_scan_, false);
 
     // Safety
-    nh_.param("/nearness_control_node/enable_safety_boundary", enable_safety_boundary_, false);
-    nh_.param("/nearness_control_node/enable_safety_box", enable_safety_box_, false);
-    nh_.param("/nearness_control_node/enable_safety_radius", enable_safety_radius_, false);
-    nh_.param("/nearness_control_node/front_safety_distance", f_dist_, .5);
-    nh_.param("/nearness_control_node/side_safety_distance", s_dist_, .5);
-    nh_.param("/nearness_control_node/safety_radius", safety_radius_, .5);
-    nh_.param("/nearness_control_node/close_side_speed", close_side_speed_, .05);
+    pnh_.param("enable_safety_boundary", enable_safety_boundary_, false);
+    pnh_.param("enable_safety_box", enable_safety_box_, false);
+    pnh_.param("enable_safety_radius", enable_safety_radius_, false);
+    pnh_.param("front_safety_distance", f_dist_, .5);
+    pnh_.param("side_safety_distance", s_dist_, .5);
+    pnh_.param("safety_radius", safety_radius_, .5);
+    pnh_.param("close_side_speed", close_side_speed_, .05);
 
     // Wide Field Forward Speed and Yaw Rate Control Gains
-    nh_.param("/nearness_control_node/forward_speed_k_hb_1", u_k_hb_1_, 0.0);
-    nh_.param("/nearness_control_node/forward_speed_k_hb_2", u_k_hb_2_, 3.5);
-    nh_.param("/nearness_control_node/forward_speed_min", u_min_, .1);
-    nh_.param("/nearness_control_node/forward_speed_max", u_max_, 5.0);
-    nh_.param("/nearness_control_node/yaw_rate_k_hb_1", r_k_hb_1_, 2.0);
-    nh_.param("/nearness_control_node/yaw_rate_k_hb_2", r_k_hb_2_, 2.0);
-    nh_.param("/nearness_control_node/yaw_rate_max", r_max_, 1.0);
+    pnh_.param("forward_speed_k_hb_1", u_k_hb_1_, 0.0);
+    pnh_.param("forward_speed_k_hb_2", u_k_hb_2_, 3.5);
+    pnh_.param("forward_speed_min", u_min_, .1);
+    pnh_.param("forward_speed_max", u_max_, 5.0);
+    pnh_.param("yaw_rate_k_hb_1", r_k_hb_1_, 2.0);
+    pnh_.param("yaw_rate_k_hb_2", r_k_hb_2_, 2.0);
+    pnh_.param("yaw_rate_max", r_max_, 1.0);
 
 
     // Small Field Yaw Rate Control Gains
-    nh_.param("/nearness_control_node/h_sf_k_0", h_sf_k_0_, 0.5);
-    nh_.param("/nearness_control_node/h_sf_k_d", h_sf_k_d_, 1.0);
-    nh_.param("/nearness_control_node/h_sf_k_psi", h_sf_k_psi_, 0.4);
-    nh_.param("/nearness_control_node/h_sf_k_thresh", h_sf_k_thresh_, 3.0);
+    pnh_.param("h_sf_k_0", h_sf_k_0_, 0.5);
+    pnh_.param("h_sf_k_d", h_sf_k_d_, 1.0);
+    pnh_.param("h_sf_k_psi", h_sf_k_psi_, 0.4);
+    pnh_.param("h_sf_k_thresh", h_sf_k_thresh_, 3.0);
 
     // Attractor Control Gains
-    nh_.param("/nearness_control_node/yaw_rate_k_att_0", r_k_att_0_, 1.0);
-    nh_.param("/nearness_control_node/yaw_rate_k_att_d_", r_k_att_d_, 0.1);
+    pnh_.param("yaw_rate_k_att_0", r_k_att_0_, 1.0);
+    pnh_.param("yaw_rate_k_att_d_", r_k_att_d_, 0.1);
 
     // Additional gains for Aerial vehicle use
-    nh_.param("/nearness_control_node/forward_speed_k_vb_1", u_k_vb_1_, 0.0);
-    nh_.param("/nearness_control_node/forward_speed_k_vb_2", u_k_vb_2_, 3.5);
-    nh_.param("/nearness_control_node/v_sf_k_0", v_sf_k_0_, 2.0);
-    nh_.param("/nearness_control_node/v_sf_k_d", v_sf_k_d_, 2.0);
-    nh_.param("/nearness_control_node/v_sf_k_psi", v_sf_k_psi_, 2.0);
-    nh_.param("/nearness_control_node/v_sf_k_thresh", v_sf_k_thresh_, 2.0);
-    nh_.param("/nearness_control_node/vert_speed_k_vb_1", w_k_1_, 2.0);
-    nh_.param("/nearness_control_node/vert_speed_k_vb_2", w_k_2_, 2.0);
-    nh_.param("/nearness_control_node/vert_speed_max", w_max_, 2.0);
-    nh_.param("/nearness_control_node/lateral_speed_k_hb_1", v_k_hb_1_, 2.0);
-    nh_.param("/nearness_control_node/lateral_speed_max", v_max_, 2.0);
-
+    pnh_.param("forward_speed_k_vb_1", u_k_vb_1_, 0.0);
+    pnh_.param("forward_speed_k_vb_2", u_k_vb_2_, 3.5);
+    pnh_.param("v_sf_k_0", v_sf_k_0_, 2.0);
+    pnh_.param("v_sf_k_d", v_sf_k_d_, 2.0);
+    pnh_.param("v_sf_k_psi", v_sf_k_psi_, 2.0);
+    pnh_.param("v_sf_k_thresh", v_sf_k_thresh_, 2.0);
+    pnh_.param("vert_speed_k_vb_1", w_k_1_, 2.0);
+    pnh_.param("vert_speed_k_vb_2", w_k_2_, 2.0);
+    pnh_.param("vert_speed_max", w_max_, 2.0);
+    pnh_.param("lateral_speed_k_hb_1", v_k_hb_1_, 2.0);
+    pnh_.param("lateral_speed_max", v_max_, 2.0);
+    ROS_INFO("%d", num_h_scan_points_);
     // Generate the gamma vector
     for(int i=0; i<num_h_scan_points_; i++){
         h_gamma_vector_.push_back((float(i)/float(num_h_scan_points_))*(2*h_scan_limit_) - h_scan_limit_);
@@ -213,6 +210,8 @@ void NearnessController::horizLaserscanCb(const sensor_msgs::LaserScanPtr h_lase
 
     if(enable_attractor_control_){
         computeAttractorCommand();
+    } else {
+      attractor_yaw_cmd_ = 0.0;
     }
 
     publishControlCommandMsg();
@@ -411,7 +410,6 @@ void NearnessController::computeHorizFourierCoeffs(){
 
     std::vector<float> h_nearness_array(h_nearness_.begin<float>(), h_nearness_.end<float>());
     h_nearness_maxval_ = *std::max_element(h_nearness_array.begin(), h_nearness_array.end());
-    ROS_INFO_THROTTLE(1,"nearness maxval: %f", h_nearness_maxval_);
 
     // Pull out the L2 norm of the measured nearness signal
     float norm_sum = 0.0;
@@ -420,6 +418,8 @@ void NearnessController::computeHorizFourierCoeffs(){
         norm_sum += pow(h_nearness_array[i],2);
     }
     h_nearness_l2_norm_ = sqrt(norm_sum);
+    //ROS_INFO_THROTTLE(1,"maxval: %f, norm: %f", h_nearness_maxval_, h_nearness_l2_norm_);
+
 
     // Publish horizontal nearness
     if(debug_){
@@ -511,7 +511,8 @@ void NearnessController::computeSFYawRateCommand(){
 
     // Reconstruct the WF signal
     for(int i = 0; i < num_h_scan_points_; i++){
-        recon_wf_nearness.push_back(0.0);
+        //recon_wf_nearness.push_back(0.0);
+        recon_wf_nearness[i] = 0.0;
         for(int n = 0; n < h_num_fourier_terms_; n++){
             recon_wf_nearness[i] += h_a_[n+1]*cos((n+1)*h_gamma_vector_[i]) + h_b_[n+1]*sin((n+1)*h_gamma_vector_[i]);
         }
@@ -522,7 +523,7 @@ void NearnessController::computeSFYawRateCommand(){
     float h_sf_mean_sum = 0.0;
     float h_sf_mean_val = 0.0;
     for(int i=0; i < num_h_scan_points_; i++){
-        h_sf_nearness.push_back(abs(h_nearness[i] - recon_wf_nearness[i]));
+        h_sf_nearness[i] = abs(h_nearness[i] - recon_wf_nearness[i]);
         h_sf_mean_sum += h_sf_nearness[i];
     }
 
@@ -565,6 +566,7 @@ void NearnessController::computeSFYawRateCommand(){
         std_msgs::Float32MultiArray h_sf_nearness_msg;
         h_sf_nearness_msg.layout.dim.push_back(std_msgs::MultiArrayDimension());
         h_sf_nearness_msg.layout.dim[0].size = h_sf_nearness.size();
+        ROS_INFO("%d", h_sf_nearness.size());
         h_sf_nearness_msg.data.clear();
         h_sf_nearness_msg.data.insert(h_sf_nearness_msg.data.end(), h_sf_nearness.begin(), h_sf_nearness.end());
         pub_h_sf_nearness_.publish(h_sf_nearness_msg);
@@ -648,6 +650,7 @@ void NearnessController::computeSFVerticalSpeedCommand(){
 void NearnessController::computeForwardSpeedCommand(){
 
     //u_cmd_ = u_max_ * (1 - u_k_hb_1_*abs(h_b_[1]) - u_k_hb_2_*abs(h_b_[2]) - u_k_vb_1_*abs(v_b_[1]) - u_k_vb_2_*abs(v_b_[2]));
+    ROS_INFO_THROTTLE(1, "%f %f", u_k_hb_1_, u_k_hb_2_);
     u_cmd_ = u_max_ * (1 - u_k_hb_1_*abs(h_b_[1]) - u_k_hb_2_*abs(h_b_[2]));
 
     // Saturate forward velocity command
@@ -729,11 +732,11 @@ void NearnessController::publishControlCommandMsg(){
       control_command_.twist.angular.z = nearness_r_cmd + (1.0 - sat(h_nearness_l2_norm_, 0.0 , 1.0))*attractor_yaw_cmd_;
       if(debug_){
           std_msgs::Float32MultiArray weighting_msg;
-          weighting_msg.data[0] = nearness_r_cmd;
-          weighting_msg.data[1] = attractor_yaw_cmd_;
-          weighting_msg.data[2] = h_nearness_l2_norm_;
-          weighting_msg.data[3] = control_command_.twist.angular.z;
-          weighting_msg.data[4] = h_nearness_maxval_;
+          weighting_msg.data.push_back(nearness_r_cmd);
+          weighting_msg.data.push_back(attractor_yaw_cmd_);
+          weighting_msg.data.push_back(control_command_.twist.angular.z);
+          weighting_msg.data.push_back(h_nearness_l2_norm_);
+          weighting_msg.data.push_back(h_nearness_maxval_);
       }
     } else {
 
@@ -747,7 +750,6 @@ void NearnessController::publishControlCommandMsg(){
             }
         }
 
-        //control_command_.twist.linear.z = -.5*(range_agl_ - 2.0);
         if(enable_sf_control_){
             if(!is_ground_vehicle_){
                 control_command_.twist.angular.z += h_sf_r_cmd_;
@@ -779,11 +781,12 @@ void NearnessController::publishControlCommandMsg(){
                 nearness_r_cmd += h_sf_r_cmd_;
             }
             std_msgs::Float32MultiArray weighting_msg;
-            weighting_msg.data[0] = nearness_r_cmd;
-            weighting_msg.data[1] = attractor_yaw_cmd_;
-            weighting_msg.data[2] = h_nearness_l2_norm_;
-            weighting_msg.data[3] = control_command_.twist.angular.z;
-            weighting_msg.data[4] = h_nearness_maxval_;
+            weighting_msg.data.push_back(nearness_r_cmd);
+            weighting_msg.data.push_back(attractor_yaw_cmd_);
+            weighting_msg.data.push_back(control_command_.twist.angular.z);
+            weighting_msg.data.push_back(h_nearness_l2_norm_);
+            weighting_msg.data.push_back(h_nearness_maxval_);
+            pub_debug_weighting_.publish(weighting_msg);
         }
     }
 
@@ -806,7 +809,8 @@ void NearnessController::publishControlCommandMsg(){
         control_command_.twist.angular.z = 0.0;
     }
 
-    pub_control_commands_.publish(control_command_);
+    pub_control_commands_stamped_.publish(control_command_);
+    pub_control_commands_.publish(control_command_.twist);
 
 }
 
@@ -816,10 +820,6 @@ void NearnessController::odomCb(const nav_msgs::OdometryConstPtr& odom_msg){
     tf::Quaternion vehicle_quat_tf;
     tf::quaternionMsgToTF(vehicle_quat_msg, vehicle_quat_tf);
     tf::Matrix3x3(vehicle_quat_tf).getRPY(current_roll_, current_pitch_, current_heading_);
-}
-
-void NearnessController::sonarHeightCb(const sensor_msgs::RangeConstPtr& range_msg){
-    range_agl_ = range_msg->range;
 }
 
 void NearnessController::joyconCb(const sensor_msgs::JoyConstPtr& joy_msg)
