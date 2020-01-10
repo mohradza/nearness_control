@@ -195,7 +195,6 @@ class NearnessController {
     double w_max_;
     double r_k_att_0_;
     double r_k_att_d_;
-    bool enable_gain_scaling_;
     bool enable_attractor_control_;
     bool is_ground_vehicle_;
     bool have_attractor_;
@@ -210,6 +209,7 @@ class NearnessController {
     int left_corner_index_;
     bool flag_too_close_front_;
     bool flag_too_close_side_;
+    float close_side_speed_;
     float h_dg_;
     float v_dg_;
     float range_agl_;

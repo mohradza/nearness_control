@@ -1,11 +1,12 @@
 <launch>
 
   <include file="$(find nearness_control)/launch/nearness_control.launch">
+
     <arg name="enable_debug"                value="true"/>
     <arg name="is_ground_vehicle"           value="true"/>
     <arg name="enable_wf_control"           value="true"/>
-    <arg name="enable_sf_control"           value="false"/>
-    <arg name="enable_attractor_control"    value="false"/>
+    <arg name="enable_sf_control"           value="true"/>
+    <arg name="enable_attractor_control"    value="true"/>
     <arg name="enable_command_weighting"    value="false"/>
 
     <!-- Horizontal Scanner Sensor Parameters -->
@@ -24,9 +25,10 @@
     <arg name="enable_safety_box"           value="true"/>
     <arg name="front_safety_distance"       value="0.25"/>
     <arg name="side_safety_distance"        value="0.35"/>
+    <arg name="close_side_speed"            value="0.05"/>
 
   </include>
 
-  <node pkg="dynamic_reconfigure" name="nearness_controller_parameter_config" type="rosparam" args="load $(find nearness_control)/cfg/NearnessControllerParams.yaml"/>
+  <node pkg="dynamic_reconfigure" name="nearness_controller_parameter_config" type="rosparam" args="load $(find nearness_control)/cfg/HD2_params.yaml"/>
 
 </launch>

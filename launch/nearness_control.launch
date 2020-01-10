@@ -21,6 +21,7 @@
     <arg name="front_safety_distance"       default="0.25"/>
     <arg name="side_safety_distance"        default="0.35"/>
     <arg name="safety_radius"               default=".5"/>
+    <arg name="close_side_speed"            default="0.05"/>
 
     <node pkg="nearness_control" type="nearness_controller_node" name="nearness_control_node" output="screen">
 
@@ -51,6 +52,7 @@
         <param name="horiz_sensor_max_distance" type="double" value="$(arg horiz_sensor_min_distance)"/>
         <param name="horiz_sensor_min_noise" type="double" value="$(arg horiz_sensor_min_noise)"/>
         <param name="reverse_horiz_scan" type="bool" value="$(arg reverse_horiz_scan)"/>
+        <param name="num_horiz_fourier_terms" type="int" value="5"/>
 
         <param name="total_vert_scan_points" type="int" value="1081"/>
         <param name="num_vert_scan_points" type="int" value="720"/>
@@ -68,6 +70,7 @@
         <param name="front_safety_distance" type="double" value="$(arg front_safety_distance)"/>
         <param name="side_safety_distance" type="double" value="$(arg side_safety_distance)"/>
         <param name="safety_radius" type="double" value="$(arg safety_radius)"/>
+        <param name="close_side_speed" type="double" value="$(arg close_side_speed)"/>
 
         <!-- Parameters for Forward Speed Controller -->
         <param name="forward_speed_k_hb_1" type="double" value=".5"/>
@@ -77,14 +80,22 @@
         <param name="forward_speed_min" type="double" value="0.1"/>
         <param name="forward_speed_max" type="double" value=".25"/>
 
-        <!-- Parameters for Yaw Rate Controller -->
+        <!-- Parameters for WF Yaw Rate Control -->
         <param name="yaw_rate_k_hb_1" type="double" value="1.0"/>
         <param name="yaw_rate_k_hb_2" type="double" value="2.0"/>  <!-- -2 -->
         <param name="yaw_rate_max" type="double" value=".1"/>
 
+        <!-- Parameters for SF Yaw Rate Control -->
+        <param name="h_sf_k_thresh" type="double" value="3.0"/>
+        <param name="h_sf_k_0" type="double" value="0.4"/>
+        <param name="h_sf_k_psi" type="double" value="0.5"/>
+        <param name="h_sf_k_d" type="double" value="0.5"/>
+
+        <!-- Parameters for Attractor Yaw Rate Control -->
         <param name="yaw_rate_k_att_0" type="double" value="-.5"/>
         <param name="yaw_rate_k_att_d" type="double" value="1.0"/>
 
+        <!-- Additional parameters for aerial vehicles -->
         <param name="lateral_speed_k_hb_1" type="double" value="4.0"/>
         <param name="lateral_speed_max" type="double" value="2.0"/>
 
