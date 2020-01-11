@@ -113,6 +113,7 @@ class NearnessController {
     ros::Publisher pub_vehicle_status_;
 
     ros::Publisher pub_estop_engage_;
+    ros::Publisher pub_sf_clustering_debug_;
 
     // DYNAMIC RECONFIGURE //
     boost::mutex connect_mutex_;

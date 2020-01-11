@@ -40,6 +40,7 @@ void NearnessController::init() {
     pub_h_sf_yawrate_command_ = nh_.advertise<std_msgs::Float32>("sf_yawrate_command", 10);
     pub_vehicle_status_ = nh_.advertise<std_msgs::Int32>("vehicle_status", 10);
     pub_estop_engage_ = nh_.advertise<std_msgs::Bool>("estop_cmd", 10);
+    pub_sf_clustering_debug_ = nh_.advertise<nearness_control::ClusterMsg>("sf_clusters", 10);
 
     // Initialize variables
     have_attractor_ = false;
@@ -544,17 +545,58 @@ void NearnessController::computeSFYawRateCommand(){
     h_sf_std_dev = pow(h_sf_std_dev / num_h_scan_points_, .5);
     float h_sf_min_threshold = h_sf_k_thresh_ * h_sf_std_dev;
 
-    // Find the max value of the signal and determine if it is greaster
-    // than the dynamic threshold
-    int h_sf_max_val_index = std::max_element(h_sf_nearness.begin(), h_sf_nearness.end()) - h_sf_nearness.begin();
-    float h_sf_max_val = *std::max_element(h_sf_nearness.begin(), h_sf_nearness.end());
+    if(enable_sf_mixing_){
+        // Find the max value of the signal and determine if it is greater
+        // than the dynamic threshold
+        int h_sf_max_val_index = std::max_element(h_sf_nearness.begin(), h_sf_nearness.end()) - h_sf_nearness.begin();
+        float h_sf_max_val = *std::max_element(h_sf_nearness.begin(), h_sf_nearness.end());
 
-    float d_0 = abs(h_sf_nearness[h_sf_max_val_index]);
-    float r_0 = h_gamma_vector_[h_sf_max_val_index];
+        float d_0 = abs(h_sf_nearness[h_sf_max_val_index]);
+        float r_0 = h_gamma_vector_[h_sf_max_val_index];
 
-    // Compute the sf steering control command
-    if(d_0 > h_sf_min_threshold && ((r_0 > (-M_PI/2 + .01)) && (r_0 < (M_PI - .01)))){
-        h_sf_r_cmd_ = h_sf_k_0_ * sgn(r_0) * exp(-h_sf_k_psi_ * abs(r_0)) * exp(-h_sf_k_d_/abs(d_0));
+        // Compute the sf steering control command
+        if(d_0 > h_sf_min_threshold && ((r_0 > (-M_PI/2 + .01)) && (r_0 < (M_PI - .01)))){
+            h_sf_r_cmd_ = h_sf_k_0_ * sgn(r_0) * exp(-h_sf_k_psi_ * abs(r_0)) * exp(-h_sf_k_d_/abs(d_0));
+        }
+    } else {
+        // Do clustering and mixing
+        std::vector<float> sf_d_cluster;
+        std::vector<float> sf_r_cluster;
+        std::vector<float> cluster_d;
+        std::vector<float> cluster_r;
+        int n = 0;
+        int c = 0;
+        num_sf_clusters_ = 0;
+
+        for(int i=0; i < num_h_scan_points_-1; i++){
+            if((h_sf_nearness[i] > h_sf_min_threshold) && (h_sf_nearness[i+1] > h_sf_min_threshold)){
+                sf_d_cluster.push_back(h_sf_nearness[i]);
+                sf_r_cluster.push_back(h_gamma_vector_[i]);
+                n++;
+            } else {
+                if (n > 0){
+                    cluster_d.push_back(0.0);
+                    cluster_r.push_back(0.0);
+                    for(int j = 0; j < n; j++){
+                        cluster_d[c] += sf_d_cluster[j];
+                        cluster_r[c] += sf_r_cluster[j];
+                    }
+                    cluster_d[c] /= float(n);
+                    cluster_r[c] /= float(n);
+                    c++;
+                }
+            }
+        }
+    }
+    num_sf_clusters_ = c;
+    h_sf_r_cmd_ = 0.0;
+    int sign = 1;
+    if(num_sf_clusters_ != 0){
+        for(int i = 0; i < num_sf_clusters_; i++){
+            if(cluster_r[i] > 0) sign = 1;
+            if(cluster_r[i] > 0) sign = -1;
+            h_sf_r_cmd_ += h_sf_k_0_*float(sign)*exp(-h_sf_k_psi_*abs(cluster_r[i]))*exp(-h_sf_k_d_/abs(cluster_d[i]));
+        }
     }
 
     // Publish sf nearness signal
@@ -577,8 +619,17 @@ void NearnessController::computeSFYawRateCommand(){
         recon_wf_nearness_msg.data.clear();
         recon_wf_nearness_msg.data.insert(recon_wf_nearness_msg.data.end(), recon_wf_nearness.begin(), recon_wf_nearness.end());
         pub_h_recon_wf_nearness_.publish(recon_wf_nearness_msg);
-    }
 
+        nearness_control::ClusterMsg cluster_msg;
+        cluster_msg.num_clusters = num_clusters_;
+        if(num_sf_clusters_ != 0){
+            for(int i = 0; i < num_sf_clusters_; i++){
+                cluster_msg.cluster_mag.push_back(cluster_d[i]);
+                cluster_msg.cluster_loc.push_back(cluster_r[i]);
+            }
+        }
+        pub_sf_clustering_debug_.publish(cluster_msg);
+    }
 }
 
 void NearnessController::computeSFVerticalSpeedCommand(){
