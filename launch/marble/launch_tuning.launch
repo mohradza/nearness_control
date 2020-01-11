@@ -12,7 +12,7 @@
     <arg name="enable_sf_control"           value="true"/>
     <arg name="enable_attractor_control"    value="false"/>
     <arg name="enable_command_weighting"    value="false"/>
-    <arg name="enable_sf_clustering_"       value="true"/>
+    <arg name="enable_sf_clustering"        value="true"/>
 
     <!-- Horizontal Scanner Sensor Parameters -->
     <!-- These values correspond with the RPLidar S1 -->

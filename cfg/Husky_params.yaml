@@ -10,6 +10,6 @@ yaw_rate_k_att_0: 0.5
 yaw_rate_k_att_d: 1.0
 
 h_sf_k_thresh: 4.0
-h_sf_k_0: -0.5
+h_sf_k_0: 0.5
 h_sf_k_d: 0.5
 h_sf_k_psi: 0.4

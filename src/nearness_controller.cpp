@@ -608,9 +608,9 @@ void NearnessController::computeSFYawRateCommand(){
         int sign = 1;
         if(num_sf_clusters_ != 0){
             for(int i = 0; i < num_sf_clusters_; i++){
-                if(cluster_r[i] > 0) sign = 1;
+                if(cluster_r[i] < 0) sign = 1;
                 if(cluster_r[i] > 0) sign = -1;
-                h_sf_r_cmd_ += h_sf_k_0_*float(sign)*exp(-h_sf_k_psi_*abs(cluster_r[i]))*exp(-h_sf_k_d_/abs(cluster_d[i]));
+                h_sf_r_cmd_ += -h_sf_k_0_*float(sign)*exp(-h_sf_k_psi_*abs(cluster_r[i]))*exp(-h_sf_k_d_/abs(cluster_d[i]));
             }
         }
 
