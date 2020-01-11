@@ -29,6 +29,7 @@
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf/tf.h>
 #include <nearness_control/FourierCoefsMsg.h>
+#include <nearness_control/ClusterMsg.h>
 #include <math.h>
 #include <numeric>
 #include <iterator>

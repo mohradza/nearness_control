@@ -117,7 +117,7 @@ void NearnessController::init() {
     pnh_.param("vert_speed_max", w_max_, 2.0);
     pnh_.param("lateral_speed_k_hb_1", v_k_hb_1_, 2.0);
     pnh_.param("lateral_speed_max", v_max_, 2.0);
-    ROS_INFO("%d", num_h_scan_points_);
+
     // Generate the gamma vector
     for(int i=0; i<num_h_scan_points_; i++){
         h_gamma_vector_.push_back((float(i)/float(num_h_scan_points_))*(2*h_scan_limit_) - h_scan_limit_);
@@ -186,7 +186,7 @@ void NearnessController::configCb(Config &config, uint32_t level)
     w_k_2_ = config_.vert_speed_k_vb_2;
     w_max_ = config_.vert_speed_max;
 
-    ROS_INFO("%f, %f", w_max_, u_min_);
+    //ROS_INFO("%f, %f", w_max_, u_min_);
 }
 
 void NearnessController::horizLaserscanCb(const sensor_msgs::LaserScanPtr h_laserscan_msg){
@@ -588,17 +588,30 @@ void NearnessController::computeSFYawRateCommand(){
                 }
             }
         }
-    }
-    num_sf_clusters_ = c;
-    h_sf_r_cmd_ = 0.0;
-    int sign = 1;
-    if(num_sf_clusters_ != 0){
-        for(int i = 0; i < num_sf_clusters_; i++){
-            if(cluster_r[i] > 0) sign = 1;
-            if(cluster_r[i] > 0) sign = -1;
-            h_sf_r_cmd_ += h_sf_k_0_*float(sign)*exp(-h_sf_k_psi_*abs(cluster_r[i]))*exp(-h_sf_k_d_/abs(cluster_d[i]));
+        num_sf_clusters_ = c;
+        h_sf_r_cmd_ = 0.0;
+        int sign = 1;
+        if(num_sf_clusters_ != 0){
+            for(int i = 0; i < num_sf_clusters_; i++){
+                if(cluster_r[i] > 0) sign = 1;
+                if(cluster_r[i] > 0) sign = -1;
+                h_sf_r_cmd_ += h_sf_k_0_*float(sign)*exp(-h_sf_k_psi_*abs(cluster_r[i]))*exp(-h_sf_k_d_/abs(cluster_d[i]));
+            }
+        }
+
+        if(debug_){
+            nearness_control::ClusterMsg cluster_msg;
+            cluster_msg.num_clusters = num_sf_clusters_;
+            if(num_sf_clusters_ != 0){
+                for(int i = 0; i < num_sf_clusters_; i++){
+                    cluster_msg.cluster_mag.push_back(cluster_d[i]);
+                    cluster_msg.cluster_loc.push_back(cluster_r[i]);
+                }
+            }
+            pub_sf_clustering_debug_.publish(cluster_msg);
         }
     }
+
 
     // Publish sf nearness signal
     if(debug_){
@@ -609,7 +622,6 @@ void NearnessController::computeSFYawRateCommand(){
         std_msgs::Float32MultiArray h_sf_nearness_msg;
         h_sf_nearness_msg.layout.dim.push_back(std_msgs::MultiArrayDimension());
         h_sf_nearness_msg.layout.dim[0].size = h_sf_nearness.size();
-        ROS_INFO("%d", h_sf_nearness.size());
         h_sf_nearness_msg.data.clear();
         h_sf_nearness_msg.data.insert(h_sf_nearness_msg.data.end(), h_sf_nearness.begin(), h_sf_nearness.end());
         pub_h_sf_nearness_.publish(h_sf_nearness_msg);
@@ -621,15 +633,6 @@ void NearnessController::computeSFYawRateCommand(){
         recon_wf_nearness_msg.data.insert(recon_wf_nearness_msg.data.end(), recon_wf_nearness.begin(), recon_wf_nearness.end());
         pub_h_recon_wf_nearness_.publish(recon_wf_nearness_msg);
 
-        nearness_control::ClusterMsg cluster_msg;
-        cluster_msg.num_clusters = num_clusters_;
-        if(num_sf_clusters_ != 0){
-            for(int i = 0; i < num_sf_clusters_; i++){
-                cluster_msg.cluster_mag.push_back(cluster_d[i]);
-                cluster_msg.cluster_loc.push_back(cluster_r[i]);
-            }
-        }
-        pub_sf_clustering_debug_.publish(cluster_msg);
     }
 }
 
@@ -702,7 +705,7 @@ void NearnessController::computeSFVerticalSpeedCommand(){
 void NearnessController::computeForwardSpeedCommand(){
 
     //u_cmd_ = u_max_ * (1 - u_k_hb_1_*abs(h_b_[1]) - u_k_hb_2_*abs(h_b_[2]) - u_k_vb_1_*abs(v_b_[1]) - u_k_vb_2_*abs(v_b_[2]));
-    ROS_INFO_THROTTLE(1, "%f %f", u_k_hb_1_, u_k_hb_2_);
+    //ROS_INFO_THROTTLE(1, "%f %f", u_k_hb_1_, u_k_hb_2_);
     u_cmd_ = u_max_ * (1 - u_k_hb_1_*abs(h_b_[1]) - u_k_hb_2_*abs(h_b_[2]));
 
     // Saturate forward velocity command
