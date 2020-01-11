@@ -46,7 +46,6 @@ void NearnessController::init() {
     have_attractor_ = false;
     flag_estop_ = true;
     control_command_.header.frame_id = "/base_stabilized";
-    enable_sf_mixing_ = true;
 
     // Import parameters
     pnh_.param("enable_debug", debug_, false);
@@ -56,6 +55,7 @@ void NearnessController::init() {
     pnh_.param("enable_sf_control", enable_sf_control_, false);
     pnh_.param("enable_attractor_control", enable_attractor_control_, false);
     pnh_.param("enable_command_weighting", enable_command_weighting_, false);
+    pnh_.param("enable_sf_clustering", enable_sf_clustering_, false);
 
     pnh_.param("total_horiz_scan_points", total_h_scan_points_, 1440);
     pnh_.param("horiz_scan_limit", h_scan_limit_, M_PI);
@@ -557,7 +557,7 @@ void NearnessController::computeSFYawRateCommand(){
     float h_sf_min_threshold = h_sf_k_thresh_ * h_sf_std_dev;
     //ROS_INFO("%f, %f", h_sf_min_threshold, h_sf_std_dev);
 
-    if(!enable_sf_mixing_){
+    if(!enable_sf_clustering_){
         // Find the max value of the signal and determine if it is greater
         // than the dynamic threshold
         int h_sf_max_val_index = std::max_element(h_sf_nearness.begin(), h_sf_nearness.end()) - h_sf_nearness.begin();
