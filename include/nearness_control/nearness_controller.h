@@ -237,6 +237,8 @@ class NearnessController {
     float h_sf_r_cmd_;
     float h_sf_nearness_l2_norm_;
     float h_nearness_maxval_;
+    int num_sf_clusters_;
+    bool enable_sf_mixing_;
 
     // computeAttractorCommand
     float attractor_yaw_cmd_;

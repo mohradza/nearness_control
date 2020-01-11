@@ -46,6 +46,7 @@ void NearnessController::init() {
     have_attractor_ = false;
     flag_estop_ = true;
     control_command_.header.frame_id = "/base_stabilized";
+    enable_sf_mixing_ = true;
 
     // Import parameters
     pnh_.param("enable_debug", debug_, false);
