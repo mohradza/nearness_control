@@ -546,7 +546,7 @@ void NearnessController::computeSFYawRateCommand(){
     h_sf_std_dev = pow(h_sf_std_dev / num_h_scan_points_, .5);
     float h_sf_min_threshold = h_sf_k_thresh_ * h_sf_std_dev;
 
-    if(enable_sf_mixing_){
+    if(!enable_sf_mixing_){
         // Find the max value of the signal and determine if it is greater
         // than the dynamic threshold
         int h_sf_max_val_index = std::max_element(h_sf_nearness.begin(), h_sf_nearness.end()) - h_sf_nearness.begin();
@@ -560,6 +560,7 @@ void NearnessController::computeSFYawRateCommand(){
             h_sf_r_cmd_ = h_sf_k_0_ * sgn(r_0) * exp(-h_sf_k_psi_ * abs(r_0)) * exp(-h_sf_k_d_/abs(d_0));
         }
     } else {
+
         // Do clustering and mixing
         std::vector<float> sf_d_cluster;
         std::vector<float> sf_r_cluster;
