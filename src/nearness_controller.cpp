@@ -94,7 +94,6 @@ void NearnessController::init() {
     pnh_.param("yaw_rate_k_hb_2", r_k_hb_2_, 2.0);
     pnh_.param("yaw_rate_max", r_max_, 1.0);
 
-
     // Small Field Yaw Rate Control Gains
     pnh_.param("h_sf_k_0", h_sf_k_0_, 0.5);
     pnh_.param("h_sf_k_d", h_sf_k_d_, 1.0);
@@ -123,6 +122,7 @@ void NearnessController::init() {
         h_gamma_vector_.push_back((float(i)/float(num_h_scan_points_))*(2*h_scan_limit_) - h_scan_limit_);
     }
     h_dg_ = (2.0*h_scan_limit_)/num_h_scan_points_;
+    ROS_INFO("%f", h_dg_);
 
     // Generate the gamma vector
     for(int i=0; i<num_v_scan_points_; i++){
@@ -526,25 +526,36 @@ void NearnessController::computeSFYawRateCommand(){
     float h_sf_mean_val = 0.0;
     for(int i=0; i < num_h_scan_points_; i++){
         h_sf_nearness[i] = abs(h_nearness[i] - recon_wf_nearness[i]);
-        h_sf_mean_sum += h_sf_nearness[i];
+        //h_sf_mean_sum += h_sf_nearness[i];
     }
+
+    // Band-aid for bad sf edges
+    // Trim the ends off the sf_signal
+    int edge_band = 35;
+    std::vector<float> h_sf_nearness_trimmed;
+    for (int i = edge_band; i < (num_h_scan_points_ - edge_band); i++){
+        h_sf_nearness_trimmed.push_back(h_sf_nearness[i]);
+    }
+    int num_trimmed_points = num_h_scan_points_-(2*edge_band);
 
     // Pull out the L2 norm of the measured nearness signal
     float norm_sum = 0.0;
     //std::accumulate(h_depth_vector_reformat.begin(), h_depth_vector_reformat.end
-    for(int i=0; i<num_h_scan_points_; i++){
-        norm_sum += pow(h_sf_nearness[i],2);
+    for(int i=0; i<num_trimmed_points; i++){
+        h_sf_mean_sum += h_sf_nearness_trimmed[i];
+        norm_sum += pow(h_sf_nearness_trimmed[i],2);
     }
     h_sf_nearness_l2_norm_ = sqrt(norm_sum);
 
     // Compute the standard deviation of the SF signal
-    h_sf_mean_val = h_sf_mean_sum / num_h_scan_points_;
+    h_sf_mean_val = h_sf_mean_sum / float(num_trimmed_points);
     float h_sf_std_dev = 0.0;
-    for (int i= 0; i < num_h_scan_points_; i++){
-        h_sf_std_dev += pow((h_sf_nearness[i] - h_sf_mean_val), 2);
+    for (int i= 0; i < num_trimmed_points; i++){
+        h_sf_std_dev += pow((h_sf_nearness_trimmed[i] - h_sf_mean_val), 2);
     }
-    h_sf_std_dev = pow(h_sf_std_dev / num_h_scan_points_, .5);
+    h_sf_std_dev = pow(h_sf_std_dev / num_trimmed_points, .5);
     float h_sf_min_threshold = h_sf_k_thresh_ * h_sf_std_dev;
+    //ROS_INFO("%f, %f", h_sf_min_threshold, h_sf_std_dev);
 
     if(!enable_sf_mixing_){
         // Find the max value of the signal and determine if it is greater
@@ -564,28 +575,31 @@ void NearnessController::computeSFYawRateCommand(){
         // Do clustering and mixing
         std::vector<float> sf_d_cluster;
         std::vector<float> sf_r_cluster;
-        std::vector<float> cluster_d;
-        std::vector<float> cluster_r;
+        std::vector<float> cluster_d(200, 0.0);
+        std::vector<float> cluster_r(200, 0.0);
         int n = 0;
         int c = 0;
         num_sf_clusters_ = 0;
-
-        for(int i=0; i < num_h_scan_points_-1; i++){
-            if((h_sf_nearness[i] > h_sf_min_threshold) && (h_sf_nearness[i+1] > h_sf_min_threshold)){
-                sf_d_cluster.push_back(h_sf_nearness[i]);
-                sf_r_cluster.push_back(h_gamma_vector_[i]);
+        //h_sf_min_threshold = .5;
+        for(int i=0; i < num_trimmed_points; i++){
+            if((h_sf_nearness_trimmed[i] > h_sf_min_threshold) && (h_sf_nearness_trimmed[i+1] > h_sf_min_threshold)){
+                sf_d_cluster.push_back(h_sf_nearness_trimmed[i]);
+                sf_r_cluster.push_back(h_gamma_vector_[i+edge_band]);
                 n++;
             } else {
                 if (n > 0){
-                    cluster_d.push_back(0.0);
-                    cluster_r.push_back(0.0);
+                    //cluster_d.push_back(0.0);
+                    //cluster_r.push_back(0.0);
                     for(int j = 0; j < n; j++){
                         cluster_d[c] += sf_d_cluster[j];
                         cluster_r[c] += sf_r_cluster[j];
                     }
+                    sf_d_cluster.clear();
+                    sf_r_cluster.clear();
                     cluster_d[c] /= float(n);
                     cluster_r[c] /= float(n);
                     c++;
+                    n = 0;
                 }
             }
         }
@@ -624,7 +638,7 @@ void NearnessController::computeSFYawRateCommand(){
         h_sf_nearness_msg.layout.dim.push_back(std_msgs::MultiArrayDimension());
         h_sf_nearness_msg.layout.dim[0].size = h_sf_nearness.size();
         h_sf_nearness_msg.data.clear();
-        h_sf_nearness_msg.data.insert(h_sf_nearness_msg.data.end(), h_sf_nearness.begin(), h_sf_nearness.end());
+        h_sf_nearness_msg.data.insert(h_sf_nearness_msg.data.end(), h_sf_nearness_trimmed.begin(), h_sf_nearness_trimmed.end());
         pub_h_sf_nearness_.publish(h_sf_nearness_msg);
 
         std_msgs::Float32MultiArray recon_wf_nearness_msg;

@@ -6,10 +6,10 @@ forward_speed_k_hb_2: 3.0
 yaw_rate_max: 0.5
 yaw_rate_k_hb_1: 1.0
 yaw_rate_k_hb_2: 2.0
-yaw_rate_k_att_0: -0.5
+yaw_rate_k_att_0: 0.5
 yaw_rate_k_att_d: 1.0
 
-h_sf_k_thresh: 3.0
-h_sf_k_0: 0.5
+h_sf_k_thresh: 10.0
+h_sf_k_0: -0.5
 h_sf_k_d: 1.0
 h_sf_k_psi: 0.4

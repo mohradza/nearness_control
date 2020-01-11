@@ -62,7 +62,7 @@ rospy.init_node( 'scan_plot' , anonymous = True )
 rospy.Subscriber( "/H01/nearness_controller/horiz_depth_reformat" , Float32MultiArray , depth_scan_cb )
 rospy.Subscriber( "/H01/nearness_controller/horiz_nearness" , Float32MultiArray , nearness_cb )
 rospy.Subscriber( "/H01/nearness_controller/horiz_sf_nearness" , Float32MultiArray , SF_cb )
-rospy.Subscriber( "sf/horiz/recon_wf_nearness" , Float32MultiArray , WF_recon_cb )
+rospy.Subscriber( "/H01/nearness_controller/horiz_recon_wf_nearness" , Float32MultiArray , WF_recon_cb )
 
 try:
 	while ( not rospy.is_shutdown() ):
@@ -89,9 +89,9 @@ try:
 		# Horizontal Depth Scan: X [m] vs Y [m]
 		# plt.figure(num=2, figsize=(9, 6), dpi=80, facecolor='w', edgecolor='k')
 		plt.plot( lastNearnessScanNP , 'b.' )
-		#plt.hold( True )
-        #plt.plot(lastWFReconScanNP , 'r.' )
-		#plt.hold( False )
+		plt.hold( True )
+                plt.plot(lastWFReconScanNP , 'r.' )
+		plt.hold( False )
 
 		plt.xlim( [ 0 , 360 ] )
 		plt.ylim( [ 0 , 2 ] )
@@ -104,8 +104,8 @@ try:
 		# plt.figure(num=4, figsize=(9, 6), dpi=80, facecolor='w', edgecolor='k')
 		plt.plot( lastSFScanNP , 'b.' )
 		#plt.hold( False )
-		plt.xlim( [ 0 , 360 ] )
-		plt.ylim( [ 0 , 3 ] )
+		plt.xlim( [ 0 , 290] )
+		plt.ylim( [ 0 , 1.0 ] )
 		plt.xlabel("Array Index")
 		plt.ylabel("Nearness [1/m]")
 		plt.title("SF Horiz. Nearness (Array Values)")

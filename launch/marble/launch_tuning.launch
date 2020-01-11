@@ -1,11 +1,9 @@
 <launch>
-
   <include file="$(find husky_base)/launch/base.launch"/>
 
   <include file="$(find marble_common)/launch/launch_estop.launch"/>
 
   <include file="$(find rplidar_ros)/launch/rplidar_s1.launch"/>
-
   <include file="$(find nearness_control)/launch/marble/nearness_control.launch">
 
     <arg name="enable_debug"                value="true"/>
@@ -25,7 +23,7 @@
     <arg name="horiz_sensor_max_distance"   value="40.0"/>
     <arg name="horiz_sensor_min_noise"      value="0.1"/>
     <arg name="reverse_horiz_scan"          value="true"/>
-    <arg name="num_horiz_fourier_terms"     value="3"/>
+    <arg name="num_horiz_fourier_terms"     value="5"/>
 
     <!-- Safety Parameters -->
     <arg name="enable_safety_boundary"      value="true"/>
@@ -36,7 +34,7 @@
 
   </include>
 
-  <node pkg="dynamic_reconfigure" name="nearness_controller_parameter_config" type="dynparam" args="load nearness_control_node $(find nearness_control)/cfg/tuning_params.yaml"/>
+  <node pkg="dynamic_reconfigure" name="nearness_controller_parameter_config" type="dynparam" args="load nearness_control_node $(find nearness_control)/cfg/Husky_params.yaml"/>
 
   <node pkg="topic_tools" name="control_relay" type="relay" args="nearness_controller/control_commands cmd_vel" />
 
