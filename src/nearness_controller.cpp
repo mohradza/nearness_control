@@ -87,7 +87,9 @@ void NearnessController::init() {
 
     // Wide Field Forward Speed and Yaw Rate Control Gains
     pnh_.param("forward_speed_k_hb_1", u_k_hb_1_, 0.0);
-    pnh_.param("forward_speed_k_hb_2", u_k_hb_2_, 3.5);
+    pnh_.param("forward_speed_k_hb_2", u_k_hb_2_, 0.0);
+    pnh_.param("forward_speed_k_hb_1", u_k_ha_1_, 0.0);
+    pnh_.param("forward_speed_k_hb_2", u_k_ha_2_, 0.0);
     pnh_.param("forward_speed_min", u_min_, .1);
     pnh_.param("forward_speed_max", u_max_, 5.0);
     pnh_.param("yaw_rate_k_hb_1", r_k_hb_1_, 2.0);
@@ -157,6 +159,8 @@ void NearnessController::configCb(Config &config, uint32_t level)
     // Controller gains
     u_k_hb_1_ = config_.forward_speed_k_hb_1;
     u_k_hb_2_ = config_.forward_speed_k_hb_2;
+    u_k_ha_1_ = config_.forward_speed_k_ha_1;
+    u_k_ha_2_ = config_.forward_speed_k_ha_2;
     u_k_vb_1_ = config_.forward_speed_k_vb_1;
     u_k_vb_2_ = config_.forward_speed_k_vb_2;
     u_min_ = config_.forward_speed_min;
@@ -719,9 +723,9 @@ void NearnessController::computeSFVerticalSpeedCommand(){
 
 void NearnessController::computeForwardSpeedCommand(){
 
-    //u_cmd_ = u_max_ * (1 - u_k_hb_1_*abs(h_b_[1]) - u_k_hb_2_*abs(h_b_[2]) - u_k_vb_1_*abs(v_b_[1]) - u_k_vb_2_*abs(v_b_[2]));
+    u_cmd_ = u_max_ * (1 - u_k_hb_1_*abs(h_b_[1]) - u_k_hb_2_*abs(h_b_[2]) - u_k_hb_1_*abs(h_a_[1]) - u_k_hb_2_*abs(h_a_[2]));
     //ROS_INFO_THROTTLE(1, "%f %f", u_k_hb_1_, u_k_hb_2_);
-    u_cmd_ = u_max_ * (1 - u_k_hb_1_*abs(h_b_[1]) - u_k_hb_2_*abs(h_b_[2]));
+    //u_cmd_ = u_max_ * (1 - u_k_hb_1_*abs(h_b_[1]) - u_k_hb_2_*abs(h_b_[2]));
 
     // Saturate forward velocity command
     if(u_cmd_ < u_min_){
@@ -864,6 +868,8 @@ void NearnessController::publishControlCommandMsg(){
     if(flag_too_close_side_){
       control_command_.twist.linear.x = close_side_speed_;
     }
+    //control_command_.twist.linear.x *= -1;
+
 
     if(flag_too_close_front_){
       control_command_.twist.linear.x = 0.0;

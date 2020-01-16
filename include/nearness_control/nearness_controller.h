@@ -172,6 +172,8 @@ class NearnessController {
     // Controller
     double u_k_hb_1_;
     double u_k_hb_2_;
+    double u_k_ha_1_;
+    double u_k_ha_2_;
     double u_k_vb_1_;
     double u_k_vb_2_;
     double u_max_;

@@ -4,6 +4,4 @@
  
   <include file="$(find twist_mux)/launch/tracked_bot_twist_mux.launch" />
 
-  <include file="$(find roboclaw_node)/launch/roboclaw.launch" />
- 
 </launch>

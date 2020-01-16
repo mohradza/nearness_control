@@ -1,7 +1,9 @@
 forward_speed_min: .1
 forward_speed_max: 1.0
-forward_speed_k_hb_1: 2.0
-forward_speed_k_hb_2: 2.0
+forward_speed_k_hb_1: 1.0
+forward_speed_k_hb_2: 1.0
+forward_speed_k_ha_1: 1.0
+forward_speed_k_ha_2: 1.0
 
 yaw_rate_max: 0.5
 yaw_rate_k_hb_1: 1.0
