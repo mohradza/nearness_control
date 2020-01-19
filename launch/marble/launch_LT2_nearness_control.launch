@@ -1,5 +1,7 @@
 <launch>
 
+  <include file="$(find rplidar_ros)/launch/rplidar_s1.launch"/>
+
   <include file="$(find nearness_control)/launch/marble/nearness_control.launch">
 
     <arg name="enable_debug"                value="true"/>
@@ -30,7 +32,7 @@
 
   </include>
 
-  <node pkg="dynamic_reconfigure" name="nearness_controller_parameter_config" type="dynparam" args="load nearness_control_node $(find nearness_control)/cfg/HD2_params.yaml"/>
+  <node pkg="dynamic_reconfigure" name="nearness_controller_parameter_config" type="dynparam" args="load nearness_control_node $(find nearness_control)/cfg/LT2_params.yaml"/>
 
   <node pkg="topic_tools" name="cmd_vel_relay" type="relay" args="/T01/nearness_controller/control_commands  /T01/axis01/cmd_vel" />
 
