@@ -53,6 +53,9 @@ class marbleJoyInterface {
     ros::Publisher pub_estop_engage_;
     ros::Publisher pub_sf_clustering_debug_;
     ros::Publisher pub_radio_estop_disengage_;
+    
+    std_msgs::Bool radio_estop_reset_msg_;
+
 
 
 }; // class SimpleNodeClass

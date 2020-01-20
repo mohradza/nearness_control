@@ -5,6 +5,7 @@
         <!-- TOPICS -->
         <remap from="marble_joy_interface/joy" to="joy"/>
         <remap from="marble_joy_interface/estop_cmd" to="estop_cmd"/>
+        <remap from="marble_joy_interface/radio_reset_cmd" to="radio_reset_cmd"/>
     </node>
 
 </launch>

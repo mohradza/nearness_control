@@ -15,6 +15,8 @@ void marbleJoyInterface::init() {
     pub_estop_engage_ = nh_.advertise<std_msgs::Bool>("estop_cmd", 10);
 
     pub_radio_estop_disengage_ = nh_.advertise<std_msgs::Bool>("radio_reset_cmd", 1);
+
+    radio_estop_reset_msg_.data = true;
 }
 
 void marbleJoyInterface::joyconCb(const sensor_msgs::JoyConstPtr& joy_msg)
@@ -34,7 +36,7 @@ void marbleJoyInterface::joyconCb(const sensor_msgs::JoyConstPtr& joy_msg)
     }
 
     if(joy_msg->buttons[3] == 1){
-        pub_radio_estop_disengage_.publish("false");
+        pub_radio_estop_disengage_.publish(radio_estop_reset_msg_);
     }
 
 }
