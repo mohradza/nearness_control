@@ -71,3 +71,10 @@ target_link_libraries(nearness_controller ${catkin_LIBRARIES} ${Boost_LIBRARIES}
 
 add_executable(nearness_controller_node src/nearness_controller_node.cpp)
 target_link_libraries(nearness_controller_node nearness_controller ${catkin_LIBRARIES} ${Boost_LIBRARIES})
+
+add_library(marble_joy_interface src/marble_joy_interface.cpp)
+add_dependencies(marble_joy_interface ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(marble_joy_interface ${catkin_LIBRARIES} ${Boost_LIBRARIES})
+
+add_executable(marble_joy_interface_node src/marble_joy_interface_node.cpp)
+target_link_libraries(marble_joy_interface_node marble_joy_interface ${catkin_LIBRARIES} ${Boost_LIBRARIES})

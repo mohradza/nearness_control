@@ -1,0 +1,18 @@
+forward_speed_min: .15
+forward_speed_max: 0.4
+forward_speed_k_hb_1: 1.0
+forward_speed_k_hb_2: 1.0
+forward_speed_k_ha_1: 1.0
+forward_speed_k_ha_2: 1.0
+
+yaw_rate_max: 0.15
+yaw_rate_k_hb_1: 1.0
+yaw_rate_k_hb_2: 1.0
+
+yaw_rate_k_att_0: 0.5
+yaw_rate_k_att_d: 1.0
+
+h_sf_k_thresh: 4.0
+h_sf_k_0: 0.25
+h_sf_k_d: 0.5
+h_sf_k_psi: 0.4
