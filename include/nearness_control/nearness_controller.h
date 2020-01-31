@@ -174,6 +174,7 @@ class NearnessController {
     double u_k_hb_2_;
     double u_k_ha_1_;
     double u_k_ha_2_;
+    double u_k_att_;
     double u_k_vb_1_;
     double u_k_vb_2_;
     double u_max_;
@@ -205,6 +206,7 @@ class NearnessController {
     bool enable_wf_control_;
     bool attractor_turn_;
     bool enable_command_weighting_;
+    bool enable_att_speed_reg_;
 
     // Init
     std::vector<float> h_gamma_vector_;

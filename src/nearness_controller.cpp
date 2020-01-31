@@ -56,6 +56,7 @@ void NearnessController::init() {
     pnh_.param("enable_attractor_control", enable_attractor_control_, false);
     pnh_.param("enable_command_weighting", enable_command_weighting_, false);
     pnh_.param("enable_sf_clustering", enable_sf_clustering_, false);
+    pnh_.param("enable_att_speed_reg", enable_att_speed_reg_, false);
 
     pnh_.param("total_horiz_scan_points", total_h_scan_points_, 1440);
     pnh_.param("horiz_scan_limit", h_scan_limit_, M_PI);
@@ -90,6 +91,7 @@ void NearnessController::init() {
     pnh_.param("forward_speed_k_hb_2", u_k_hb_2_, 0.0);
     pnh_.param("forward_speed_k_hb_1", u_k_ha_1_, 0.0);
     pnh_.param("forward_speed_k_hb_2", u_k_ha_2_, 0.0);
+    pnh_.param("forward_speed_k_att", u_k_att_, 0.0);
     pnh_.param("forward_speed_min", u_min_, .1);
     pnh_.param("forward_speed_max", u_max_, 5.0);
     pnh_.param("yaw_rate_k_hb_1", r_k_hb_1_, 2.0);
@@ -163,6 +165,7 @@ void NearnessController::configCb(Config &config, uint32_t level)
     u_k_ha_2_ = config_.forward_speed_k_ha_2;
     u_k_vb_1_ = config_.forward_speed_k_vb_1;
     u_k_vb_2_ = config_.forward_speed_k_vb_2;
+    u_k_att_ = config_.forward_speed_k_att;
     u_min_ = config_.forward_speed_min;
     u_max_ = config_.forward_speed_max;
 
@@ -722,11 +725,17 @@ void NearnessController::computeSFVerticalSpeedCommand(){
 }
 
 void NearnessController::computeForwardSpeedCommand(){
-
-    u_cmd_ = u_max_ * (1 - u_k_hb_1_*abs(h_b_[1]) - u_k_hb_2_*abs(h_b_[2]) - u_k_hb_1_*abs(h_a_[1]) - u_k_hb_2_*abs(h_a_[2]));
-    //ROS_INFO_THROTTLE(1, "%f %f", u_k_hb_1_, u_k_hb_2_);
-    //u_cmd_ = u_max_ * (1 - u_k_hb_1_*abs(h_b_[1]) - u_k_hb_2_*abs(h_b_[2]));
-
+    float angle_error = wrapAngle(relative_attractor_heading_ - current_heading_);
+    if(!enable_att_speed_reg_ || !enable_attractor_control_){
+        angle_error = 0.0;
+    }
+    if(enable_wf_control_){
+        u_cmd_ = u_max_ * (1 - u_k_hb_1_*abs(h_b_[1]) - u_k_hb_2_*abs(h_b_[2]) - u_k_hb_1_*abs(h_a_[1]) - u_k_hb_2_*abs(h_a_[2]) - u_k_att_*abs(angle_error));
+        //ROS_INFO_THROTTLE(1, "%f %f", u_k_hb_1_, u_k_hb_2_);
+        //u_cmd_ = u_max_ * (1 - u_k_hb_1_*abs(h_b_[1]) - u_k_hb_2_*abs(h_b_[2]));
+    } else {
+        u_cmd_ = u_max_*(1 - u_k_att_*abs(angle_error));
+    }
     // Saturate forward velocity command
     if(u_cmd_ < u_min_){
         u_cmd_ = u_min_;

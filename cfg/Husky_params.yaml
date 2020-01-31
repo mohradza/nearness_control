@@ -4,6 +4,7 @@ forward_speed_k_hb_1: 1.0
 forward_speed_k_hb_2: 1.0
 forward_speed_k_ha_1: 1.0
 forward_speed_k_ha_2: 1.0
+forward_speed_k_att: 0.5
 
 yaw_rate_max: 0.5
 yaw_rate_k_hb_1: 1.0
