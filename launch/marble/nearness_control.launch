@@ -8,6 +8,8 @@
     <arg name="enable_attractor_control"    default="false"/>
     <arg name="enable_command_weighting"    default="false"/>
     <arg name="enable_sf_clustering"        default="true"/>
+    <arg name="enable_att_speed_reg"        default="false"/>
+    <arg name="stagger_waypoints"           default="false"/>
 
     <arg name="total_horiz_scan_points"     default="720"/>
     <arg name="num_horiz_scan_points"       default="360"/>
@@ -80,12 +82,12 @@
         <param name="forward_speed_k_vb_1" type="double" value="0.25"/>
         <param name="forward_speed_k_vb_2" type="double" value="0.5"/>
         <param name="forward_speed_min" type="double" value="0.1"/>
-        <param name="forward_speed_max" type="double" value=".25"/>
+        <param name="forward_speed_max" type="double" value="0.75"/>
 
         <!-- Parameters for WF Yaw Rate Control -->
         <param name="yaw_rate_k_hb_1" type="double" value="1.0"/>
         <param name="yaw_rate_k_hb_2" type="double" value="2.0"/>  <!-- -2 -->
-        <param name="yaw_rate_max" type="double" value=".1"/>
+        <param name="yaw_rate_max" type="double" value=".5"/>
 
         <!-- Parameters for SF Yaw Rate Control -->
         <param name="h_sf_k_thresh" type="double" value="3.0"/>
@@ -94,7 +96,7 @@
         <param name="h_sf_k_d" type="double" value="0.5"/>
 
         <!-- Parameters for Attractor Yaw Rate Control -->
-        <param name="yaw_rate_k_att_0" type="double" value="-.5"/>
+        <param name="yaw_rate_k_att_0" type="double" value="-1.0"/>
         <param name="yaw_rate_k_att_d" type="double" value="1.0"/>
 
         <!-- Additional parameters for aerial vehicles -->

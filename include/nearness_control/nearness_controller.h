@@ -207,6 +207,7 @@ class NearnessController {
     bool attractor_turn_;
     bool enable_command_weighting_;
     bool enable_att_speed_reg_;
+    double attractor_latch_thresh_;
 
     // Init
     std::vector<float> h_gamma_vector_;

@@ -46,6 +46,7 @@ void NearnessController::init() {
     have_attractor_ = false;
     flag_estop_ = true;
     control_command_.header.frame_id = "/base_stabilized";
+    attractor_latch_thresh_ = 1.0;
 
     // Import parameters
     pnh_.param("enable_debug", debug_, false);
@@ -57,6 +58,7 @@ void NearnessController::init() {
     pnh_.param("enable_command_weighting", enable_command_weighting_, false);
     pnh_.param("enable_sf_clustering", enable_sf_clustering_, false);
     pnh_.param("enable_att_speed_reg", enable_att_speed_reg_, false);
+    pnh_.param("stagger_waypoints_", stagger_waypoints_, false);
 
     pnh_.param("total_horiz_scan_points", total_h_scan_points_, 1440);
     pnh_.param("horiz_scan_limit", h_scan_limit_, M_PI);
@@ -746,7 +748,7 @@ void NearnessController::computeForwardSpeedCommand(){
 
 void NearnessController::computeWFYawRateCommand(){
 
-    h_wf_r_cmd_ = r_k_hb_1_*h_b_[1] + r_k_hb_2_*h_b_[2];
+    h_wf_r_cmd_ = -1*(r_k_hb_1_*h_b_[1] + r_k_hb_2_*h_b_[2]);
     // Saturate the wide field yaw rate command
     if(h_wf_r_cmd_ < -r_max_) {
         h_wf_r_cmd_ = -r_max_;
@@ -878,6 +880,7 @@ void NearnessController::publishControlCommandMsg(){
       control_command_.twist.linear.x = close_side_speed_;
     }
     //control_command_.twist.linear.x *= -1;
+    control_command_.twist.angular.z *= -1;
 
 
     if(flag_too_close_front_){
@@ -937,18 +940,18 @@ void NearnessController::nextWaypointCb(const geometry_msgs::PointStampedConstPt
     if (!have_attractor_){
         have_attractor_ = true;
     }
-    ROS_INFO_THROTTLE(2,"Received new waypoint");
-
-    attractor_d_ = sqrt(pow((current_pos_.x - next_waypoint_pos_.x), 2) + pow((current_pos_.y - next_waypoint_pos_.y), 2));
-    relative_attractor_heading_ = atan2((next_waypoint_pos_.y - current_pos_.y),(next_waypoint_pos_.x - current_pos_.x));
+    //ROS_INFO_THROTTLE(2,"Received new waypoint");
 
     if(stagger_waypoints_){
-        if(attractor_d_ < 1.0){
+        if(attractor_d_ < attractor_latch_thresh_){
           next_waypoint_pos_ = next_waypoint_msg->point;
         }
     } else {
         next_waypoint_pos_ = next_waypoint_msg->point;
     }
+
+    attractor_d_ = sqrt(pow((current_pos_.x - next_waypoint_pos_.x), 2) + pow((current_pos_.y - next_waypoint_pos_.y), 2));
+    relative_attractor_heading_ = atan2((next_waypoint_pos_.y - current_pos_.y),(next_waypoint_pos_.x - current_pos_.x));
 }
 
 void NearnessController::generateSafetyBox(){
