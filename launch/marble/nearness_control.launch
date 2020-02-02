@@ -102,6 +102,7 @@
         <!-- Parameters for Attractor Yaw Rate Control -->
         <param name="yaw_rate_k_att_0" type="double" value="-1.0"/>
         <param name="yaw_rate_k_att_d" type="double" value="1.0"/>
+        <param name="yaw_rate_k_turn"  type="double" value="-1.0"/>
 
         <!-- Additional parameters for aerial vehicles -->
         <param name="forward_speed_k_vb_1" type="double" value="0.25"/>

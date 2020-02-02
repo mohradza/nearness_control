@@ -111,6 +111,7 @@ void NearnessController::init() {
     // Attractor Control Gains
     pnh_.param("yaw_rate_k_att_0", r_k_att_0_, 1.0);
     pnh_.param("yaw_rate_k_att_d_", r_k_att_d_, 0.1);
+    pnh_.param("yaw_rate_k_att_turn", r_k_att_turn_, 0.1);
     pnh_.param("attractor_latch_thresh", attractor_latch_thresh_, 1.0);
 
     // Additional gains for Aerial vehicle use
@@ -180,6 +181,7 @@ void NearnessController::configCb(Config &config, uint32_t level)
 
     r_k_att_0_ = config.yaw_rate_k_att_0;
     r_k_att_d_ = config.yaw_rate_k_att_d;
+    r_k_att_turn_ = config.yaw_rate_k_turn;
 
     h_sf_k_thresh_ = config_.h_sf_k_thresh;
     h_sf_k_0_ = config_.h_sf_k_0;
@@ -772,6 +774,7 @@ void NearnessController::computeAttractorCommand(){
         attractor_turn_ = false;
     } else {
 	      ROS_INFO_THROTTLE(1,"Pure attractor turn");
+        attractor_yaw_cmd_ = r_k_att_turn_*angle_error;
 	      attractor_turn_ = true;
         //u_cmd_ = 0.0;
     }

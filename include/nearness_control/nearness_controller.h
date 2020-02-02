@@ -203,6 +203,7 @@ class NearnessController {
     double w_max_;
     double r_k_att_0_;
     double r_k_att_d_;
+    double r_k_att_turn_;
     bool enable_attractor_control_;
     bool is_ground_vehicle_;
     bool have_attractor_;
