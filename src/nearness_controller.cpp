@@ -771,8 +771,8 @@ void NearnessController::computeAttractorCommand(){
         //ROS_INFO_THROTTLE(.5,"del_t: %1.2f, e: %1.2f, yaw_cmd: %1.2f", wrapAngle(current_heading_ - relative_attractor_heading), exp(-r_k_att_d_*attractor_d), attractor_yaw_cmd);
         attractor_turn_ = false;
     } else {
-	ROS_INFO_THROTTLE(1,"Pure attractor turn");
-	attractor_turn_ = true;
+	      ROS_INFO_THROTTLE(1,"Pure attractor turn");
+	      attractor_turn_ = true;
         //u_cmd_ = 0.0;
     }
 }
@@ -1015,7 +1015,11 @@ void NearnessController::saturateControls(){
     } else if (control_command_.twist.angular.z < -r_max_){
         control_command_.twist.angular.z = -r_max_;
     }
-
+    if(control_command_.twist.linear.x > u_max_){
+        control_command_.twist.linear.x = u_max_;
+    } else if (control_command_.twist.linear.x < u_min_){
+        control_command_.twist.linear.x = u_min_;
+    }
 }
 
 float NearnessController::wrapAngle(float angle){
@@ -1024,9 +1028,7 @@ float NearnessController::wrapAngle(float angle){
     } else if( angle < -M_PI){
         angle += 2*M_PI;
     }
-
     return angle;
-
 }
 
 float NearnessController::sat(float num, float min_val, float max_val){
