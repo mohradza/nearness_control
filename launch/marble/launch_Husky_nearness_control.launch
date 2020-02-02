@@ -33,7 +33,7 @@
 
   </include>
 
-  <node pkg="dynamic_reconfigure" name="nearness_controller_parameter_config" type="dynparam" args="load nearness_control $(find nearness_control)/cfg/Husky_params.yaml"/>
+  <node pkg="dynamic_reconfigure" name="nearness_controller_parameter_config" type="dynparam" args="load nearness_control_node $(find nearness_control)/cfg/Husky_params.yaml"/>
 
   <node pkg="topic_tools" name="cmd_vel_relay" type="relay" args="/H03/nearness_controller/control_commands  /H03/nav_vel" />
 

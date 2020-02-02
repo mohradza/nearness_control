@@ -46,7 +46,6 @@ void NearnessController::init() {
     have_attractor_ = false;
     flag_estop_ = true;
     control_command_.header.frame_id = "/base_stabilized";
-    attractor_latch_thresh_ = 1.0;
 
     // Import parameters
     pnh_.param("enable_debug", debug_, false);
@@ -87,18 +86,21 @@ void NearnessController::init() {
     pnh_.param("side_safety_distance", s_dist_, .5);
     pnh_.param("safety_radius", safety_radius_, .5);
     pnh_.param("close_side_speed", close_side_speed_, .05);
+    pnh_.param("reverse_forward_speed_cmd", reverse_u_cmd_, false);
 
     // Wide Field Forward Speed and Yaw Rate Control Gains
     pnh_.param("forward_speed_k_hb_1", u_k_hb_1_, 0.0);
     pnh_.param("forward_speed_k_hb_2", u_k_hb_2_, 0.0);
-    pnh_.param("forward_speed_k_hb_1", u_k_ha_1_, 0.0);
-    pnh_.param("forward_speed_k_hb_2", u_k_ha_2_, 0.0);
+    pnh_.param("forward_speed_k_ha_1", u_k_ha_1_, 0.0);
+    pnh_.param("forward_speed_k_ha_2", u_k_ha_2_, 0.0);
     pnh_.param("forward_speed_k_att", u_k_att_, 0.0);
     pnh_.param("forward_speed_min", u_min_, .1);
     pnh_.param("forward_speed_max", u_max_, 5.0);
     pnh_.param("yaw_rate_k_hb_1", r_k_hb_1_, 2.0);
     pnh_.param("yaw_rate_k_hb_2", r_k_hb_2_, 2.0);
     pnh_.param("yaw_rate_max", r_max_, 1.0);
+    pnh_.param("reverse_yaw_rate_cmd", reverse_r_cmd_, false);
+    pnh_.param("reverse_wf_yaw_rate_cmd", reverse_wf_r_cmd_, false);
 
     // Small Field Yaw Rate Control Gains
     pnh_.param("h_sf_k_0", h_sf_k_0_, 0.5);
@@ -109,6 +111,7 @@ void NearnessController::init() {
     // Attractor Control Gains
     pnh_.param("yaw_rate_k_att_0", r_k_att_0_, 1.0);
     pnh_.param("yaw_rate_k_att_d_", r_k_att_d_, 0.1);
+    pnh_.param("attractor_latch_thresh", attractor_latch_thresh_, 1.0);
 
     // Additional gains for Aerial vehicle use
     pnh_.param("forward_speed_k_vb_1", u_k_vb_1_, 0.0);
@@ -747,8 +750,11 @@ void NearnessController::computeForwardSpeedCommand(){
 } // End of computeForwardSpeedCommand
 
 void NearnessController::computeWFYawRateCommand(){
-
-    h_wf_r_cmd_ = -1*(r_k_hb_1_*h_b_[1] + r_k_hb_2_*h_b_[2]);
+    if(reverse_wf_r_cmd_){
+        h_wf_r_cmd_ = -1*(r_k_hb_1_*h_b_[1] + r_k_hb_2_*h_b_[2]);
+    } else {
+        h_wf_r_cmd_ = r_k_hb_1_*h_b_[1] + r_k_hb_2_*h_b_[2];
+    }
     // Saturate the wide field yaw rate command
     if(h_wf_r_cmd_ < -r_max_) {
         h_wf_r_cmd_ = -r_max_;
@@ -879,9 +885,13 @@ void NearnessController::publishControlCommandMsg(){
     if(flag_too_close_side_){
       control_command_.twist.linear.x = close_side_speed_;
     }
-    //control_command_.twist.linear.x *= -1;
-    control_command_.twist.angular.z *= -1;
+    if(reverse_r_cmd_){
+        control_command_.twist.angular.z = -1*control_command_.twist.angular.z;
+    }
 
+    if(reverse_u_cmd_){
+        control_command_.twist.linear.x = -1*control_command_.twist.linear.x;
+    }
 
     if(flag_too_close_front_){
       control_command_.twist.linear.x = 0.0;

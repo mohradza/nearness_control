@@ -79,15 +79,19 @@
         <!-- Parameters for Forward Speed Controller -->
         <param name="forward_speed_k_hb_1" type="double" value=".5"/>
         <param name="forward_speed_k_hb_2" type="double" value=".5"/>
-        <param name="forward_speed_k_vb_1" type="double" value="0.25"/>
-        <param name="forward_speed_k_vb_2" type="double" value="0.5"/>
+        <param name="forward_speed_k_ha_1" type="double" value=".5"/>
+        <param name="forward_speed_k_ha_2" type="double" value=".5"/>
+
         <param name="forward_speed_min" type="double" value="0.1"/>
         <param name="forward_speed_max" type="double" value="0.75"/>
+        <param name="reverse_forward_speed_cmd" type="bool" value="false"/>
 
         <!-- Parameters for WF Yaw Rate Control -->
         <param name="yaw_rate_k_hb_1" type="double" value="1.0"/>
         <param name="yaw_rate_k_hb_2" type="double" value="2.0"/>  <!-- -2 -->
         <param name="yaw_rate_max" type="double" value=".5"/>
+        <param name="reverse_yaw_rate_cmd" type="bool" value="false"/>
+        <param name="reverse_wf_yaw_rate_cmd" type="bool" value="true"/>
 
         <!-- Parameters for SF Yaw Rate Control -->
         <param name="h_sf_k_thresh" type="double" value="3.0"/>
@@ -100,6 +104,9 @@
         <param name="yaw_rate_k_att_d" type="double" value="1.0"/>
 
         <!-- Additional parameters for aerial vehicles -->
+        <param name="forward_speed_k_vb_1" type="double" value="0.25"/>
+        <param name="forward_speed_k_vb_2" type="double" value="0.5"/>
+
         <param name="lateral_speed_k_hb_1" type="double" value="4.0"/>
         <param name="lateral_speed_max" type="double" value="2.0"/>
 

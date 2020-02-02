@@ -179,11 +179,14 @@ class NearnessController {
     double u_k_vb_2_;
     double u_max_;
     double u_min_;
+    bool reverse_u_cmd_;
     double r_k_hb_1_;
     double r_k_hb_2_;
     double r_k_vb_1_;
     double r_k_vb_2_;
     double r_max_;
+    bool reverse_r_cmd_;
+    bool reverse_wf_r_cmd_;
     double h_sf_k_0_;
     double h_sf_k_d_;
     double h_sf_k_psi_;
