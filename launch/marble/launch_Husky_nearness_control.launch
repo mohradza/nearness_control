@@ -6,7 +6,7 @@
     <arg name="is_ground_vehicle"           value="true"/>
     <arg name="enable_wf_control"           value="true"/>
     <arg name="enable_sf_control"           value="true"/>
-    <arg name="enable_attractor_control"    value="true"/>
+    <arg name="enable_attractor_control"    value="false"/>
     <arg name="enable_command_weighting"    value="false"/>
     <arg name="enable_sf_clustering"        value="true"/>
     <arg name="enable_att_speed_reg"        value="false"/>
@@ -27,7 +27,7 @@
     <!-- Safety Parameters -->
     <arg name="enable_safety_boundary"      value="true"/>
     <arg name="enable_safety_box"           value="true"/>
-    <arg name="front_safety_distance"       value="0.35"/>
+    <arg name="front_safety_distance"       value="0.4"/>
     <arg name="side_safety_distance"        value="0.4"/>
     <arg name="close_side_speed"            value="0.1"/>
 
