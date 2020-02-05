@@ -22,6 +22,7 @@ void NearnessController::init() {
 
     //sub_imu_ = nh_.subscribe("imu_raw", 1, &NearnessController::imuCb, this);
     sub_next_waypoint_ = nh_.subscribe("next_waypoint", 1, &NearnessController::nextWaypointCb, this);
+    sub_terrain_scan_ = nh_.subscribe("terrain_scan", 1, &NearnessController::terrainScanCb, this);
 
     // Set up publishers
     pub_h_scan_reformat_ = nh_.advertise<std_msgs::Float32MultiArray>("horiz_depth_reformat", 10);
@@ -46,6 +47,7 @@ void NearnessController::init() {
     have_attractor_ = false;
     flag_estop_ = true;
     control_command_.header.frame_id = "/base_stabilized";
+    terrain_thresh_ = 4.0;
 
     // Import parameters
     pnh_.param("enable_debug", debug_, false);
@@ -53,6 +55,7 @@ void NearnessController::init() {
     pnh_.param("num_vert_fourier_terms", v_num_fourier_terms_, 5);
     pnh_.param("enable_wf_control", enable_wf_control_, true);
     pnh_.param("enable_sf_control", enable_sf_control_, false);
+    pnh_.param("enable_terrain_control", enable_terrain_control_, false);
     pnh_.param("enable_attractor_control", enable_attractor_control_, false);
     pnh_.param("enable_command_weighting", enable_command_weighting_, false);
     pnh_.param("enable_sf_clustering", enable_sf_clustering_, false);
@@ -127,18 +130,24 @@ void NearnessController::init() {
     pnh_.param("lateral_speed_k_hb_1", v_k_hb_1_, 2.0);
     pnh_.param("lateral_speed_max", v_max_, 2.0);
 
-    // Generate the gamma vector
+    // Generate the horizontal gamma vector
     for(int i=0; i<num_h_scan_points_; i++){
         h_gamma_vector_.push_back((float(i)/float(num_h_scan_points_))*(2*h_scan_limit_) - h_scan_limit_);
     }
     h_dg_ = (2.0*h_scan_limit_)/num_h_scan_points_;
     ROS_INFO("%f", h_dg_);
 
-    // Generate the gamma vector
+    // Generate the vertical gamma vector
     for(int i=0; i<num_v_scan_points_; i++){
         v_gamma_vector_.push_back((float(i)/float(num_v_scan_points_))*(2*v_scan_limit_) - v_scan_limit_);
     }
     v_dg_ = (2.0*v_scan_limit_)/num_v_scan_points_;
+
+    // Initialize the gamma_array vector for terrain assesment
+    num_tscan_points_ = 90;
+    for(int i=0; i<num_tscan_points_; i++) {
+       tscan_gamma_vector_.push_back((float(i)/float(num_tscan_points_))*M_PI/2 - M_PI/4);
+    }
 
     // Create safety boundary
     if(enable_safety_boundary_){
@@ -775,6 +784,7 @@ void NearnessController::computeAttractorCommand(){
     } else {
 	      ROS_INFO_THROTTLE(1,"Pure attractor turn");
         attractor_yaw_cmd_ = r_k_att_turn_*angle_error;
+        attractor_yaw_cmd_ = .05;
 	      attractor_turn_ = true;
         //u_cmd_ = 0.0;
     }
@@ -965,6 +975,96 @@ void NearnessController::nextWaypointCb(const geometry_msgs::PointStampedConstPt
 
     attractor_d_ = sqrt(pow((current_pos_.x - next_waypoint_pos_.x), 2) + pow((current_pos_.y - next_waypoint_pos_.y), 2));
     relative_attractor_heading_ = atan2((next_waypoint_pos_.y - current_pos_.y),(next_waypoint_pos_.x - current_pos_.x));
+}
+
+void NearnessController::terrainScanCb(const sensor_msgs::LaserScan::ConstPtr& terrain_scan_msg) {
+    std::vector<float> terrain_scan (terrain_scan_msg->ranges.begin(), terrain_scan_msg->ranges.end());
+    std::reverse(terrain_scan.begin(), terrain_scan.end());
+
+    std::vector<float> terrain_d_cluster;
+    std::vector<float> terrain_r_cluster;
+    std::vector<float> cluster_d;
+    std::vector<float> cluster_r;
+    int n = 0;
+    int c = 0;
+    float ter_alpha = 0.0;
+    num_ter_clusters_ = 0;
+    // Process the terrain scan
+    // Convert to nearness
+    std::vector<float> terrain_nearness(num_tscan_points_,0);
+    for(int i=0; i < num_tscan_points_; i++){
+        if(isinf(terrain_scan[i])){
+            terrain_nearness[i] = 0.0;
+        } else {
+            terrain_nearness[i] = 1.0 / terrain_scan[i];
+            //terrain_nearness[i] = (1-ter_alpha)*terrain_nearness_prefilt[i]+ter_alpha*terrain_nearness[i];
+        }
+        //ROS_INFO("%f", terrain_nearness_prefilt[i]);
+    }
+
+    int scan_count = 0;
+    // Do clustering
+    for(int i = 0; i < num_tscan_points_ -1; i++){
+        // Start clustering
+        // Just check to see if the current cluster has ended
+        if((merge_terrain_control || sf_terrain_control_only) && (terrain_nearness[i] > terrain_thresh_) && (terrain_nearness[i+1] > terrain_thresh_) && !(i==num_tscan_points-2)){
+            terrain_d_cluster.push_back(terrain_nearness[i]);
+            //ROS_INFO("%f", terrain_nearness[i]);
+            terrain_r_cluster.push_back(tscan_gamma_vector[i]);
+            //ROS_INFO("mu: %f, r: %f",terrain_nearness[i], tscan_gamma_vector[i]);
+            n++;
+        } else {
+            // End of the current cluster
+            if (n > 0){
+                cluster_d.push_back(0.0);
+                cluster_r.push_back(0.0);
+                // Average the cluster values
+                for(int j = 0; j < n; j++){
+                    cluster_d[c] += terrain_d_cluster[j];
+                    cluster_r[c] += terrain_r_cluster[j];
+                }
+                terrain_d_cluster.clear();
+                terrain_r_cluster.clear();
+                //ROS_INFO("n: %d, d: %f, r: %f", n, cluster_d[c], cluster_r[c]);
+                cluster_d[c] /= float(n);
+                cluster_r[c] /= float(n);
+                c++;
+                n = 0;
+            }
+        }
+
+        // Check too see if something is too close in the front or on the sides
+        // of the vehicle
+        flag_terrain_too_close_front = false;
+        //ROS_INFO("%f", terrain_nearness[i]);
+        if((i > 25) && (i < 65)){
+            if(terrain_nearness[i] > 1.0/terrain_front_safety_radius){
+                //ROS_INFO_THROTTLE(1, "TERRAIN TOO CLOSE FRONT");
+                //flag_terrain_too_close_front = true;
+                scan_count++;
+            }
+        }
+    }
+    if(scan_count > 5){
+        flag_terrain_too_close_front = true;
+    } else {
+        flag_terrain_too_close_front = false;
+    }
+    //ROS_INFO("scan count: %d", scan_count);
+    num_ter_clusters_ = c;
+
+    // Publish the data
+    wfi_from_depth_sensor::TerrainClusterMsg terrain_msg;
+    terrain_msg.num_clusters = num_ter_clusters_;
+    if(num_clusters!=0){
+        for(int i = 0; i < num_ter_clusters_; i++){
+                  terrain_msg.cluster_mag.push_back(cluster_d[i]);
+                  terrain_msg.cluster_loc.push_back(cluster_r[i]);
+              }
+    }
+    pub_clusters_.publish(terrain_msg);
+    terrain_msg.cluster_mag.clear();
+    terrain_msg.cluster_loc.clear();
 }
 
 void NearnessController::generateSafetyBox(){

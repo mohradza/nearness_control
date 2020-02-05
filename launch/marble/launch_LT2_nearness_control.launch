@@ -5,11 +5,12 @@
     <arg name="enable_debug"                value="true"/>
     <arg name="is_ground_vehicle"           value="true"/>
     <arg name="enable_wf_control"           value="true"/>
-    <arg name="enable_sf_control"           value="false"/>
-    <arg name="enable_attractor_control"    value="false"/>
+    <arg name="enable_sf_control"           value="true"/>
+    <arg name="enable_terrain_control"      value="true"/>
+    <arg name="enable_attractor_control"    value="true"/>
     <arg name="enable_command_weighting"    value="false"/>
     <arg name="enable_sf_clustering"        value="true"/>
-    <arg name="enable_att_speed_reg"        value="true" />
+    <arg name="enable_att_speed_reg"        value="false" />
     <arg name="stagger_waypoints"           value="false"/>
 
     <!-- Horizontal Scanner Sensor Parameters -->

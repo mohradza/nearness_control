@@ -5,11 +5,13 @@
     <arg name="enable_debug"                value="true"/>
     <arg name="is_ground_vehicle"           value="true"/>
     <arg name="enable_wf_control"           value="true"/>
-    <arg name="enable_sf_control"           value="false"/>
+    <arg name="enable_sf_control"           value="true"/>
+    <arg name="enable_terrain_control"      value="true"/>
     <arg name="enable_attractor_control"    value="true"/>
     <arg name="enable_command_weighting"    value="false"/>
     <arg name="enable_sf_clustering"        value="true"/>
-    <arg name="enable_att_speed_reg"        value="true" />
+    <arg name="enable_att_speed_reg"        value="false" />
+    <arg name="stagger_waypoints"           value="false"/>
 
     <!-- Horizontal Scanner Sensor Parameters -->
     <!-- These values correspond with the RPLidar S1 -->
@@ -34,7 +36,7 @@
 
   <node pkg="dynamic_reconfigure" name="nearness_controller_parameter_config" type="dynparam" args="load nearness_control_node $(find nearness_control)/cfg/HD2_params.yaml"/>
 
-  <node pkg="topic_tools" name="cmd_vel_relay" type="relay" args="/T01/nearness_controller/control_commands  /T01/axis01/cmd_vel" />
+  <node pkg="topic_tools" name="cmd_vel_relay" type="relay" args="/T01/nearness_controller/control_commands  /T01/nav_vel" />
 
 
 </launch>

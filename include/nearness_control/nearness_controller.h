@@ -63,6 +63,7 @@ class NearnessController {
     //void imuCb(const sensor_msgs::ImuConstPtr& imu_msg);
     void sonarHeightCb(const sensor_msgs::RangeConstPtr& range_msg);
     void nextWaypointCb(const geometry_msgs::PointStampedConstPtr& next_waypoint_msg);
+    void terrainScanCb(const sensor_msgs::LaserScan::ConstPtr& terrain_scan_msg);
     void convertHLaserscan2CVMat(const sensor_msgs::LaserScanPtr h_laserscan_msg);
     void convertVLaserscan2CVMat(const sensor_msgs::LaserScanPtr v_laserscan_msg);
     void computeHorizFourierCoeffs();
@@ -92,6 +93,7 @@ class NearnessController {
     ros::Subscriber sub_odom_;
     ros::Subscriber sub_imu_;
     ros::Subscriber sub_next_waypoint_;
+    ros::Subscriber sub_terrain_scan_;
 
     // PUBLISHERS //
     ros::Publisher pub_h_scan_reformat_;
@@ -212,6 +214,7 @@ class NearnessController {
     bool enable_command_weighting_;
     bool enable_att_speed_reg_;
     double attractor_latch_thresh_;
+    bool enable_terrain_control_;
 
     // Init
     std::vector<float> h_gamma_vector_;
@@ -279,6 +282,13 @@ class NearnessController {
     double current_roll_;
     double current_pitch_;
     double current_heading_;
+
+    // terrainScanCb
+    int num_tscan_points_;
+    std::vector<float> tscan_gamma_vector_;
+    int num_ter_clusters_;
+    float terrain_thresh_;
+
 
 
 }; // class SimpleNodeClass
