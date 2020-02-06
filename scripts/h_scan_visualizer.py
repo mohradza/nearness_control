@@ -64,7 +64,7 @@ rospy.init_node( 'scan_plot' , anonymous = True )
 # rospy.Subscriber( "wfi/horiz/image_scan" , Float32MultiArray , image_scan_cb )
 rospy.Subscriber( "nearness_controller/horiz_depth_reformat" , Float32MultiArray , depth_scan_cb )
 rospy.Subscriber( "nearness_controller/horiz_nearness" , Float32MultiArray , nearness_cb )
-rospy.Subscriber( "sf/horiz/sf_nearness" , Float32MultiArray , SF_cb )
+rospy.Subscriber( "nearness_controller/horiz_sf_nearness" , Float32MultiArray , SF_cb )
 rospy.Subscriber( "sf/horiz/recon_wf_nearness" , Float32MultiArray , WF_recon_cb )
 
 try:
@@ -102,7 +102,7 @@ try:
 		plt.subplot(3,1,3)
 		# Horizontal Nearness Scan: X [1/m] vs Y [1/m]
 		# plt.figure(num=4, figsize=(9, 6), dpi=80, facecolor='w', edgecolor='k')
-		plt.plot( lastWFReconScan , 'b.' ) 
+		plt.plot( lastWFReconScan , 'b.' )
 		plt.hold( False )
 		plt.xlim( [ 0 , 360 ] )
 		plt.ylim( [ 0 , 3 ] )

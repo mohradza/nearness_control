@@ -11,6 +11,7 @@
     <arg name="enable_sf_clustering"        default="true"/>
     <arg name="enable_att_speed_reg"        default="false"/>
     <arg name="stagger_waypoints"           default="false"/>
+    <arg name="enable_tower_safety"         default="false"/>
 
     <arg name="total_horiz_scan_points"     default="720"/>
     <arg name="num_horiz_scan_points"       default="360"/>
