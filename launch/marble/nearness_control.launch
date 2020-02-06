@@ -2,9 +2,10 @@
 
     <!-- <arg name="enable_debug" /> -->
     <arg name="enable_debug"                default="false"/>
-    <arg name="is_ground_vehicle"           default="false"/>
+    <arg name="is_ground_vehicle"           default="true"/>
     <arg name="enable_wf_control"           default="true"/>
     <arg name="enable_sf_control"           default="false"/>
+    <arg name="enable_terrain_control"      default="false"/>
     <arg name="enable_attractor_control"    default="false"/>
     <arg name="enable_command_weighting"    default="false"/>
     <arg name="enable_sf_clustering"        default="true"/>
@@ -34,17 +35,24 @@
         <remap from="nearness_controller/horiz_scan" to="scan"/>
         <remap from="nearness_controller/vert_scan" to="scan1"/>
         <remap from="nearness_controller/next_waypoint" to="lookahead_point"/>
-        <remap from="nearness_controller/odometry" to="odometry_map"/>
+        <remap from="nearness_controller/odometry" to="odometry"/>
         <remap from="nearness_controller/joy" to="joy"/>
         <remap from="nearness_controller/estop_cmd" to="estop_cmd"/>
+        <remap from="nearness_controller/terrain_scan" to="terrain_assessment/scan"/>
+        <remap from="nearness_controller/tower_safety" to="safety/tower_status"/>
 
         <!-- Enable switches -->
         <param name="enable_debug" type="bool" value="$(arg enable_debug)"/>
         <param name="is_ground_vehicle" type="bool" value="$(arg is_ground_vehicle)"/>
         <param name="enable_wf_control" type="bool" value="$(arg enable_wf_control)"/>
         <param name="enable_sf_control" type="bool" value="$(arg enable_sf_control)"/>
+        <param name="enable_terrain_control" type="bool" value="$(arg enable_terrain_control)"/>
         <param name="enable_attractor_control" type="bool" value="$(arg enable_attractor_control)"/>
         <param name="enable_command_weighting" type="bool" value="$(arg enable_command_weighting)"/>
+        <param name="enable_sf_clustering" type="bool" value="$(arg enable_sf_clustering)"/>
+        <param name="enable_att_speed_reg" type="bool" value="$(arg enable_att_speed_reg)"/>
+        <param name="stagger_waypoints" type="bool" value="$(arg stagger_waypoints)"/>
+        <param name="enable_tower_safety" type="bool" value="$(arg enable_tower_safety)"/>
 
         <!-- Sensor Parameters -->
         <param name="total_horiz_scan_points" type="int" value="$(arg total_horiz_scan_points)"/>
@@ -75,6 +83,9 @@
         <param name="side_safety_distance" type="double" value="$(arg side_safety_distance)"/>
         <param name="safety_radius" type="double" value="$(arg safety_radius)"/>
         <param name="close_side_speed" type="double" value="$(arg close_side_speed)"/>
+        <param name="terrain_front_safety_radius" type="double" value="1.0"/>
+        <param name="safety_getting_close_vote_thresh" type="int" value="5"/>
+        <param name="safety_getting_close_vote_thresh" type="int" value="3"/>
 
         <!-- Parameters for Forward Speed Controller -->
         <param name="forward_speed_k_hb_1" type="double" value=".5"/>
@@ -98,6 +109,7 @@
         <param name="h_sf_k_0" type="double" value="0.4"/>
         <param name="h_sf_k_psi" type="double" value="0.5"/>
         <param name="h_sf_k_d" type="double" value="0.5"/>
+        <param name="terrain_thresh" type="double" value="0.5"/>
 
         <!-- Parameters for Attractor Yaw Rate Control -->
         <param name="yaw_rate_k_att_0" type="double" value="-1.0"/>

@@ -64,6 +64,7 @@ class NearnessController {
     void sonarHeightCb(const sensor_msgs::RangeConstPtr& range_msg);
     void nextWaypointCb(const geometry_msgs::PointStampedConstPtr& next_waypoint_msg);
     void terrainScanCb(const sensor_msgs::LaserScan::ConstPtr& terrain_scan_msg);
+    void towerSafetyCb(const std_msgs::Int32ConstPtr& safety_msg);
     void convertHLaserscan2CVMat(const sensor_msgs::LaserScanPtr h_laserscan_msg);
     void convertVLaserscan2CVMat(const sensor_msgs::LaserScanPtr v_laserscan_msg);
     void computeHorizFourierCoeffs();
@@ -71,6 +72,7 @@ class NearnessController {
     void computeForwardSpeedCommand();
     void computeWFYawRateCommand();
     void computeSFYawRateCommand();
+    void computeTerrainYawRateCommand();
     void computeAttractorCommand();
     void computeLateralSpeedCommand();
     void computeWFVerticalSpeedCommand();
@@ -94,6 +96,7 @@ class NearnessController {
     ros::Subscriber sub_imu_;
     ros::Subscriber sub_next_waypoint_;
     ros::Subscriber sub_terrain_scan_;
+    ros::Subscriber sub_tower_safety_;
 
     // PUBLISHERS //
     ros::Publisher pub_h_scan_reformat_;
@@ -117,6 +120,7 @@ class NearnessController {
 
     ros::Publisher pub_estop_engage_;
     ros::Publisher pub_sf_clustering_debug_;
+    ros::Publisher pub_ter_clusters_;
 
     // DYNAMIC RECONFIGURE //
     boost::mutex connect_mutex_;
@@ -215,6 +219,7 @@ class NearnessController {
     bool enable_att_speed_reg_;
     double attractor_latch_thresh_;
     bool enable_terrain_control_;
+    bool enable_tower_safety_;
 
     // Init
     std::vector<float> h_gamma_vector_;
@@ -283,12 +288,28 @@ class NearnessController {
     double current_pitch_;
     double current_heading_;
 
-    // terrainScanCb
+    // terrain
     int num_tscan_points_;
     std::vector<float> tscan_gamma_vector_;
+    std::vector<float> ter_cluster_d_;
+    std::vector<float> ter_cluster_r_;
     int num_ter_clusters_;
-    float terrain_thresh_;
+    double terrain_thresh_;
+    bool flag_terrain_too_close_front_;
+    double terrain_front_safety_radius_;
+    float terrain_r_cmd_;
 
+    // Twoer Safety
+    bool flag_safety_too_close_;
+    bool flag_safety_getting_close_;
+    std::vector<int> safety_getting_close_counter_;
+    std::vector<int> safety_too_close_counter_;
+    int safety_getting_close_vote_thresh_;
+    int safety_too_close_vote_thresh_;
+    int safety_getting_close_num_votes_;
+    int safety_too_close_num_votes_;
+    int safety_counter1_;
+    int safety_counter2_;
 
 
 }; // class SimpleNodeClass
