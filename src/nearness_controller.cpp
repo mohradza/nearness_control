@@ -822,7 +822,7 @@ void NearnessController::computeAttractorCommand(){
     } else {
 	      ROS_INFO_THROTTLE(1,"Pure attractor turn");
         attractor_yaw_cmd_ = r_k_att_turn_*angle_error;
-        attractor_yaw_cmd_ = .05;
+        //attractor_yaw_cmd_ = .05;
 	      attractor_turn_ = true;
         //u_cmd_ = 0.0;
     }
@@ -909,7 +909,7 @@ void NearnessController::publishControlCommandMsg(){
             control_command_.twist.angular.z += attractor_yaw_cmd_;
 	          if(attractor_turn_){
 	              control_command_.twist.linear.x = 0.0;
-	              control_command_.twist.angular.z = attractor_yaw_cmd_;
+	              control_command_.twist.angular.z = sat(attractor_yaw_cmd_, -r_max_, r_max_);
             }
         }
 

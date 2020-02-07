@@ -102,7 +102,7 @@
         <param name="yaw_rate_k_hb_1" type="double" value="1.0"/>
         <param name="yaw_rate_k_hb_2" type="double" value="2.0"/>  <!-- -2 -->
         <param name="yaw_rate_max" type="double" value=".5"/>
-        <param name="reverse_yaw_rate_cmd" type="bool" value="false"/>
+        <param name="reverse_yaw_rate_cmd" type="bool" value="true"/>
         <param name="reverse_wf_yaw_rate_cmd" type="bool" value="false"/>
 
         <!-- Parameters for SF Yaw Rate Control -->
