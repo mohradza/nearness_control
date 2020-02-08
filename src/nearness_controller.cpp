@@ -771,10 +771,13 @@ void NearnessController::computeTerrainYawRateCommand(){
     terrain_r_cmd_ = 0.0;
     // Add in the terrain num_points
     int sign=1;
-    for(int i=0; i < num_ter_clusters_; i++){
-        if(ter_cluster_r_[i] >= 0) sign = 1;
-        if(ter_cluster_r_[i] < 0) sign = -1;
-        terrain_r_cmd_ += h_sf_k_0_ * float(sign) * exp(-h_sf_k_psi_ * abs(ter_cluster_r_[i])) * exp(-h_sf_k_d_ / abs(ter_cluster_d_[i]));
+    if(!ter_cluster_d_.empty()){
+        for(int i=0; i < num_ter_clusters_; i++){
+            if(ter_cluster_r_[i] >= 0) sign = -1;
+            if(ter_cluster_r_[i] < 0) sign = 1;
+            terrain_r_cmd_ += h_sf_k_0_ * float(sign) * exp(-h_sf_k_psi_ * abs(ter_cluster_r_[i])) * exp(-h_sf_k_d_ / abs(ter_cluster_d_[i]));
+            ROS_INFO("ter_r_cmd_: %f", terrain_r_cmd_);
+        }
     }
 }
 
@@ -938,9 +941,13 @@ void NearnessController::publishControlCommandMsg(){
     }
 
     saturateControls();
-    if(flag_too_close_side_ || (flag_safety_getting_close_ && enable_tower_safety_)){
+    if(flag_too_close_side_){
       control_command_.twist.linear.x = close_side_speed_;
       ROS_INFO_THROTTLE(1,"Too close on the side!");
+    }
+    if(flag_safety_getting_close_ && enable_tower_safety_){
+      control_command_.twist.linear.x = close_side_speed_;
+      ROS_INFO_THROTTLE(1,"Tower safety: getting close!");
     }
     if(reverse_r_cmd_){
         control_command_.twist.angular.z = -1*control_command_.twist.angular.z;
@@ -950,8 +957,12 @@ void NearnessController::publishControlCommandMsg(){
         control_command_.twist.linear.x = -1*control_command_.twist.linear.x;
     }
 
-    if(flag_too_close_front_ || (flag_terrain_too_close_front_ && enable_terrain_control_) || (flag_safety_too_close_ && enable_tower_safety_)){
+    if(flag_too_close_front_ || (flag_terrain_too_close_front_ && enable_terrain_control_)){
       ROS_INFO_THROTTLE(1,"Too close in the front!");
+      control_command_.twist.linear.x = 0.0;
+    }
+    if((flag_safety_too_close_ && enable_tower_safety_)){
+      ROS_INFO_THROTTLE(1,"Tower safety: too close!");
       control_command_.twist.linear.x = 0.0;
     }
 
@@ -1134,7 +1145,7 @@ void NearnessController::towerSafetyCb(const std_msgs::Int32ConstPtr& safety_msg
     // Tally the votes
     int total_safety_getting_close_votes = std::accumulate(safety_getting_close_counter_.begin(), safety_getting_close_counter_.end(), 0);
     int total_safety_too_close_votes = std::accumulate(safety_too_close_counter_.begin(), safety_too_close_counter_.end(), 0);
-    ROS_INFO_THROTTLE(1, "Getting close votes: %d, Too close votes: %d", total_safety_getting_close_votes, total_safety_too_close_votes);
+    ROS_INFO("Getting close votes: %d, Too close votes: %d", total_safety_getting_close_votes, total_safety_too_close_votes);
 
     if(total_safety_getting_close_votes > safety_getting_close_vote_thresh_){
         flag_safety_getting_close_ = true;
