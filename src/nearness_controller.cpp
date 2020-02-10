@@ -24,6 +24,7 @@ void NearnessController::init() {
     sub_next_waypoint_ = nh_.subscribe("next_waypoint", 1, &NearnessController::nextWaypointCb, this);
     sub_terrain_scan_ = nh_.subscribe("terrain_scan", 1, &NearnessController::terrainScanCb, this);
     sub_tower_safety_ = nh_.subscribe("tower_safety", 1, &NearnessController::towerSafetyCb, this);
+    sub_beacon_stop_ = nh_.subscribe("beacon_stop", 1, &NearnessController::beaconStopCb, this);
 
     // Set up publishers
     pub_h_scan_reformat_ = nh_.advertise<std_msgs::Float32MultiArray>("horiz_depth_reformat", 10);
@@ -48,6 +49,7 @@ void NearnessController::init() {
     // Initialize variables
     have_attractor_ = false;
     flag_estop_ = true;
+    flag_beacon_stop_ = false;
     control_command_.header.frame_id = "/base_stabilized";
     terrain_thresh_ = 4.0;
 
@@ -123,6 +125,7 @@ void NearnessController::init() {
     pnh_.param("yaw_rate_k_att_d_", r_k_att_d_, 0.1);
     pnh_.param("yaw_rate_k_att_turn", r_k_att_turn_, 0.1);
     pnh_.param("attractor_latch_thresh", attractor_latch_thresh_, 1.0);
+    pnh_.param("attractor_watchdog_timer", attractor_watchdog_timer_, 3.0);
 
     // Additional gains for Aerial vehicle use
     pnh_.param("forward_speed_k_vb_1", u_k_vb_1_, 0.0);
@@ -816,7 +819,15 @@ void NearnessController::computeWFYawRateCommand(){
 } // End of computeWFYawRateCommand
 
 void NearnessController::computeAttractorCommand(){
-  float angle_error = wrapAngle(relative_attractor_heading_ - current_heading_);
+    float attractor_timer = (ros::Time::now() - last_wp_msg_time_).toSec();
+    if(attractor_timer.toSec() > attractor_watchdog_timer_){
+        ROS_INFO_THROTTLE(1,"Have not received a new attractor for %f seconds.", attractor_timer.toSec());
+        enable_attractor_control_ = false;
+    } else {
+        enable_attractor_control_ = true;
+    }
+
+    float angle_error = wrapAngle(relative_attractor_heading_ - current_heading_);
     if(have_attractor_ && (abs(angle_error) < 1.4)){
         attractor_yaw_cmd_ = r_k_att_0_*angle_error*exp(-r_k_att_d_*attractor_d_);
         //float attractor_yaw_cmd = r_k_att_0_*wrapAngle(current_heading_ - relative_attractor_heading)*exp(-r_k_att_d_*attractor_d);
@@ -966,6 +977,11 @@ void NearnessController::publishControlCommandMsg(){
       control_command_.twist.linear.x = 0.0;
     }
 
+    if(flag_beacon_stop_){
+      control_command_.twist.linear.x = 0.0;
+      control_command_.twist.angular.z = 0.0;
+    }
+
     if(flag_estop_){
         control_command_.twist.linear.x = 0.0;
         control_command_.twist.linear.y = 0.0;
@@ -1019,6 +1035,8 @@ void NearnessController::nextWaypointCb(const geometry_msgs::PointStampedConstPt
     if (!have_attractor_){
         have_attractor_ = true;
     }
+    last_wp_msg_time_ = ros::Time::now();
+
     //ROS_INFO_THROTTLE(2,"Received new waypoint");
 
     if(stagger_waypoints_){
@@ -1168,7 +1186,10 @@ void NearnessController::towerSafetyCb(const std_msgs::Int32ConstPtr& safety_msg
         safety_counter2_ = 0;
     }
 
+}
 
+void NearnessController::beaconStopCb(const std_msgs::Bool beacon_stop_msg){
+    flag_beacon_stop_ = beacon_stop_msg.data;
 }
 
 void NearnessController::generateSafetyBox(){

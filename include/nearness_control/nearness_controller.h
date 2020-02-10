@@ -65,6 +65,7 @@ class NearnessController {
     void nextWaypointCb(const geometry_msgs::PointStampedConstPtr& next_waypoint_msg);
     void terrainScanCb(const sensor_msgs::LaserScan::ConstPtr& terrain_scan_msg);
     void towerSafetyCb(const std_msgs::Int32ConstPtr& safety_msg);
+    void beaconStopCb(const std_msgs::BoolConstPtr& beacono_stop_msg);
     void convertHLaserscan2CVMat(const sensor_msgs::LaserScanPtr h_laserscan_msg);
     void convertVLaserscan2CVMat(const sensor_msgs::LaserScanPtr v_laserscan_msg);
     void computeHorizFourierCoeffs();
@@ -97,6 +98,7 @@ class NearnessController {
     ros::Subscriber sub_next_waypoint_;
     ros::Subscriber sub_terrain_scan_;
     ros::Subscriber sub_tower_safety_;
+    ros::Subscriber sub_beacon_stop_;
 
     // PUBLISHERS //
     ros::Publisher pub_h_scan_reformat_;
@@ -233,6 +235,7 @@ class NearnessController {
     float v_dg_;
     float range_agl_;
     bool debug_;
+    bool flag_beacon_stop_;
 
     // converHtLaserscan2CVMat
     int h_num_fourier_terms_;
@@ -281,6 +284,8 @@ class NearnessController {
 
     // nextWaypointCb
     geometry_msgs::Point next_waypoint_pos_;
+    ros::Time last_wp_msg_time_;
+    doouoble attractor_watchdog_timer_;
 
     // odomCb
     geometry_msgs::Point current_pos_;

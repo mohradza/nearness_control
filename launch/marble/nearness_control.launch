@@ -41,6 +41,7 @@
         <remap from="nearness_controller/estop_cmd" to="estop_cmd"/>
         <remap from="nearness_controller/terrain_scan" to="terrain_assessment/scan"/>
         <remap from="nearness_controller/tower_safety" to="safety/tower_status"/>
+        <remap from="nearness_controller/beacon_stop" to="beacon_stop_topic"/>
 
         <!-- Enable switches -->
         <param name="enable_debug" type="bool" value="$(arg enable_debug)"/>
@@ -116,6 +117,7 @@
         <param name="yaw_rate_k_att_0" type="double" value="-1.0"/>
         <param name="yaw_rate_k_att_d" type="double" value="1.0"/>
         <param name="yaw_rate_k_turn"  type="double" value="-1.0"/>
+        <param name="attractor_watchdog_timer" type="double" value="3.0"/>
 
         <!-- Additional parameters for aerial vehicles -->
         <param name="forward_speed_k_vb_1" type="double" value="0.25"/>
