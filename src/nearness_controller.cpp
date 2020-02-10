@@ -969,7 +969,7 @@ void NearnessController::publishControlCommandMsg(){
     }
 
     if(flag_too_close_front_ || (flag_terrain_too_close_front_ && enable_terrain_control_)){
-      ROS_INFO_THROTTLE(1,"Too close in the front!");
+      ROS_INFO_THROTTLE(1,"Too close in the front! Lidar: %d, Terrain: %d", flag_too_close_front_, flag_terrain_too_close_front_);
       control_command_.twist.linear.x = 0.0;
     }
     if((flag_safety_too_close_ && enable_tower_safety_)){
