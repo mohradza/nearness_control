@@ -41,7 +41,7 @@
         <remap from="nearness_controller/estop_cmd" to="estop_cmd"/>
         <remap from="nearness_controller/terrain_scan" to="terrain_assessment/scan"/>
         <remap from="nearness_controller/tower_safety" to="safety/tower_status"/>
-        <remap from="nearness_controller/beacon_stop" to="beacon_stop_topic"/>
+        <remap from="nearness_controller/beacon_stop" to="stop_for_beacon_drop"/>
 
         <!-- Enable switches -->
         <param name="enable_debug" type="bool" value="$(arg enable_debug)"/>

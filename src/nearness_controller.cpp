@@ -820,8 +820,8 @@ void NearnessController::computeWFYawRateCommand(){
 
 void NearnessController::computeAttractorCommand(){
     float attractor_timer = (ros::Time::now() - last_wp_msg_time_).toSec();
-    if(attractor_timer.toSec() > attractor_watchdog_timer_){
-        ROS_INFO_THROTTLE(1,"Have not received a new attractor for %f seconds.", attractor_timer.toSec());
+    if(attractor_timer > attractor_watchdog_timer_){
+        ROS_INFO_THROTTLE(1,"Have not received a new attractor for %f seconds.", attractor_timer);
         enable_attractor_control_ = false;
     } else {
         enable_attractor_control_ = true;
@@ -1188,8 +1188,8 @@ void NearnessController::towerSafetyCb(const std_msgs::Int32ConstPtr& safety_msg
 
 }
 
-void NearnessController::beaconStopCb(const std_msgs::Bool beacon_stop_msg){
-    flag_beacon_stop_ = beacon_stop_msg.data;
+void NearnessController::beaconStopCb(const std_msgs::BoolConstPtr& beacon_stop_msg){
+    flag_beacon_stop_ = beacon_stop_msg->data;
 }
 
 void NearnessController::generateSafetyBox(){
