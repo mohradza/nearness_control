@@ -45,15 +45,8 @@
 
   <node pkg="topic_tools" name="cmd_vel_relay" type="relay" args="nearness_controller/control_commands  nav_vel" />
 
-<<<<<<< HEAD
-<!--
-  <include file="$(find safety_from_depth_image)/launch/HD2_safety_tower_camera_fwd_depth_pcl.launch"/>
--->
-=======
   <include file="$(find safety_from_depth_image)/launch/Husky_safety_tower_camera_fwd_depth_pcl.launch" if="$(arg enable_tower_safety)"/>
 
   <include file="$find pcl_ros)/launch/launch_Husky_realsense_norma.launch" if="$(arg enable_terrain_control)"/>
-
->>>>>>> e99089fd174f47e505a4fae33aa4d9cfd817976b
 
 </launch>

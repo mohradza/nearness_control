@@ -106,13 +106,8 @@
         <param name="yaw_rate_k_hb_1" type="double" value="1.0"/>
         <param name="yaw_rate_k_hb_2" type="double" value="2.0"/>  <!-- -2 -->
         <param name="yaw_rate_max" type="double" value=".5"/>
-<<<<<<< HEAD
-        <param name="reverse_yaw_rate_cmd" type="bool" value="false"/>
-        <param name="reverse_wf_yaw_rate_cmd" type="bool" value="false"/>
-=======
         <param name="reverse_yaw_rate_cmd" type="bool" value="$(arg reverse_yaw_rate_cmd)"/>
         <param name="reverse_wf_yaw_rate_cmd" type="bool" value="$(arg reverse_wf_yaw_rate_cmd)"/>
->>>>>>> e99089fd174f47e505a4fae33aa4d9cfd817976b
 
         <!-- Parameters for SF Yaw Rate Control -->
         <param name="h_sf_k_thresh" type="double" value="3.0"/>
