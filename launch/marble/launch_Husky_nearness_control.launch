@@ -1,7 +1,7 @@
 <launch>
 
   <arg name="enable_tower_safety"         value="false"/>
-  <arg name="enable_terrain_control"      value="false"/>
+  <arg name="enable_terrain_control"      value="true"/>
 
   <include file="$(find nearness_control)/launch/marble/nearness_control.launch">
 
@@ -9,7 +9,7 @@
     <arg name="is_ground_vehicle"           value="true"/>
     <arg name="enable_wf_control"           value="true"/>
     <arg name="enable_sf_control"           value="true"/>
-    <arg name="enable_terrain_control"      default="false"/>
+    <arg name="enable_terrain_control"      default="true"/>
     <arg name="enable_attractor_control"    value="true"/>
     <arg name="enable_command_weighting"    value="false"/>
     <arg name="enable_sf_clustering"        value="true"/>
@@ -47,6 +47,6 @@
 
   <include file="$(find safety_from_depth_image)/launch/Husky_safety_tower_camera_fwd_depth_pcl.launch" if="$(arg enable_tower_safety)"/>
 
-  <include file="$find pcl_ros)/launch/launch_Husky_realsense_norma.launch" if="$(arg enable_terrain_control)"/>
+  <include file="$(find pcl_ros)/launch/launch_Husky_realsense_normal.launch" if="$(arg enable_terrain_control)"/>
 
 </launch>

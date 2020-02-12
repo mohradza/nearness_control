@@ -780,8 +780,8 @@ void NearnessController::computeTerrainYawRateCommand(){
         for(int i=0; i < num_ter_clusters_; i++){
             if(ter_cluster_r_[i] >= 0) sign = -1;
             if(ter_cluster_r_[i] < 0) sign = 1;
-            terrain_r_cmd_ += h_sf_k_0_ * float(sign) * exp(-h_sf_k_psi_ * abs(ter_cluster_r_[i])) * exp(-h_sf_k_d_ / abs(ter_cluster_d_[i]));
-            ROS_INFO("ter_r_cmd_: %f", terrain_r_cmd_);
+            terrain_r_cmd_ += .25*h_sf_k_0_ * float(sign) * exp(-h_sf_k_psi_ * abs(ter_cluster_r_[i])) * exp(-h_sf_k_d_ / abs(ter_cluster_d_[i]));
+            //ROS_INFO("ter_r_cmd_: %f", terrain_r_cmd_);
         }
     }
 }
@@ -822,7 +822,7 @@ void NearnessController::computeWFYawRateCommand(){
 
 void NearnessController::computeAttractorCommand(){
     float attractor_timer = (ros::Time::now() - last_wp_msg_time_).toSec();
-    ROS_INFO_THROTTLE(1, "attractor_timer: %f, timer_limit: %f", attractor_timer, attractor_watchdog_timer_);
+    //ROS_INFO_THROTTLE(1, "attractor_timer: %f, timer_limit: %f", attractor_timer, attractor_watchdog_timer_);
     if(attractor_timer > attractor_watchdog_timer_){
         ROS_INFO_THROTTLE(1,"Have not received a new attractor for %f seconds.", attractor_timer);
         enable_attractor_control_ = false;
@@ -1131,7 +1131,7 @@ void NearnessController::terrainScanCb(const sensor_msgs::LaserScan::ConstPtr& t
         }
     }
 
-    if(scan_count > 5){
+    if(scan_count >= 5){
         flag_terrain_too_close_front_ = true;
     } else {
         flag_terrain_too_close_front_ = false;
