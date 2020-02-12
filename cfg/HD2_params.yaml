@@ -11,7 +11,7 @@ yaw_rate_k_hb_1: .1
 yaw_rate_k_hb_2: .1
 yaw_rate_k_att_0: 0.05
 yaw_rate_k_att_d: .5
-yaw_rate_k_turn: 0.1
+yaw_rate_k_turn: 0.05
 
 h_sf_k_thresh: 4.0
 h_sf_k_0: 0.1

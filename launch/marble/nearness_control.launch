@@ -6,13 +6,16 @@
     <arg name="enable_wf_control"           default="true"/>
     <arg name="enable_sf_control"           default="false"/>
     <arg name="enable_terrain_control"      default="false"/>
-    <arg name="enable_attractor_control"    default="false"/>
+    <arg name="enable_attractor_control"    default="true"/>
     <arg name="enable_command_weighting"    default="false"/>
     <arg name="enable_sf_clustering"        default="true"/>
     <arg name="enable_att_speed_reg"        default="false"/>
     <arg name="stagger_waypoints"           default="false"/>
     <arg name="enable_tower_safety"         default="false"/>
 
+    <arg name="reverse_yaw_rate_cmd"        default="false"/>
+    <arg name="reverse_wf_yaw_rate_cmd"     default="false"/>
+    
     <arg name="total_horiz_scan_points"     default="720"/>
     <arg name="num_horiz_scan_points"       default="360"/>
     <arg name="horiz_scan_start_index"      default="180"/>
@@ -103,8 +106,8 @@
         <param name="yaw_rate_k_hb_1" type="double" value="1.0"/>
         <param name="yaw_rate_k_hb_2" type="double" value="2.0"/>  <!-- -2 -->
         <param name="yaw_rate_max" type="double" value=".5"/>
-        <param name="reverse_yaw_rate_cmd" type="bool" value="true"/>
-        <param name="reverse_wf_yaw_rate_cmd" type="bool" value="false"/>
+        <param name="reverse_yaw_rate_cmd" type="bool" value="$(arg reverse_yaw_rate_cmd)"/>
+        <param name="reverse_wf_yaw_rate_cmd" type="bool" value="$(arg reverse_wf_yaw_rate_cmd)"/>
 
         <!-- Parameters for SF Yaw Rate Control -->
         <param name="h_sf_k_thresh" type="double" value="3.0"/>
