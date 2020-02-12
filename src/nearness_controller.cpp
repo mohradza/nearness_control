@@ -821,6 +821,7 @@ void NearnessController::computeWFYawRateCommand(){
 void NearnessController::computeAttractorCommand(){
   /*
     float attractor_timer = (ros::Time::now() - last_wp_msg_time_).toSec();
+    ROS_INFO_THROTTLE(1, "attractor_timer: %f, timer_limit: %f", attractor_timer, attractor_watchdog_timer_);
     if(attractor_timer > attractor_watchdog_timer_){
         ROS_INFO_THROTTLE(1,"Have not received a new attractor for %f seconds.", attractor_timer);
         enable_attractor_control_ = false;
@@ -1164,7 +1165,7 @@ void NearnessController::towerSafetyCb(const std_msgs::Int32ConstPtr& safety_msg
     // Tally the votes
     int total_safety_getting_close_votes = std::accumulate(safety_getting_close_counter_.begin(), safety_getting_close_counter_.end(), 0);
     int total_safety_too_close_votes = std::accumulate(safety_too_close_counter_.begin(), safety_too_close_counter_.end(), 0);
-    ROS_INFO("Getting close votes: %d, Too close votes: %d", total_safety_getting_close_votes, total_safety_too_close_votes);
+    ROS_INFO_THROTTLE(2,"Getting close votes: %d, Too close votes: %d", total_safety_getting_close_votes, total_safety_too_close_votes);
 
     if(total_safety_getting_close_votes > safety_getting_close_vote_thresh_){
         flag_safety_getting_close_ = true;

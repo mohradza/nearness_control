@@ -1,5 +1,8 @@
 <launch>
 
+  <arg name="enable_tower_safety"         value="false"/>
+  <arg name="enable_terrain_control"      value="false"/>
+
   <include file="$(find nearness_control)/launch/marble/nearness_control.launch">
 
     <arg name="enable_debug"                value="true"/>
@@ -13,6 +16,9 @@
     <arg name="enable_att_speed_reg"        value="false" />
     <arg name="stagger_waypoints"           value="false"/>
     <arg name="enable_tower_safety"         value="true"/>
+
+    <arg name="reverse_yaw_rate_cmd"        value="false"/>
+    <arg name="reverse_wf_yaw_rate_cmd"     value="false"/>
 
     <!-- Horizontal Scanner Sensor Parameters -->
     <!-- These values correspond with the RPLidar S1 -->
@@ -39,8 +45,15 @@
 
   <node pkg="topic_tools" name="cmd_vel_relay" type="relay" args="nearness_controller/control_commands  nav_vel" />
 
+<<<<<<< HEAD
 <!--
   <include file="$(find safety_from_depth_image)/launch/HD2_safety_tower_camera_fwd_depth_pcl.launch"/>
 -->
+=======
+  <include file="$(find safety_from_depth_image)/launch/Husky_safety_tower_camera_fwd_depth_pcl.launch" if="$(arg enable_tower_safety)"/>
+
+  <include file="$find pcl_ros)/launch/launch_Husky_realsense_norma.launch" if="$(arg enable_terrain_control)"/>
+
+>>>>>>> e99089fd174f47e505a4fae33aa4d9cfd817976b
 
 </launch>
