@@ -779,7 +779,7 @@ void NearnessController::computeTerrainYawRateCommand(){
         for(int i=0; i < num_ter_clusters_; i++){
             if(ter_cluster_r_[i] >= 0) sign = -1;
             if(ter_cluster_r_[i] < 0) sign = 1;
-            terrain_r_cmd_ += h_sf_k_0_ * float(sign) * exp(-h_sf_k_psi_ * abs(ter_cluster_r_[i])) * exp(-h_sf_k_d_ / abs(ter_cluster_d_[i]));
+            terrain_r_cmd_ += .25*h_sf_k_0_ * float(sign) * exp(-h_sf_k_psi_ * abs(ter_cluster_r_[i])) * exp(-h_sf_k_d_ / abs(ter_cluster_d_[i]));
             ROS_INFO("ter_r_cmd_: %f", terrain_r_cmd_);
         }
     }
