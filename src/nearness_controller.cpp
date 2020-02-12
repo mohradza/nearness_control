@@ -48,6 +48,7 @@ void NearnessController::init() {
 
     // Initialize variables
     have_attractor_ = false;
+    lost_attractor_ = false;
     flag_estop_ = true;
     flag_beacon_stop_ = false;
     control_command_.header.frame_id = "/base_stabilized";
@@ -819,16 +820,16 @@ void NearnessController::computeWFYawRateCommand(){
 } // End of computeWFYawRateCommand
 
 void NearnessController::computeAttractorCommand(){
-  /*
+
     float attractor_timer = (ros::Time::now() - last_wp_msg_time_).toSec();
     ROS_INFO_THROTTLE(1, "attractor_timer: %f, timer_limit: %f", attractor_timer, attractor_watchdog_timer_);
     if(attractor_timer > attractor_watchdog_timer_){
         ROS_INFO_THROTTLE(1,"Have not received a new attractor for %f seconds.", attractor_timer);
-        enable_attractor_control_ = false;
+        lost_attractor_ = true;
     } else {
-        enable_attractor_control_ = true;
+        lost_attractor_ = false;
     }
-*/
+
     float angle_error = wrapAngle(relative_attractor_heading_ - current_heading_);
     if(have_attractor_ && (abs(angle_error) < 1.4)){
         attractor_yaw_cmd_ = r_k_att_0_*angle_error*exp(-r_k_att_d_*attractor_d_);
@@ -921,7 +922,7 @@ void NearnessController::publishControlCommandMsg(){
             control_command_.twist.angular.z += terrain_r_cmd_;
         }
 
-        if(enable_attractor_control_){
+        if(enable_attractor_control_ && !lost_attractor_){
             control_command_.twist.angular.z += attractor_yaw_cmd_;
 	          if(attractor_turn_){
 	              control_command_.twist.linear.x = 0.0;

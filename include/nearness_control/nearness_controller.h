@@ -286,6 +286,7 @@ class NearnessController {
     geometry_msgs::Point next_waypoint_pos_;
     ros::Time last_wp_msg_time_;
     double attractor_watchdog_timer_;
+    bool lost_attractor_;
 
     // odomCb
     geometry_msgs::Point current_pos_;
