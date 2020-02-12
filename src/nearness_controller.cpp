@@ -819,6 +819,7 @@ void NearnessController::computeWFYawRateCommand(){
 } // End of computeWFYawRateCommand
 
 void NearnessController::computeAttractorCommand(){
+  /*
     float attractor_timer = (ros::Time::now() - last_wp_msg_time_).toSec();
     if(attractor_timer > attractor_watchdog_timer_){
         ROS_INFO_THROTTLE(1,"Have not received a new attractor for %f seconds.", attractor_timer);
@@ -826,7 +827,7 @@ void NearnessController::computeAttractorCommand(){
     } else {
         enable_attractor_control_ = true;
     }
-
+*/
     float angle_error = wrapAngle(relative_attractor_heading_ - current_heading_);
     if(have_attractor_ && (abs(angle_error) < 1.4)){
         attractor_yaw_cmd_ = r_k_att_0_*angle_error*exp(-r_k_att_d_*attractor_d_);

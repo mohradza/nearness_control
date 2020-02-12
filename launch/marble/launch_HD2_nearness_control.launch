@@ -39,5 +39,8 @@
 
   <node pkg="topic_tools" name="cmd_vel_relay" type="relay" args="nearness_controller/control_commands  nav_vel" />
 
+<!--
+  <include file="$(find safety_from_depth_image)/launch/HD2_safety_tower_camera_fwd_depth_pcl.launch"/>
+-->
 
 </launch>
