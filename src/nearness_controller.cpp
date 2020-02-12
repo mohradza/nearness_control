@@ -54,6 +54,7 @@ void NearnessController::init() {
     control_command_.header.frame_id = "/base_stabilized";
     terrain_thresh_ = 4.0;
     flag_octo_too_close_ = false;
+    enable_backup_ = false;
 
     // Import parameters
     pnh_.param("enable_debug", debug_, false);
@@ -780,7 +781,7 @@ void NearnessController::computeTerrainYawRateCommand(){
         for(int i=0; i < num_ter_clusters_; i++){
             if(ter_cluster_r_[i] >= 0) sign = -1;
             if(ter_cluster_r_[i] < 0) sign = 1;
-            terrain_r_cmd_ += .25*h_sf_k_0_ * float(sign) * exp(-h_sf_k_psi_ * abs(ter_cluster_r_[i])) * exp(-h_sf_k_d_ / abs(ter_cluster_d_[i]));
+            terrain_r_cmd_ += .15*h_sf_k_0_ * float(sign) * exp(-h_sf_k_psi_ * abs(ter_cluster_r_[i])) * exp(-h_sf_k_d_ / abs(ter_cluster_d_[i]));
             //ROS_INFO("ter_r_cmd_: %f", terrain_r_cmd_);
         }
     }
@@ -788,7 +789,7 @@ void NearnessController::computeTerrainYawRateCommand(){
 
 void NearnessController::computeForwardSpeedCommand(){
     float angle_error = wrapAngle(relative_attractor_heading_ - current_heading_);
-    if(!enable_att_speed_reg_ || !enable_attractor_control_){
+    if(!enable_att_speed_reg_ || !enable_attractor_control_ || lost_attractor_){
         angle_error = 0.0;
     }
     if(enable_wf_control_){
@@ -825,14 +826,14 @@ void NearnessController::computeAttractorCommand(){
     //ROS_INFO_THROTTLE(1, "attractor_timer: %f, timer_limit: %f", attractor_timer, attractor_watchdog_timer_);
     if(attractor_timer > attractor_watchdog_timer_){
         ROS_INFO_THROTTLE(1,"Have not received a new attractor for %f seconds.", attractor_timer);
-        enable_attractor_control_ = false;
+        lost_attractor_ = true;
     } else {
-        enable_attractor_control_ = true;
+        lost_attractor_ = false;
     }
 
     float angle_error = wrapAngle(relative_attractor_heading_ - current_heading_);
     float angle_error_backup = wrapAngle(relative_attractor_heading_ - wrapAngle(current_heading_ - M_PI));
-    backup_attractor_yaw_cmd_ = -r_k_att_0_*angle_error_backup*exp(-r_k_att_d_*attractor_d_);
+    backup_attractor_yaw_cmd_ = r_k_att_0_*angle_error_backup*exp(-r_k_att_d_*attractor_d_);
     ROS_INFO_THROTTLE(1,"backup yaw cmd: %f", backup_attractor_yaw_cmd_);
     if(have_attractor_ && (abs(angle_error) < 1.4)){
         attractor_yaw_cmd_ = r_k_att_0_*angle_error*exp(-r_k_att_d_*attractor_d_);
@@ -925,13 +926,12 @@ void NearnessController::publishControlCommandMsg(){
             control_command_.twist.angular.z += terrain_r_cmd_;
         }
 
-        if(enable_attractor_control_){
+        if(enable_attractor_control_ && !lost_attractor_){
             control_command_.twist.angular.z += attractor_yaw_cmd_;
 	          if(attractor_turn_){
-                if(!flag_octo_too_close_){
-    	              control_command_.twist.linear.x = 0.0;
-    	              control_command_.twist.angular.z = sat(attractor_yaw_cmd_, -r_max_, r_max_);
-                } else {
+    	          control_command_.twist.linear.x = 0.0;
+    	          control_command_.twist.angular.z = sat(attractor_yaw_cmd_, -r_max_, r_max_);
+                if(flag_octo_too_close_ && enable_backup_){
                     ROS_INFO_THROTTLE(1,"OBSTACLE TOO CLOSE, CANNOT TURN AROUND! BACKING DAT ASS UP");
                     control_command_.twist.linear.x = -.1;
                     control_command_.twist.angular.z = backup_attractor_yaw_cmd_;
@@ -964,11 +964,11 @@ void NearnessController::publishControlCommandMsg(){
     }
 
     saturateControls();
-    if(flag_too_close_side_){
+    if(flag_too_close_side_ && !(flag_octo_too_close_ && enable_backup_)){
       control_command_.twist.linear.x = close_side_speed_;
       ROS_INFO_THROTTLE(1,"Too close on the side!");
     }
-    if(flag_safety_getting_close_ && enable_tower_safety_){
+    if(flag_safety_getting_close_ && enable_tower_safety_ && !(flag_octo_too_close_ && enable_backup_)){
       control_command_.twist.linear.x = close_side_speed_;
       ROS_INFO_THROTTLE(1,"Tower safety: getting close!");
     }
@@ -980,11 +980,11 @@ void NearnessController::publishControlCommandMsg(){
         control_command_.twist.linear.x = -1*control_command_.twist.linear.x;
     }
 
-    if(flag_too_close_front_ || (flag_terrain_too_close_front_ && enable_terrain_control_)){
+    if(flag_too_close_front_ || (flag_terrain_too_close_front_ && enable_terrain_control_) && !(flag_octo_too_close_ && enable_backup_)){
       ROS_INFO_THROTTLE(1,"Too close in the front! Lidar: %d, Terrain: %d", flag_too_close_front_, flag_terrain_too_close_front_);
       control_command_.twist.linear.x = 0.0;
     }
-    if((flag_safety_too_close_ && enable_tower_safety_)){
+    if((flag_safety_too_close_ && enable_tower_safety_) && !(flag_octo_too_close_ && enable_backup_)){
       ROS_INFO_THROTTLE(1,"Tower safety: too close!");
       control_command_.twist.linear.x = 0.0;
     }
@@ -1049,7 +1049,7 @@ void NearnessController::nextWaypointCb(const geometry_msgs::PointStampedConstPt
     }
     last_wp_msg_time_ = ros::Time::now();
 
-    //ROS_INFO_THROTTLE(2,"Received new waypoint");
+  //  ROS_INFO_THROTTLE(2,"Received new waypoint");
 
     if(stagger_waypoints_){
         if(attractor_d_ < attractor_latch_thresh_){
@@ -1206,14 +1206,18 @@ void NearnessController::beaconStopCb(const std_msgs::BoolConstPtr& beacon_stop_
 
 void NearnessController::octoLaserscanCb(const sensor_msgs::LaserScanConstPtr& octo_laserscan_msg){
     std::vector<float> octo_laserscan_ranges (octo_laserscan_msg->ranges.begin(), octo_laserscan_msg->ranges.end());
-
+    ROS_INFO_THROTTLE(1,"Received Octo laserscan, %f", turn_around_thresh_);
     int vec_size = octo_laserscan_ranges.size();
+    turn_around_thresh_ = .82;
     for (int i=0; i < vec_size; i++){
         if(octo_laserscan_ranges[i] < turn_around_thresh_){
+            //ROS_INFO_THROTTLE(1,"OCTO TOO CLOSE");
             flag_octo_too_close_ = true;
         } else {
             flag_octo_too_close_ = flag_octo_too_close_ || false;
         }
+
+        flag_octo_too_close_ = (flag_octo_too_close_ || attractor_turn_);
     }
 }
 
@@ -1270,7 +1274,7 @@ void NearnessController::saturateControls(){
     }
     if(control_command_.twist.linear.x > u_max_){
         control_command_.twist.linear.x = u_max_;
-    } else if (control_command_.twist.linear.x < u_min_){
+    } else if ((control_command_.twist.linear.x < u_min_) && !(flag_octo_too_close_ && enable_backup_)){
         control_command_.twist.linear.x = u_min_;
     }
 }

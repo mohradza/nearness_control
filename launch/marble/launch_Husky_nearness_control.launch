@@ -1,6 +1,6 @@
 <launch>
 
-  <arg name="enable_tower_safety"         value="false"/>
+  <arg name="enable_tower_safety"         value="true"/>
   <arg name="enable_terrain_control"      value="true"/>
 
   <include file="$(find nearness_control)/launch/marble/nearness_control.launch">
@@ -13,9 +13,9 @@
     <arg name="enable_attractor_control"    value="true"/>
     <arg name="enable_command_weighting"    value="false"/>
     <arg name="enable_sf_clustering"        value="true"/>
-    <arg name="enable_att_speed_reg"        value="false"/>
+    <arg name="enable_att_speed_reg"        value="true"/>
     <arg name="stagger_waypoints"           value="false"/>
-    <arg name="enable_tower_safety"         default="false"/>
+    <arg name="enable_tower_safety"         default="true"/>
 
     <arg name="reverse_yaw_rate_cmd"        value="true"/>
     <arg name="reverse_wf_yaw_rate_cmd"     value="false"/>
