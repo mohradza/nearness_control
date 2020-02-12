@@ -25,6 +25,7 @@ void NearnessController::init() {
     sub_terrain_scan_ = nh_.subscribe("terrain_scan", 1, &NearnessController::terrainScanCb, this);
     sub_tower_safety_ = nh_.subscribe("tower_safety", 1, &NearnessController::towerSafetyCb, this);
     sub_beacon_stop_ = nh_.subscribe("beacon_stop", 1, &NearnessController::beaconStopCb, this);
+    sub_octo_laserscan_ = nh_.subscribe("octo_laserscan", 1, &NearnessController::octoLaserscanCb, this);
 
     // Set up publishers
     pub_h_scan_reformat_ = nh_.advertise<std_msgs::Float32MultiArray>("horiz_depth_reformat", 10);
@@ -52,6 +53,7 @@ void NearnessController::init() {
     flag_beacon_stop_ = false;
     control_command_.header.frame_id = "/base_stabilized";
     terrain_thresh_ = 4.0;
+    flag_octo_too_close_ = false;
 
     // Import parameters
     pnh_.param("enable_debug", debug_, false);
@@ -829,6 +831,9 @@ void NearnessController::computeAttractorCommand(){
     }
 
     float angle_error = wrapAngle(relative_attractor_heading_ - current_heading_);
+    float angle_error_backup = wrapAngle(relative_attractor_heading_ - wrapAngle(current_heading_ - M_PI));
+    backup_attractor_yaw_cmd_ = -r_k_att_0_*angle_error_backup*exp(-r_k_att_d_*attractor_d_);
+    ROS_INFO_THROTTLE(1,"backup yaw cmd: %f", backup_attractor_yaw_cmd_);
     if(have_attractor_ && (abs(angle_error) < 1.4)){
         attractor_yaw_cmd_ = r_k_att_0_*angle_error*exp(-r_k_att_d_*attractor_d_);
         //float attractor_yaw_cmd = r_k_att_0_*wrapAngle(current_heading_ - relative_attractor_heading)*exp(-r_k_att_d_*attractor_d);
@@ -923,8 +928,14 @@ void NearnessController::publishControlCommandMsg(){
         if(enable_attractor_control_){
             control_command_.twist.angular.z += attractor_yaw_cmd_;
 	          if(attractor_turn_){
-	              control_command_.twist.linear.x = 0.0;
-	              control_command_.twist.angular.z = sat(attractor_yaw_cmd_, -r_max_, r_max_);
+                if(!flag_octo_too_close_){
+    	              control_command_.twist.linear.x = 0.0;
+    	              control_command_.twist.angular.z = sat(attractor_yaw_cmd_, -r_max_, r_max_);
+                } else {
+                    ROS_INFO_THROTTLE(1,"OBSTACLE TOO CLOSE, CANNOT TURN AROUND! BACKING DAT ASS UP");
+                    control_command_.twist.linear.x = -.1;
+                    control_command_.twist.angular.z = backup_attractor_yaw_cmd_;
+                }
             }
         }
 
@@ -1191,6 +1202,19 @@ void NearnessController::towerSafetyCb(const std_msgs::Int32ConstPtr& safety_msg
 
 void NearnessController::beaconStopCb(const std_msgs::BoolConstPtr& beacon_stop_msg){
     flag_beacon_stop_ = beacon_stop_msg->data;
+}
+
+void NearnessController::octoLaserscanCb(const sensor_msgs::LaserScanConstPtr& octo_laserscan_msg){
+    std::vector<float> octo_laserscan_ranges (octo_laserscan_msg->ranges.begin(), octo_laserscan_msg->ranges.end());
+
+    int vec_size = octo_laserscan_ranges.size();
+    for (int i=0; i < vec_size; i++){
+        if(octo_laserscan_ranges[i] < turn_around_thresh_){
+            flag_octo_too_close_ = true;
+        } else {
+            flag_octo_too_close_ = flag_octo_too_close_ || false;
+        }
+    }
 }
 
 void NearnessController::generateSafetyBox(){
