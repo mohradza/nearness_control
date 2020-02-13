@@ -47,6 +47,6 @@
 
   <include file="$(find safety_from_depth_image)/launch/Husky_safety_tower_camera_fwd_depth_pcl.launch" if="$(arg enable_tower_safety)"/>
 
-  <include file="$find pcl_ros)/launch/launch_Husky_realsense_norma.launch" if="$(arg enable_terrain_control)"/>
+  <include file="$(find pcl_ros)/launch/launch_HD2_realsense_normal.launch" if="$(arg enable_terrain_control)"/>
 
 </launch>
