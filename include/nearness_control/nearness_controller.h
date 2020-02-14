@@ -66,6 +66,7 @@ class NearnessController {
     void terrainScanCb(const sensor_msgs::LaserScan::ConstPtr& terrain_scan_msg);
     void towerSafetyCb(const std_msgs::Int32ConstPtr& safety_msg);
     void beaconStopCb(const std_msgs::BoolConstPtr& beacon_stop_msg);
+    void octoLaserscanCb(const sensor_msgs::LaserScanConstPtr& octo_laserscan_msg);
     void convertHLaserscan2CVMat(const sensor_msgs::LaserScanPtr h_laserscan_msg);
     void convertVLaserscan2CVMat(const sensor_msgs::LaserScanPtr v_laserscan_msg);
     void computeHorizFourierCoeffs();
@@ -99,6 +100,7 @@ class NearnessController {
     ros::Subscriber sub_terrain_scan_;
     ros::Subscriber sub_tower_safety_;
     ros::Subscriber sub_beacon_stop_;
+    ros::Subscriber sub_octo_laserscan_;
 
     // PUBLISHERS //
     ros::Publisher pub_h_scan_reformat_;
@@ -287,6 +289,7 @@ class NearnessController {
     ros::Time last_wp_msg_time_;
     double attractor_watchdog_timer_;
     bool lost_attractor_;
+    bool enable_backup_;
 
     // odomCb
     geometry_msgs::Point current_pos_;
@@ -304,8 +307,13 @@ class NearnessController {
     bool flag_terrain_too_close_front_;
     double terrain_front_safety_radius_;
     float terrain_r_cmd_;
+    double ter_sf_k_0_;
+    double ter_sf_k_d_;
+    double ter_sf_k_psi_;
+    float last_ter_r_cmd_;
+    float alpha_ter_r_cmd_;
 
-    // Twoer Safety
+    // Tower Safety
     bool flag_safety_too_close_;
     bool flag_safety_getting_close_;
     std::vector<int> safety_getting_close_counter_;
@@ -316,6 +324,18 @@ class NearnessController {
     int safety_too_close_num_votes_;
     int safety_counter1_;
     int safety_counter2_;
+
+    // Octomap Turn Around
+    float turn_around_thresh_;
+    bool flag_octo_too_close_;
+    float backup_attractor_yaw_cmd_;
+
+    // LP Filtering
+    bool enable_cmd_lp_filter_;
+    double alpha_x_vel_;
+    double alpha_r_vel_;
+    float x_vel_filt_last_;
+    float r_vel_filt_last_;
 
 
 }; // class SimpleNodeClass

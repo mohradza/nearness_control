@@ -17,3 +17,8 @@ h_sf_k_thresh: 4.0
 h_sf_k_0: 0.1
 h_sf_k_d: 0.5
 h_sf_k_psi: 0.4
+
+terrain_thresh: 4.0
+ter_sf_k_0: .75
+ter_sf_k_d: 1.0
+ter_sf_k_psi: 0.4
