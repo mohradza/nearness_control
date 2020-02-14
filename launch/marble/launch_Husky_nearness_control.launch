@@ -1,21 +1,18 @@
 <launch>
 
-  <arg name="enable_tower_safety"         value="false"/>
-  <arg name="enable_terrain_control"      value="false"/>
-
   <include file="$(find nearness_control)/launch/marble/nearness_control.launch">
 
     <arg name="enable_debug"                value="true"/>
     <arg name="is_ground_vehicle"           value="true"/>
     <arg name="enable_wf_control"           value="true"/>
     <arg name="enable_sf_control"           value="true"/>
-    <arg name="enable_terrain_control"      default="false"/>
+    <arg name="enable_terrain_control"      value="false"/>
     <arg name="enable_attractor_control"    value="true"/>
     <arg name="enable_command_weighting"    value="false"/>
     <arg name="enable_sf_clustering"        value="true"/>
     <arg name="enable_att_speed_reg"        value="false"/>
     <arg name="stagger_waypoints"           value="false"/>
-    <arg name="enable_tower_safety"         default="false"/>
+    <arg name="enable_tower_safety"         value="false"/>
 
     <arg name="reverse_yaw_rate_cmd"        value="true"/>
     <arg name="reverse_wf_yaw_rate_cmd"     value="false"/>
@@ -45,8 +42,8 @@
 
   <node pkg="topic_tools" name="cmd_vel_relay" type="relay" args="nearness_controller/control_commands nav_vel" />
 
-  <include file="$(find safety_from_depth_image)/launch/Husky_safety_tower_camera_fwd_depth_pcl.launch" if="$(arg enable_tower_safety)"/>
+  <include file="$(find safety_from_depth_image)/launch/Husky_safety_tower_camera_fwd_depth_pcl.launch"/>
 
-  <include file="$find pcl_ros)/launch/launch_Husky_realsense_normal.launch" if="$(arg enable_terrain_control)"/>
+  <include file="$find pcl_ros)/launch/launch_Husky_realsense_normal.launch" />
 
 </launch>
