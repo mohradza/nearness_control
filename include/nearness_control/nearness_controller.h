@@ -307,6 +307,11 @@ class NearnessController {
     bool flag_terrain_too_close_front_;
     double terrain_front_safety_radius_;
     float terrain_r_cmd_;
+    double ter_sf_k_0_;
+    double ter_sf_k_d_;
+    double ter_sf_k_psi_;
+    float last_ter_r_cmd_;
+    float alpha_ter_r_cmd_;
 
     // Tower Safety
     bool flag_safety_too_close_;
@@ -324,6 +329,13 @@ class NearnessController {
     float turn_around_thresh_;
     bool flag_octo_too_close_;
     float backup_attractor_yaw_cmd_;
+
+    // LP Filtering
+    bool enable_cmd_lp_filter_;
+    double alpha_x_vel_;
+    double alpha_r_vel_;
+    float x_vel_filt_last_;
+    float r_vel_filt_last_;
 
 
 }; // class SimpleNodeClass

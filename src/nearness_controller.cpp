@@ -52,9 +52,11 @@ void NearnessController::init() {
     flag_estop_ = true;
     flag_beacon_stop_ = false;
     control_command_.header.frame_id = "/base_stabilized";
-    terrain_thresh_ = 4.0;
     flag_octo_too_close_ = false;
     enable_backup_ = false;
+    last_ter_r_cmd_ = 0.0;
+    x_vel_filt_last_ = 0.0;
+    r_vel_filt_last_ = 0.0;
 
     // Import parameters
     pnh_.param("enable_debug", debug_, false);
@@ -69,6 +71,7 @@ void NearnessController::init() {
     pnh_.param("enable_att_speed_reg", enable_att_speed_reg_, false);
     pnh_.param("stagger_waypoints_", stagger_waypoints_, false);
     pnh_.param("enable_tower_safety", enable_tower_safety_, false);
+    pnh_.param("enable_cmd_lp_filter", enable_cmd_lp_filter_, true);
 
     pnh_.param("total_horiz_scan_points", total_h_scan_points_, 1440);
     pnh_.param("horiz_scan_limit", h_scan_limit_, M_PI);
@@ -98,7 +101,6 @@ void NearnessController::init() {
     pnh_.param("safety_radius", safety_radius_, .5);
     pnh_.param("close_side_speed", close_side_speed_, .05);
     pnh_.param("reverse_forward_speed_cmd", reverse_u_cmd_, false);
-    pnh_.param("terrain_front_safety_radius", terrain_front_safety_radius_, 1.0);
     pnh_.param("safety_getting_close_vote_thresh", safety_getting_close_vote_thresh_, 5);
     pnh_.param("safety_too_close_vote_thresh", safety_too_close_vote_thresh_, 3);
 
@@ -121,7 +123,13 @@ void NearnessController::init() {
     pnh_.param("h_sf_k_d", h_sf_k_d_, 1.0);
     pnh_.param("h_sf_k_psi", h_sf_k_psi_, 0.4);
     pnh_.param("h_sf_k_thresh", h_sf_k_thresh_, 3.0);
-    pnh_.param("terrain_thresh", terrain_thresh_, 0.5);
+
+    // Terrain Control Gains
+    pnh_.param("ter_sf_k_0", ter_sf_k_0_, 0.5);
+    pnh_.param("ter_sf_k_d", ter_sf_k_d_, 1.0);
+    pnh_.param("ter_sf_k_psi", ter_sf_k_psi_, 0.4);
+    pnh_.param("terrain_thresh", terrain_thresh_, 3.0);
+    pnh_.param("terrain_front_safety_radius", terrain_front_safety_radius_, 1.0);
 
     // Attractor Control Gains
     pnh_.param("yaw_rate_k_att_0", r_k_att_0_, 1.0);
@@ -129,6 +137,10 @@ void NearnessController::init() {
     pnh_.param("yaw_rate_k_att_turn", r_k_att_turn_, 0.1);
     pnh_.param("attractor_latch_thresh", attractor_latch_thresh_, 1.0);
     pnh_.param("attractor_watchdog_timer", attractor_watchdog_timer_, 3.0);
+
+    // Filtering
+    pnh_.param("forward_speed_lp_filter_alpha", alpha_x_vel_, 1.0);
+    pnh_.param("yaw_rate_lp_filter_alpha", alpha_r_vel_, 1.0);
 
     // Additional gains for Aerial vehicle use
     pnh_.param("forward_speed_k_vb_1", u_k_vb_1_, 0.0);
@@ -222,6 +234,11 @@ void NearnessController::configCb(Config &config, uint32_t level)
     h_sf_k_psi_ = config_.h_sf_k_psi;
     h_sf_k_d_ = config_.h_sf_k_d;
 
+    terrain_thresh_ = config_.terrain_thresh;
+    ter_sf_k_0_ = config_.ter_sf_k_0;
+    ter_sf_k_psi_ = config_.ter_sf_k_psi;
+    ter_sf_k_d_ = config_.ter_sf_k_d;
+
     v_sf_k_thresh_ = config_.v_sf_k_thresh;
     v_sf_k_0_ = config_.v_sf_k_0;
     v_sf_k_psi_ = config_.v_sf_k_psi;
@@ -235,6 +252,8 @@ void NearnessController::configCb(Config &config, uint32_t level)
     w_max_ = config_.vert_speed_max;
 
     //ROS_INFO("%f, %f", w_max_, u_min_);
+    //ROS_INFO("k_0: %f, kd: %f, thresh:%f", ter_sf_k_0_, ter_sf_k_d_, terrain_thresh_);
+
 }
 
 void NearnessController::horizLaserscanCb(const sensor_msgs::LaserScanPtr h_laserscan_msg){
@@ -774,17 +793,21 @@ void NearnessController::computeSFVerticalSpeedCommand(){
 }
 
 void NearnessController::computeTerrainYawRateCommand(){
-    terrain_r_cmd_ = 0.0;
     // Add in the terrain num_points
+    float ter_r_cmd = 0.0;
     int sign=1;
+    alpha_ter_r_cmd_ = .25;
     if(!ter_cluster_d_.empty()){
         for(int i=0; i < num_ter_clusters_; i++){
             if(ter_cluster_r_[i] >= 0) sign = -1;
             if(ter_cluster_r_[i] < 0) sign = 1;
-            terrain_r_cmd_ += .15*h_sf_k_0_ * float(sign) * exp(-h_sf_k_psi_ * abs(ter_cluster_r_[i])) * exp(-h_sf_k_d_ / abs(ter_cluster_d_[i]));
+            ter_r_cmd += ter_sf_k_0_ * float(sign) * exp(-ter_sf_k_psi_ * abs(ter_cluster_r_[i])) * exp(-ter_sf_k_d_ / abs(ter_cluster_d_[i]));
             //ROS_INFO("ter_r_cmd_: %f", terrain_r_cmd_);
         }
     }
+    terrain_r_cmd_ = alpha_ter_r_cmd_*ter_r_cmd + (1.0 - alpha_ter_r_cmd_)*last_ter_r_cmd_;
+    last_ter_r_cmd_ = terrain_r_cmd_;
+    //ROS_INFO("prefilter: %f, , last: %f, postfiler: %f", ter_r_cmd, last_ter_r_cmd_, terrain_r_cmd_);
 }
 
 void NearnessController::computeForwardSpeedCommand(){
@@ -832,9 +855,9 @@ void NearnessController::computeAttractorCommand(){
     }
 
     float angle_error = wrapAngle(relative_attractor_heading_ - current_heading_);
-    float angle_error_backup = wrapAngle(relative_attractor_heading_ - wrapAngle(current_heading_ - M_PI));
-    backup_attractor_yaw_cmd_ = r_k_att_0_*angle_error_backup*exp(-r_k_att_d_*attractor_d_);
-    ROS_INFO_THROTTLE(1,"backup yaw cmd: %f", backup_attractor_yaw_cmd_);
+    //float angle_error_backup = wrapAngle(relative_attractor_heading_ - wrapAngle(current_heading_ - M_PI));
+    //backup_attractor_yaw_cmd_ = r_k_att_0_*angle_error_backup*exp(-r_k_att_d_*attractor_d_);
+    //ROS_INFO_THROTTLE(1,"backup yaw cmd: %f", backup_attractor_yaw_cmd_);
     if(have_attractor_ && (abs(angle_error) < 1.4)){
         attractor_yaw_cmd_ = r_k_att_0_*angle_error*exp(-r_k_att_d_*attractor_d_);
         //float attractor_yaw_cmd = r_k_att_0_*wrapAngle(current_heading_ - relative_attractor_heading)*exp(-r_k_att_d_*attractor_d);
@@ -932,7 +955,7 @@ void NearnessController::publishControlCommandMsg(){
     	          control_command_.twist.linear.x = 0.0;
     	          control_command_.twist.angular.z = sat(attractor_yaw_cmd_, -r_max_, r_max_);
                 if(flag_octo_too_close_ && enable_backup_){
-                    ROS_INFO_THROTTLE(1,"OBSTACLE TOO CLOSE, CANNOT TURN AROUND! BACKING DAT ASS UP");
+                    ROS_INFO_THROTTLE(1,"OBSTACLE TOO CLOSE, CANNOT TURN AROUND! BACKING UP");
                     control_command_.twist.linear.x = -.1;
                     control_command_.twist.angular.z = backup_attractor_yaw_cmd_;
                 }
@@ -963,7 +986,24 @@ void NearnessController::publishControlCommandMsg(){
         }
     }
 
-    saturateControls();
+    if(enable_cmd_lp_filter_){
+        float x_vel_filt = 0.0;
+        float x_vel_prefilt = control_command_.twist.linear.x;
+        x_vel_filt = alpha_x_vel_*x_vel_prefilt + (1 - alpha_x_vel_)*x_vel_filt_last_;
+        ROS_INFO("x_vel_prefilt: %f, x_vel_last: %f, x_vel_post: %f", x_vel_prefilt,  x_vel_filt_last_, x_vel_filt);
+        x_vel_filt_last_ = x_vel_filt;
+        control_command_.twist.linear.x = x_vel_filt;
+
+        float r_vel_filt = 0.0;
+        float r_vel_prefilt = control_command_.twist.angular.z;
+        r_vel_filt = alpha_r_vel_*control_command_.twist.angular.z + (1 - alpha_r_vel_)*r_vel_filt_last_;
+        ROS_INFO("r_vel_prefilt: %f, r_vel_last: %f, r_vel_post: %f", r_vel_prefilt,  r_vel_filt_last_, r_vel_filt);
+        r_vel_filt_last_ = r_vel_filt;
+        control_command_.twist.angular.z = r_vel_filt;
+        //ROS_INFO("prefilter: %f, , last: %f, postfiler: %f", ter_r_cmd, last_ter_r_cmd_, terrain_r_cmd_);
+
+    }
+
     if(flag_too_close_side_ && !(flag_octo_too_close_ && enable_backup_)){
       control_command_.twist.linear.x = close_side_speed_;
       ROS_INFO_THROTTLE(1,"Too close on the side!");
@@ -972,6 +1012,8 @@ void NearnessController::publishControlCommandMsg(){
       control_command_.twist.linear.x = close_side_speed_;
       ROS_INFO_THROTTLE(1,"Tower safety: getting close!");
     }
+    saturateControls();
+
     if(reverse_r_cmd_){
         control_command_.twist.angular.z = -1*control_command_.twist.angular.z;
     }
@@ -1006,6 +1048,8 @@ void NearnessController::publishControlCommandMsg(){
 
     pub_control_commands_stamped_.publish(control_command_);
     pub_control_commands_.publish(control_command_.twist);
+
+    //ROS_INFO("SF Yaw: %f, Terrain: %f", h_sf_r_cmd_, terrain_r_cmd_);
 
 }
 
