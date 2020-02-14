@@ -802,7 +802,6 @@ void NearnessController::computeTerrainYawRateCommand(){
         for(int i=0; i < num_ter_clusters_; i++){
             if(ter_cluster_r_[i] >= 0) sign = -1;
             if(ter_cluster_r_[i] < 0) sign = 1;
-
             ter_r_cmd += ter_sf_k_0_ * float(sign) * exp(-ter_sf_k_psi_ * abs(ter_cluster_r_[i])) * exp(-ter_sf_k_d_ / abs(ter_cluster_d_[i]));
             //ROS_INFO("ter_r_cmd_: %f", terrain_r_cmd_);
 
@@ -994,14 +993,14 @@ void NearnessController::publishControlCommandMsg(){
         float x_vel_filt = 0.0;
         float x_vel_prefilt = control_command_.twist.linear.x;
         x_vel_filt = alpha_x_vel_*x_vel_prefilt + (1 - alpha_x_vel_)*x_vel_filt_last_;
-        ROS_INFO("x_vel_prefilt: %f, x_vel_last: %f, x_vel_post: %f", x_vel_prefilt,  x_vel_filt_last_, x_vel_filt);
+        //ROS_INFO("x_vel_prefilt: %f, x_vel_last: %f, x_vel_post: %f", x_vel_prefilt,  x_vel_filt_last_, x_vel_filt);
         x_vel_filt_last_ = x_vel_filt;
         control_command_.twist.linear.x = x_vel_filt;
 
         float r_vel_filt = 0.0;
         float r_vel_prefilt = control_command_.twist.angular.z;
         r_vel_filt = alpha_r_vel_*control_command_.twist.angular.z + (1 - alpha_r_vel_)*r_vel_filt_last_;
-        ROS_INFO("r_vel_prefilt: %f, r_vel_last: %f, r_vel_post: %f", r_vel_prefilt,  r_vel_filt_last_, r_vel_filt);
+        //ROS_INFO("r_vel_prefilt: %f, r_vel_last: %f, r_vel_post: %f", r_vel_prefilt,  r_vel_filt_last_, r_vel_filt);
         r_vel_filt_last_ = r_vel_filt;
         control_command_.twist.angular.z = r_vel_filt;
         //ROS_INFO("prefilter: %f, , last: %f, postfiler: %f", ter_r_cmd, last_ter_r_cmd_, terrain_r_cmd_);
@@ -1053,7 +1052,7 @@ void NearnessController::publishControlCommandMsg(){
     pub_control_commands_stamped_.publish(control_command_);
     pub_control_commands_.publish(control_command_.twist);
 
-    //ROS_INFO("SF Yaw: %f, Terrain: %f", h_sf_r_cmd_, terrain_r_cmd_);
+    ROS_INFO("SF Yaw: %f, Terrain: %f", h_sf_r_cmd_, terrain_r_cmd_);
 
 }
 
@@ -1114,7 +1113,6 @@ void NearnessController::nextWaypointCb(const geometry_msgs::PointStampedConstPt
 void NearnessController::terrainScanCb(const sensor_msgs::LaserScan::ConstPtr& terrain_scan_msg) {
     std::vector<float> terrain_scan (terrain_scan_msg->ranges.begin(), terrain_scan_msg->ranges.end());
     std::reverse(terrain_scan.begin(), terrain_scan.end());
-
     std::vector<float> terrain_d_cluster;
     std::vector<float> terrain_r_cluster;
 
@@ -1142,7 +1140,6 @@ void NearnessController::terrainScanCb(const sensor_msgs::LaserScan::ConstPtr& t
         // Just check to see if the current cluster has ended
         if((terrain_nearness[i] > terrain_thresh_) && (terrain_nearness[i+1] > terrain_thresh_) && !(i==num_tscan_points_-2)){
             terrain_d_cluster.push_back(terrain_nearness[i]);
-            //ROS_INFO("%f", terrain_nearness[i]);
             terrain_r_cluster.push_back(tscan_gamma_vector_[i]);
             //ROS_INFO("mu: %f, r: %f",terrain_nearness[i], tscan_gamma_vector[i]);
             n++;
