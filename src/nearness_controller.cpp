@@ -1343,6 +1343,7 @@ void NearnessController::checkVehicleStatus(){
     // Check for stuck
     if(flag_too_close_front_ || flag_safety_too_close_ || flag_terrain_too_close_front_){
         // Start a stuck timer
+        stuck_timer_ = 
     }
 }
 

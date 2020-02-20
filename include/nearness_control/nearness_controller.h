@@ -142,7 +142,7 @@ class NearnessController {
     double shortest_angle_err(const float angle1, const float angle2);
     void generateSafetyBox();
     void checkSafetyBoundary(std::vector<float> scan);
-    void checkVehicleStatus();
+    //void checkVehicleStatus();
     void saturateControls();
     float wrapAngle(float angle);
     float sat(float num, float min_val, float max_val);
@@ -343,9 +343,9 @@ class NearnessController {
     bool enable_unstuck_;
 
     // imuCb
-    float roll_;
-    float pitch_;
-    float imu_yaw_;
+    double roll_;
+    double pitch_;
+    double imu_yaw_;
     double roll_limit_;
     double pitch_limit_;
     bool flag_safety_attitude_;
