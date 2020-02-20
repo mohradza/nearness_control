@@ -35,6 +35,9 @@
     <arg name="safety_radius"               default=".5"/>
     <arg name="close_side_speed"            default="0.05"/>
 
+    <arg name="vehicle_roll_angle_limit"    default="15.0"/>
+    <arg name="vehicle_pitch_angle_limit"   default="15.0"/>
+
     <node pkg="nearness_control" type="nearness_controller_node" name="nearness_control_node" output="screen">
 
         <!-- SUBSCRIBED TOPICS -->
@@ -135,6 +138,10 @@
         <!-- LP Filter Constants -->
         <param name="forward_speed_lp_filter_alpha" type="double" value=".9"/>
         <param name="yaw_rate_lp_filter_alpha" type="double" value=".75"/>
+
+        <!-- Vehicle Status -->
+        <param name="vehicle_roll_angle_limit" type="double" value="$(arg vehicle_roll_angle_limit)"/>
+        <param name="vehicle_pitch_angle_limit" type="double" value="$(arg vehicle_pitch_angle_limit)"/>
 
         <!-- Additional parameters for aerial vehicles -->
         <param name="forward_speed_k_vb_1" type="double" value="0.25"/>

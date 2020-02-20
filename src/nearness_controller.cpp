@@ -68,6 +68,7 @@ void NearnessController::init() {
     stuck_maneuver_timer_start_ = ros::Time::now();
     enable_attitude_limits_ = false;
 
+
     // Import parameters
     pnh_.param("enable_debug", debug_, false);
     pnh_.param("is_ground_vehicle", is_ground_vehicle_, true);
@@ -1360,6 +1361,7 @@ void NearnessController::imuCb(const sensor_msgs::ImuConstPtr& imu_msg){
 
     //ROS_INFO_THROTTLE(1, "Roll: %f, Pitch: %f", roll_, pitch_);
     if(((abs(roll_) > roll_limit_) || (abs(pitch_) > pitch_limit_)) && enable_attitude_limits_) {
+
         flag_safety_attitude_ = true;
     } else {
         flag_safety_attitude_ = false;

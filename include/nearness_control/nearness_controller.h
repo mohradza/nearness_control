@@ -142,7 +142,8 @@ class NearnessController {
     double shortest_angle_err(const float angle1, const float angle2);
     void generateSafetyBox();
     void checkSafetyBoundary(std::vector<float> scan);
-    //void checkVehicleStatus();
+    void checkVehicleStatus();
+
     void saturateControls();
     float wrapAngle(float angle);
     float sat(float num, float min_val, float max_val);
@@ -358,6 +359,7 @@ class NearnessController {
     double pitch_limit_;
     bool flag_safety_attitude_;
     bool enable_attitude_limits_;
+
 
 
 

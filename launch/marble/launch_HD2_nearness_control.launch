@@ -37,6 +37,9 @@
     <arg name="side_safety_distance"        value="0.35"/>
     <arg name="close_side_speed"            value="0.05"/>
 
+    <arg name="vehicle_roll_angle_limit"    value="15.0"/>
+    <arg name="vehicle_pitch_angle_limit"   value="15.0"/>
+
   </include>
 
   <node pkg="dynamic_reconfigure" name="nearness_controller_parameter_config" type="dynparam" args="load nearness_control_node $(find nearness_control)/cfg/HD2_params.yaml"/>
