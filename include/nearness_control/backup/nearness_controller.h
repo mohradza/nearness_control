@@ -60,7 +60,7 @@ class NearnessController {
 
     void joyconCb(const sensor_msgs::JoyConstPtr& joy_msg);
     void odomCb(const nav_msgs::OdometryConstPtr& odom_msg);
-    void imuCb(const sensor_msgs::ImuConstPtr& imu_msg);
+    //void imuCb(const sensor_msgs::ImuConstPtr& imu_msg);
     void sonarHeightCb(const sensor_msgs::RangeConstPtr& range_msg);
     void nextWaypointCb(const geometry_msgs::PointStampedConstPtr& next_waypoint_msg);
     void terrainScanCb(const sensor_msgs::LaserScan::ConstPtr& terrain_scan_msg);
@@ -80,7 +80,6 @@ class NearnessController {
     void computeWFVerticalSpeedCommand();
     void computeSFVerticalSpeedCommand();
     void publishControlCommandMsg();
-    void checkVehicleStatus();
     //void calc_sf_yaw_rate_command();
     //void pub_control_command_msg();
 
@@ -142,7 +141,6 @@ class NearnessController {
     double shortest_angle_err(const float angle1, const float angle2);
     void generateSafetyBox();
     void checkSafetyBoundary(std::vector<float> scan);
-    void checkVehicleStatus();
     void saturateControls();
     float wrapAngle(float angle);
     float sat(float num, float min_val, float max_val);
@@ -338,18 +336,6 @@ class NearnessController {
     double alpha_r_vel_;
     float x_vel_filt_last_;
     float r_vel_filt_last_;
-
-    // Stuck / Unstuck
-    bool enable_unstuck_;
-
-    // imuCb
-    float roll_;
-    float pitch_;
-    float imu_yaw_;
-    double roll_limit_;
-    double pitch_limit_;
-    bool flag_safety_attitude_;
-
 
 
 }; // class SimpleNodeClass

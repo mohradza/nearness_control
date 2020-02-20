@@ -18,7 +18,6 @@ void NearnessController::init() {
     sub_horiz_laserscan_ = nh_.subscribe("horiz_scan", 1, &NearnessController::horizLaserscanCb, this);
     sub_vert_laserscan_ = nh_.subscribe("vert_scan", 1, &NearnessController::vertLaserscanCb, this);
     sub_odom_ = nh_.subscribe("odometry", 1, &NearnessController::odomCb, this);
-    sub_imu_ = nh_.subscribe("imu", 1, &NearnessController::imuCb, this);
     sub_bluetooth_joy_ = nh_.subscribe("joy", 1, &NearnessController::joyconCb, this);
 
     //sub_imu_ = nh_.subscribe("imu_raw", 1, &NearnessController::imuCb, this);
@@ -59,7 +58,6 @@ void NearnessController::init() {
     last_ter_r_cmd_ = 0.0;
     x_vel_filt_last_ = 0.0;
     r_vel_filt_last_ = 0.0;
-    enable_unstuck_ = false;
 
     // Import parameters
     pnh_.param("enable_debug", debug_, false);
@@ -144,10 +142,6 @@ void NearnessController::init() {
     // Filtering
     pnh_.param("forward_speed_lp_filter_alpha", alpha_x_vel_, 1.0);
     pnh_.param("yaw_rate_lp_filter_alpha", alpha_r_vel_, 1.0);
-
-    // Vehicle status
-    pnh_.param("vehicle_roll_angle_limit", roll_limit_, 15.0);
-    pnh_.param("vehicle_pitch_angle_limit", pitch_limit_, 15.0);
 
     // Additional gains for Aerial vehicle use
     pnh_.param("forward_speed_k_vb_1", u_k_vb_1_, 0.0);
@@ -296,10 +290,6 @@ void NearnessController::horizLaserscanCb(const sensor_msgs::LaserScanPtr h_lase
         computeAttractorCommand();
     } else {
         attractor_yaw_cmd_ = 0.0;
-    }
-
-    if(enable_unstuck_){
-        checkVehicleStatus();
     }
 
     publishControlCommandMsg();
@@ -1316,36 +1306,6 @@ void NearnessController::checkSafetyBoundary(std::vector<float> scan){
         }
     }
 }
-
-void NearnessController::imuCb(const sensor_msgs::ImuConstPtr& imu_msg){
-    geometry_msgs::Quaternion vehicle_imu_quat_msg = imu_msg->orientation;
-    tf::Quaternion vehicle_imu_quat_tf;
-    tf::quaternionMsgToTF(vehicle_imu_quat_msg, vehicle_imu_quat_tf);
-    tf::Matrix3x3(vehicle_imu_quat_tf).getRPY(roll_, pitch_, imu_yaw_);
-
-    //ROS_INFO_THROTTLE(1, "Roll: %f, Pitch: %f", roll, pitch);
-    if((abs(roll_) > roll_limit_) || (abs(pitch_) > pitch_limit_)) {
-        flag_safety_attitude_ = true;
-    } else {
-        flag_safety_attitude_ = false;
-    }
-
-}
-
-void NearnessController::checkVehicleStatus(){
-    // Check imu
-    if(flag_safety_attitude_){
-        ROS_INFO_THROTTLE(1,"Vehicle has bad attitude");
-    }
-
-    // Check odom
-
-    // Check for stuck
-    if(flag_too_close_front_ || flag_safety_too_close_ || flag_terrain_too_close_front_){
-        // Start a stuck timer
-    }
-}
-
 
 float NearnessController::sgn(double v) {
     return (v < 0.0) ? -1.0 : ((v > 0.0) ? 1.0 : 0.0);
