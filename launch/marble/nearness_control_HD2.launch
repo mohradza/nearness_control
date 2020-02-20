@@ -12,6 +12,7 @@
     <arg name="enable_att_speed_reg"        default="false"/>
     <arg name="stagger_waypoints"           default="false"/>
     <arg name="enable_tower_safety"         default="false"/>
+    <arg name="enable_unstuck"              default="true"/>
 
     <arg name="total_horiz_scan_points"     default="720"/>
     <arg name="num_horiz_scan_points"       default="360"/>
@@ -55,6 +56,7 @@
         <param name="enable_att_speed_reg" type="bool" value="$(arg enable_att_speed_reg)"/>
         <param name="stagger_waypoints" type="bool" value="$(arg stagger_waypoints)"/>
         <param name="enable_tower_safety" type="bool" value="$(arg enable_tower_safety)"/>
+        <param name="enable_unstuck" type="bool" value="$(arg enable_unstuck)"/>
 
         <!-- Sensor Parameters -->
         <param name="total_horiz_scan_points" type="int" value="$(arg total_horiz_scan_points)"/>
@@ -118,6 +120,10 @@
         <param name="yaw_rate_k_att_d" type="double" value="1.0"/>
         <param name="yaw_rate_k_turn"  type="double" value="-1.0"/>
         <param name="attractor_watchdog_timer" type="double" value="3.0"/>
+
+        <!-- Stuck behaviour parameters -->
+        <param name="stuck_time_limit" type="double" value="10.0"/>
+        <param name="stuck_maneuver_backup_timer" type="double" value="2.0"/>
 
         <!-- Additional parameters for aerial vehicles -->
         <param name="forward_speed_k_vb_1" type="double" value="0.25"/>

@@ -270,6 +270,7 @@ class NearnessController {
     float attractor_d_;
     float relative_attractor_heading_;
     bool stagger_waypoints_;
+    float att_angle_error_;
 
     // computeForwardSpeedCommand
     float u_cmd_;
@@ -341,6 +342,13 @@ class NearnessController {
 
     // Stuck / Unstuck
     bool enable_unstuck_;
+    double stuck_maneuver_backup_timer_;
+    double stuck_time_limit_;
+    bool flag_stuck_;
+    ros::Time stuck_timer_;
+    ros::Time stuck_maneuver_timer_start_;
+    bool stuck_timer_flag_;
+    bool flag_stuck_maneuver_;
 
     // imuCb
     double roll_;
@@ -349,6 +357,7 @@ class NearnessController {
     double roll_limit_;
     double pitch_limit_;
     bool flag_safety_attitude_;
+    bool enable_attitude_limits_;
 
 
 

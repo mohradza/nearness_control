@@ -59,7 +59,14 @@ void NearnessController::init() {
     last_ter_r_cmd_ = 0.0;
     x_vel_filt_last_ = 0.0;
     r_vel_filt_last_ = 0.0;
+    att_angle_error_ = 0.0;
     enable_unstuck_ = false;
+    flag_stuck_ = false;
+    stuck_timer_flag_ = false;
+    flag_stuck_maneuver_ = false;
+    stuck_timer_ = ros::Time::now();
+    stuck_maneuver_timer_start_ = ros::Time::now();
+    enable_attitude_limits_ = false;
 
     // Import parameters
     pnh_.param("enable_debug", debug_, false);
@@ -148,6 +155,11 @@ void NearnessController::init() {
     // Vehicle status
     pnh_.param("vehicle_roll_angle_limit", roll_limit_, 15.0);
     pnh_.param("vehicle_pitch_angle_limit", pitch_limit_, 15.0);
+
+    // Stuck Parameters
+    pnh_.param("enable_unstuck", enable_unstuck_, true);
+    pnh_.param("stuck_time_limit", stuck_time_limit_, 10.0);
+    pnh_.param("stuck_maneuver_backup_timer", stuck_maneuver_backup_timer_, 2.0);
 
     // Additional gains for Aerial vehicle use
     pnh_.param("forward_speed_k_vb_1", u_k_vb_1_, 0.0);
@@ -867,18 +879,18 @@ void NearnessController::computeAttractorCommand(){
         lost_attractor_ = false;
     }
 
-    float angle_error = wrapAngle(relative_attractor_heading_ - current_heading_);
+    att_angle_error_ = wrapAngle(relative_attractor_heading_ - current_heading_);
     //float angle_error_backup = wrapAngle(relative_attractor_heading_ - wrapAngle(current_heading_ - M_PI));
     //backup_attractor_yaw_cmd_ = r_k_att_0_*angle_error_backup*exp(-r_k_att_d_*attractor_d_);
     //ROS_INFO_THROTTLE(1,"backup yaw cmd: %f", backup_attractor_yaw_cmd_);
-    if(have_attractor_ && (abs(angle_error) < 1.4)){
-        attractor_yaw_cmd_ = r_k_att_0_*angle_error*exp(-r_k_att_d_*attractor_d_);
+    if(have_attractor_ && (abs(att_angle_error_) < 1.4)){
+        attractor_yaw_cmd_ = r_k_att_0_*att_angle_error_*exp(-r_k_att_d_*attractor_d_);
         //float attractor_yaw_cmd = r_k_att_0_*wrapAngle(current_heading_ - relative_attractor_heading)*exp(-r_k_att_d_*attractor_d);
         //ROS_INFO_THROTTLE(.5,"del_t: %1.2f, e: %1.2f, yaw_cmd: %1.2f", wrapAngle(current_heading_ - relative_attractor_heading), exp(-r_k_att_d_*attractor_d), attractor_yaw_cmd);
         attractor_turn_ = false;
     } else {
 	      ROS_INFO_THROTTLE(1,"Pure attractor turn");
-        attractor_yaw_cmd_ = r_k_att_turn_*angle_error;
+        attractor_yaw_cmd_ = r_k_att_turn_*att_angle_error_;
         //attractor_yaw_cmd_ = .05;
 	      attractor_turn_ = true;
         //u_cmd_ = 0.0;
@@ -1049,6 +1061,29 @@ void NearnessController::publishControlCommandMsg(){
       control_command_.twist.angular.z = 0.0;
     }
 
+    if(flag_stuck_){
+        //ROS_INFO_THROTTLE(1, "Executing stuck maneuver");
+        if(!flag_stuck_maneuver_){
+            flag_stuck_maneuver_ = true;
+            stuck_maneuver_timer_start_ = ros::Time::now();
+        }
+        float stuck_maneuver_timer = (ros::Time::now() - stuck_maneuver_timer_start_).toSec();
+        if(stuck_maneuver_timer < stuck_maneuver_backup_timer_){
+            control_command_.twist.linear.x = -0.1;
+        } else {
+            if(enable_attractor_control_){
+                control_command_.twist.angular.z = attractor_yaw_cmd_;
+                if(abs(att_angle_error_) < .175){
+                   flag_stuck_ = false;
+                   //ROS_INFO("Exiting stuck");
+                 }
+            } else {
+              //ROS_INFO("Exiting stuck");
+              flag_stuck_ = false;
+            }
+        }
+    }
+
     if(flag_estop_){
         control_command_.twist.linear.x = 0.0;
         control_command_.twist.linear.y = 0.0;
@@ -1062,7 +1097,7 @@ void NearnessController::publishControlCommandMsg(){
     pub_control_commands_stamped_.publish(control_command_);
     pub_control_commands_.publish(control_command_.twist);
 
-    ROS_INFO("SF Yaw: %f, Terrain: %f", h_sf_r_cmd_, terrain_r_cmd_);
+    //ROS_INFO("SF Yaw: %f, Terrain: %f", h_sf_r_cmd_, terrain_r_cmd_);
 
 }
 
@@ -1323,8 +1358,8 @@ void NearnessController::imuCb(const sensor_msgs::ImuConstPtr& imu_msg){
     tf::quaternionMsgToTF(vehicle_imu_quat_msg, vehicle_imu_quat_tf);
     tf::Matrix3x3(vehicle_imu_quat_tf).getRPY(roll_, pitch_, imu_yaw_);
 
-    //ROS_INFO_THROTTLE(1, "Roll: %f, Pitch: %f", roll, pitch);
-    if((abs(roll_) > roll_limit_) || (abs(pitch_) > pitch_limit_)) {
+    //ROS_INFO_THROTTLE(1, "Roll: %f, Pitch: %f", roll_, pitch_);
+    if(((abs(roll_) > roll_limit_) || (abs(pitch_) > pitch_limit_)) && enable_attitude_limits_) {
         flag_safety_attitude_ = true;
     } else {
         flag_safety_attitude_ = false;
@@ -1341,9 +1376,22 @@ void NearnessController::checkVehicleStatus(){
     // Check odom
 
     // Check for stuck
-    if(flag_too_close_front_ || flag_safety_too_close_ || flag_terrain_too_close_front_){
+    if((flag_too_close_front_ || flag_safety_too_close_ || flag_terrain_too_close_front_) && !flag_stuck_){
         // Start a stuck timer
-        stuck_timer_ = 
+        if(!stuck_timer_flag_){
+            //ROS_INFO("Starting stuck timer");
+            stuck_timer_ = ros::Time::now();
+            stuck_timer_flag_ = true;
+        }
+
+        float stuck_duration = (ros::Time::now() - stuck_timer_).toSec();
+        //ROS_INFO("stuck time: %f", stuck_duration);
+        if(stuck_duration > stuck_time_limit_){
+            //ROS_INFO("We are stuck!");
+            flag_stuck_ = true;
+        }
+    } else {
+        stuck_timer_flag_ = false;
     }
 }
 
