@@ -68,7 +68,6 @@ void NearnessController::init() {
     stuck_maneuver_timer_start_ = ros::Time::now();
     enable_attitude_limits_ = false;
 
-
     // Import parameters
     pnh_.param("enable_debug", debug_, false);
     pnh_.param("is_ground_vehicle", is_ground_vehicle_, true);
@@ -881,6 +880,7 @@ void NearnessController::computeAttractorCommand(){
     }
 
     att_angle_error_ = wrapAngle(relative_attractor_heading_ - current_heading_);
+    ROS_INFO("att_err: %f", att_angle_error_);
     //float angle_error_backup = wrapAngle(relative_attractor_heading_ - wrapAngle(current_heading_ - M_PI));
     //backup_attractor_yaw_cmd_ = r_k_att_0_*angle_error_backup*exp(-r_k_att_d_*attractor_d_);
     //ROS_INFO_THROTTLE(1,"backup yaw cmd: %f", backup_attractor_yaw_cmd_);
@@ -986,6 +986,7 @@ void NearnessController::publishControlCommandMsg(){
                     control_command_.twist.angular.z = backup_attractor_yaw_cmd_;
                 }
             }
+            //ROS_INFO("att_cmd: %f", control_command_.twist.angular.z);
         }
 
 
@@ -1062,7 +1063,7 @@ void NearnessController::publishControlCommandMsg(){
       control_command_.twist.angular.z = 0.0;
     }
 
-    if(flag_stuck_){
+    if(flag_stuck_ && enable_unstuck_){
         //ROS_INFO_THROTTLE(1, "Executing stuck maneuver");
         if(!flag_stuck_maneuver_){
             flag_stuck_maneuver_ = true;
@@ -1361,7 +1362,6 @@ void NearnessController::imuCb(const sensor_msgs::ImuConstPtr& imu_msg){
 
     //ROS_INFO_THROTTLE(1, "Roll: %f, Pitch: %f", roll_, pitch_);
     if(((abs(roll_) > roll_limit_) || (abs(pitch_) > pitch_limit_)) && enable_attitude_limits_) {
-
         flag_safety_attitude_ = true;
     } else {
         flag_safety_attitude_ = false;
@@ -1411,7 +1411,11 @@ void NearnessController::saturateControls(){
     if(control_command_.twist.linear.x > u_max_){
         control_command_.twist.linear.x = u_max_;
     } else if ((control_command_.twist.linear.x < u_min_) && !(flag_octo_too_close_ && enable_backup_)){
-        control_command_.twist.linear.x = u_min_;
+        if(attractor_turn_){
+            control_command_.twist.linear.x = 0.0;
+        } else {
+            control_command_.twist.linear.x = u_min_;
+        }
     }
 }
 

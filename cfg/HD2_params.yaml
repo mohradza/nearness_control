@@ -6,10 +6,10 @@ forward_speed_k_ha_1: 1.0
 forward_speed_k_ha_2: 1.0
 forward_speed_k_att: 0.5
 
-yaw_rate_max: 0.06
+yaw_rate_max: 0.15
 yaw_rate_k_hb_1: .1
 yaw_rate_k_hb_2: .1
-yaw_rate_k_att_0: 0.05
+yaw_rate_k_att_0: 0.25
 yaw_rate_k_att_d: .5
 yaw_rate_k_turn: 0.025
 
@@ -19,6 +19,6 @@ h_sf_k_d: 0.5
 h_sf_k_psi: 0.4
 
 terrain_thresh: .5
-ter_sf_k_0: -.05
+ter_sf_k_0: -.2
 ter_sf_k_d: 1.0
 ter_sf_k_psi: 0.4

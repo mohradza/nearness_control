@@ -107,7 +107,7 @@
 
         <param name="forward_speed_min" type="double" value="0.1"/>
         <param name="forward_speed_max" type="double" value="0.75"/>
-        <param name="reverse_forward_speed_cmd" type="bool" value="false"/>
+        <param name="reverse_forward_speed_cmd" type="bool" value="true"/>
 
         <!-- Parameters for WF Yaw Rate Control -->
         <param name="yaw_rate_k_hb_1" type="double" value="1.0"/>

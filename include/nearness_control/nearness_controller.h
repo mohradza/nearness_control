@@ -142,7 +142,6 @@ class NearnessController {
     double shortest_angle_err(const float angle1, const float angle2);
     void generateSafetyBox();
     void checkSafetyBoundary(std::vector<float> scan);
-    void checkVehicleStatus();
 
     void saturateControls();
     float wrapAngle(float angle);
