@@ -7,7 +7,7 @@
     <arg name="enable_wf_control"           value="true"/>
     <arg name="enable_sf_control"           value="true"/>
     <arg name="enable_terrain_control"      value="false"/>
-    <arg name="enable_attractor_control"    value="false"/>
+    <arg name="enable_attractor_control"    value="true"/>
     <arg name="enable_command_weighting"    value="false"/>
     <arg name="enable_sf_clustering"        value="true"/>
     <arg name="enable_att_speed_reg"        value="true"/>
@@ -42,9 +42,9 @@
   <node pkg="dynamic_reconfigure" name="nearness_controller_parameter_config" type="dynparam" args="load nearness_control_node $(find nearness_control)/cfg/Husky_params.yaml"/>
 
   <node pkg="topic_tools" name="cmd_vel_relay" type="relay" args="nearness_controller/control_commands nav_vel" />
-
+<!--
   <include file="$(find safety_from_depth_image)/launch/Husky_safety_tower_camera_fwd_depth_pcl.launch"/>
 
   <include file="$find pcl_ros)/launch/launch_Husky_realsense_normal.launch" />
-
+-->
 </launch>

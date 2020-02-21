@@ -4,9 +4,9 @@
     <arg name="enable_debug"                default="false"/>
     <arg name="is_ground_vehicle"           default="true"/>
     <arg name="enable_wf_control"           default="true"/>
-    <arg name="enable_sf_control"           default="false"/>
+    <arg name="enable_sf_control"           default="true"/>
     <arg name="enable_terrain_control"      default="false"/>
-    <arg name="enable_attractor_control"    default="true"/>
+    <arg name="enable_attractor_control"    default="false"/>
     <arg name="enable_command_weighting"    default="false"/>
     <arg name="enable_sf_clustering"        default="true"/>
     <arg name="enable_att_speed_reg"        default="false"/>
