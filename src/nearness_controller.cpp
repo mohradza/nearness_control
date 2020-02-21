@@ -179,7 +179,7 @@ void NearnessController::init() {
         h_gamma_vector_.push_back((float(i)/float(num_h_scan_points_))*(2*h_scan_limit_) - h_scan_limit_);
     }
     h_dg_ = (2.0*h_scan_limit_)/num_h_scan_points_;
-    ROS_INFO("%f", h_dg_);
+    //ROS_INFO("%f", h_dg_);
 
     // Generate the vertical gamma vector
     for(int i=0; i<num_v_scan_points_; i++){
@@ -880,7 +880,7 @@ void NearnessController::computeAttractorCommand(){
     }
 
     att_angle_error_ = wrapAngle(relative_attractor_heading_ - current_heading_);
-    ROS_INFO("att_err: %f", att_angle_error_);
+    //ROS_INFO("att_err: %f", att_angle_error_);
     //float angle_error_backup = wrapAngle(relative_attractor_heading_ - wrapAngle(current_heading_ - M_PI));
     //backup_attractor_yaw_cmd_ = r_k_att_0_*angle_error_backup*exp(-r_k_att_d_*attractor_d_);
     //ROS_INFO_THROTTLE(1,"backup yaw cmd: %f", backup_attractor_yaw_cmd_);
@@ -989,11 +989,36 @@ void NearnessController::publishControlCommandMsg(){
             //ROS_INFO("att_cmd: %f", control_command_.twist.angular.z);
         }
 
+/*
+        if(flag_stuck_ && enable_unstuck_){
+            //ROS_INFO_THROTTLE(1, "Executing stuck maneuver");
+            if(!flag_stuck_maneuver_){
+                flag_stuck_maneuver_ = true;
+                stuck_maneuver_timer_start_ = ros::Time::now();
+            }
+            float stuck_maneuver_timer = (ros::Time::now() - stuck_maneuver_timer_start_).toSec();
+            if(stuck_maneuver_timer < stuck_maneuver_backup_timer_){
+                control_command_.twist.linear.x = -0.1;
+            } else {
+                if(enable_attractor_control_){
+                    control_command_.twist.angular.z = attractor_yaw_cmd_;
+                    if(abs(att_angle_error_) < .175){
+                       flag_stuck_ = false;
+                       //ROS_INFO("Exiting stuck");
+                     }
+                } else {
+                  //ROS_INFO("Exiting stuck");
+                  flag_stuck_ = false;
+                }
+            }
+        }
+*/
 
         // Wait for an attractor before moving
         if(!have_attractor_ && enable_attractor_control_){
             control_command_.twist.linear.x = 0.0;
         }
+
         if(debug_){
             float nearness_r_cmd = 0.0;
             if (enable_wf_control_){
@@ -1039,6 +1064,8 @@ void NearnessController::publishControlCommandMsg(){
       control_command_.twist.linear.x = close_side_speed_;
       ROS_INFO_THROTTLE(1,"Tower safety: getting close!");
     }
+
+
     saturateControls();
 
     if(reverse_r_cmd_){
@@ -1061,29 +1088,6 @@ void NearnessController::publishControlCommandMsg(){
     if(flag_beacon_stop_){
       control_command_.twist.linear.x = 0.0;
       control_command_.twist.angular.z = 0.0;
-    }
-
-    if(flag_stuck_ && enable_unstuck_){
-        //ROS_INFO_THROTTLE(1, "Executing stuck maneuver");
-        if(!flag_stuck_maneuver_){
-            flag_stuck_maneuver_ = true;
-            stuck_maneuver_timer_start_ = ros::Time::now();
-        }
-        float stuck_maneuver_timer = (ros::Time::now() - stuck_maneuver_timer_start_).toSec();
-        if(stuck_maneuver_timer < stuck_maneuver_backup_timer_){
-            control_command_.twist.linear.x = -0.1;
-        } else {
-            if(enable_attractor_control_){
-                control_command_.twist.angular.z = attractor_yaw_cmd_;
-                if(abs(att_angle_error_) < .175){
-                   flag_stuck_ = false;
-                   //ROS_INFO("Exiting stuck");
-                 }
-            } else {
-              //ROS_INFO("Exiting stuck");
-              flag_stuck_ = false;
-            }
-        }
     }
 
     if(flag_estop_){
@@ -1359,14 +1363,42 @@ void NearnessController::imuCb(const sensor_msgs::ImuConstPtr& imu_msg){
     tf::Quaternion vehicle_imu_quat_tf;
     tf::quaternionMsgToTF(vehicle_imu_quat_msg, vehicle_imu_quat_tf);
     tf::Matrix3x3(vehicle_imu_quat_tf).getRPY(roll_, pitch_, imu_yaw_);
-
-    //ROS_INFO_THROTTLE(1, "Roll: %f, Pitch: %f", roll_, pitch_);
+    roll_ = wrapAngle(roll_ - M_PI);
+    float temp_roll = roll_;
+    roll_ = pitch_;
+    pitch_ = -temp_roll;
+    //ROS_INFO("Roll: %f, Pitch: %f", roll_, pitch_);
     if(((abs(roll_) > roll_limit_) || (abs(pitch_) > pitch_limit_)) && enable_attitude_limits_) {
         flag_safety_attitude_ = true;
     } else {
         flag_safety_attitude_ = false;
     }
 
+    static tf2_ros::TransformBroadcaster br;
+    geometry_msgs::TransformStamped transformStamped;
+
+    transformStamped.header.stamp = ros::Time::now();
+    transformStamped.header.frame_id = "body_aligned_imu_link";
+    transformStamped.child_frame_id = "body_aligned_imu_link_rotated";
+    transformStamped.transform.translation.x = 0.0;
+    transformStamped.transform.translation.y = 0.0;
+    transformStamped.transform.translation.z = 0.0;
+
+    tf2::Quaternion q;
+    q.setRPY(roll_, pitch_, 0.0);
+    transformStamped.transform.rotation.x = q.x();
+    transformStamped.transform.rotation.y = q.y();
+    transformStamped.transform.rotation.z = q.z();
+    transformStamped.transform.rotation.w = q.w();
+
+    br.sendTransform(transformStamped);
+/*
+    transform.setOrigin( tf::Vector3(0.0, 0.0, 0.0) );
+    tf::Quaternion q;
+    q.setRPY(roll_, pitch_, 0.0);
+    transform.setRotation(q);
+    br.sendTransform(tf2::StampedTransform(transform, ros::Time::now(), "os1_lidar", "os1_lidar_rotated"));
+*/
 }
 
 void NearnessController::checkVehicleStatus(){
