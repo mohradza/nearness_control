@@ -46,7 +46,7 @@
         <remap from="nearness_controller/next_waypoint" to="lookahead_point"/>
         <remap from="nearness_controller/odometry" to="odometry"/>
         <remap from="nearness_controller/imu" to="imu_raw"/>
-        <remap from="nearness_controller/joy" to="joy"/>
+        <remap from="nearness_controller/joy" to="joy_base"/>
         <remap from="nearness_controller/estop_cmd" to="estop_cmd"/>
         <remap from="nearness_controller/terrain_scan" to="terrain_assessment/scan"/>
         <remap from="nearness_controller/tower_safety" to="safety/tower_status"/>
@@ -107,7 +107,7 @@
 
         <param name="forward_speed_min" type="double" value="0.1"/>
         <param name="forward_speed_max" type="double" value="0.75"/>
-        <param name="reverse_forward_speed_cmd" type="bool" value="true"/>
+        <param name="reverse_forward_speed_cmd" type="bool" value="false"/>
 
         <!-- Parameters for WF Yaw Rate Control -->
         <param name="yaw_rate_k_hb_1" type="double" value="1.0"/>
