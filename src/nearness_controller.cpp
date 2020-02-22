@@ -159,7 +159,7 @@ void NearnessController::init() {
     // Stuck Parameters
     pnh_.param("enable_unstuck", enable_unstuck_, true);
     pnh_.param("stuck_time_limit", stuck_time_limit_, 10.0);
-    pnh_.param("stuck_maneuver_backup_timer", stuck_maneuver_backup_timer_, 2.0);
+    pnh_.param("stuck_maneuver_backup_timer", stuck_maneuver_backup_timer_, 10.0);
 
     // Additional gains for Aerial vehicle use
     pnh_.param("forward_speed_k_vb_1", u_k_vb_1_, 0.0);
@@ -978,7 +978,7 @@ void NearnessController::publishControlCommandMsg(){
         if(enable_terrain_control_){
             control_command_.twist.angular.z += terrain_r_cmd_;
         }
-
+/*
         if(enable_attractor_control_ && !lost_attractor_){
 	          if(attractor_turn_){
     	          control_command_.twist.linear.x = 0.0;
@@ -991,31 +991,38 @@ void NearnessController::publishControlCommandMsg(){
             }
             //ROS_INFO("att_cmd: %f", control_command_.twist.angular.z);
         }
-
-/*
-        if(flag_stuck_ && enable_unstuck_){
-            //ROS_INFO_THROTTLE(1, "Executing stuck maneuver");
-            if(!flag_stuck_maneuver_){
-                flag_stuck_maneuver_ = true;
-                stuck_maneuver_timer_start_ = ros::Time::now();
-            }
-            float stuck_maneuver_timer = (ros::Time::now() - stuck_maneuver_timer_start_).toSec();
-            if(stuck_maneuver_timer < stuck_maneuver_backup_timer_){
-                control_command_.twist.linear.x = -0.1;
-            } else {
-                if(enable_attractor_control_){
-                    control_command_.twist.angular.z = attractor_yaw_cmd_;
-                    if(abs(att_angle_error_) < .175){
-                       flag_stuck_ = false;
-                       //ROS_INFO("Exiting stuck");
-                     }
-                } else {
-                  //ROS_INFO("Exiting stuck");
-                  flag_stuck_ = false;
-                }
-            }
-        }
 */
+
+        // if(flag_stuck_ && enable_unstuck_){
+        //     //ROS_INFO_THROTTLE(1, "Executing stuck maneuver");
+        //     if(!flag_stuck_maneuver_){
+        //         flag_stuck_maneuver_ = true;
+        //         stuck_maneuver_timer_start_ = ros::Time::now();
+        //     }
+        //     float stuck_maneuver_timer = (ros::Time::now() - stuck_maneuver_timer_start_).toSec();
+        //     if(stuck_maneuver_timer < stuck_maneuver_backup_timer_){
+        //         //control_command_.twist.linear.x = -0.1;
+        //         enable_attractor_control_ = false;
+        //     } else {
+        //       enable_attractor_control_ = true;
+        //       flag_stuck_ = false;
+        //       flag_stuck_maneuver_ = false;
+        //       /*
+        //         if(enable_attractor_control_){
+        //             control_command_.twist.angular.z = attractor_yaw_cmd_;
+        //             if(abs(att_angle_error_) < .175){
+        //                flag_stuck_ = false;
+        //                //ROS_INFO("Exiting stuck");
+        //              }
+        //         } else {
+        //           //ROS_INFO("Exiting stuck");
+        //           flag_stuck_ = false;
+        //         }
+        //         */
+        //     }
+        //
+        // }
+
 
         // Wait for an attractor before moving
         if(!have_attractor_ && enable_attractor_control_){
@@ -1068,7 +1075,6 @@ void NearnessController::publishControlCommandMsg(){
       ROS_INFO_THROTTLE(1,"Tower safety: getting close!");
     }
 
-
     saturateControls();
 
     if(reverse_r_cmd_){
@@ -1106,7 +1112,7 @@ void NearnessController::publishControlCommandMsg(){
     pub_control_commands_stamped_.publish(control_command_);
     pub_control_commands_.publish(control_command_.twist);
 
-    //ROS_INFO("SF Yaw: %f, Terrain: %f", h_sf_r_cmd_, terrain_r_cmd_);
+    ROS_INFO("SF Yaw: %f, Terrain: %f", h_sf_r_cmd_, terrain_r_cmd_);
 
 }
 
