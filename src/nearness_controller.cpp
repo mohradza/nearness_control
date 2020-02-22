@@ -896,6 +896,9 @@ void NearnessController::computeAttractorCommand(){
 	      attractor_turn_ = true;
         //u_cmd_ = 0.0;
     }
+    if(isnan(attractor_yaw_cmd_)){
+        attractor_yaw_cmd_ = 0.0;
+    }
 }
 
 void NearnessController::computeLateralSpeedCommand(){
@@ -946,6 +949,7 @@ void NearnessController::publishControlCommandMsg(){
           std_msgs::Float32MultiArray weighting_msg;
           weighting_msg.data.push_back(nearness_r_cmd);
           weighting_msg.data.push_back(attractor_yaw_cmd_);
+
           weighting_msg.data.push_back(control_command_.twist.angular.z);
           weighting_msg.data.push_back(h_nearness_l2_norm_);
           weighting_msg.data.push_back(h_nearness_maxval_);
@@ -976,7 +980,6 @@ void NearnessController::publishControlCommandMsg(){
         }
 
         if(enable_attractor_control_ && !lost_attractor_){
-            control_command_.twist.angular.z += attractor_yaw_cmd_;
 	          if(attractor_turn_){
     	          control_command_.twist.linear.x = 0.0;
     	          control_command_.twist.angular.z = sat(attractor_yaw_cmd_, -r_max_, r_max_);
