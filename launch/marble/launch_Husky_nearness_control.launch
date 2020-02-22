@@ -6,18 +6,18 @@
     <arg name="is_ground_vehicle"           value="true"/>
     <arg name="enable_wf_control"           value="true"/>
     <arg name="enable_sf_control"           value="true"/>
-    <arg name="enable_terrain_control"      value="false"/>
-    <arg name="enable_attractor_control"    value="false"/>
+    <arg name="enable_terrain_control"      value="true"/>
+    <arg name="enable_attractor_control"    value="true"/>
     <arg name="enable_command_weighting"    value="false"/>
     <arg name="enable_sf_clustering"        value="true"/>
     <arg name="enable_att_speed_reg"        value="true"/>
     <arg name="stagger_waypoints"           value="false"/>
-    <arg name="enable_tower_safety"         value="false"/>
+    <arg name="enable_tower_safety"         value="true"/>
     <arg name="enable_cmd_lp_filter"        value="true"/>
-    <arg name="enable_unstuck"              value="true"/>
+    <arg name="enable_unstuck"              value="false"/>
 
-    <arg name="reverse_yaw_rate_cmd"        value="true"/>
-    <arg name="reverse_wf_yaw_rate_cmd"     value="false"/>
+    <arg name="reverse_yaw_rate_cmd"        value="false"/>
+    <arg name="reverse_wf_yaw_rate_cmd"     value="true"/>
 
     <!-- Horizontal Scanner Sensor Parameters -->
     <!-- These values correspond with the RPLidar S1 -->
@@ -49,6 +49,6 @@
 
   <include file="$(find safety_from_depth_image)/launch/Husky_safety_tower_camera_fwd_depth_pcl.launch"/>
 
-  <include file="$find pcl_ros)/launch/launch_Husky_realsense_normal.launch" />
+  <include file="$(find pcl_ros)/launch/launch_Husky_realsense_normal.launch" />
 
 </launch>
