@@ -1112,7 +1112,7 @@ void NearnessController::publishControlCommandMsg(){
     pub_control_commands_stamped_.publish(control_command_);
     pub_control_commands_.publish(control_command_.twist);
 
-    ROS_INFO("SF Yaw: %f, Terrain: %f", h_sf_r_cmd_, terrain_r_cmd_);
+    ROS_INFO_THROTTLE(1,"SF Yaw: %f, Terrain: %f", h_sf_r_cmd_, terrain_r_cmd_);
 
 }
 
@@ -1156,7 +1156,7 @@ void NearnessController::nextWaypointCb(const geometry_msgs::PointStampedConstPt
     }
     last_wp_msg_time_ = ros::Time::now();
 
-  //  ROS_INFO_THROTTLE(2,"Received new waypoint");
+    ROS_INFO_THROTTLE(2,"Received new ATTRACTOR");
 
     if(stagger_waypoints_){
         if(attractor_d_ < attractor_latch_thresh_){
