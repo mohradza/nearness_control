@@ -60,13 +60,14 @@ void NearnessController::init() {
     x_vel_filt_last_ = 0.0;
     r_vel_filt_last_ = 0.0;
     att_angle_error_ = 0.0;
-    enable_unstuck_ = false;
+    enable_unstuck_ = true;
     flag_stuck_ = false;
     stuck_timer_flag_ = false;
     flag_stuck_maneuver_ = false;
     stuck_timer_ = ros::Time::now();
     stuck_maneuver_timer_start_ = ros::Time::now();
     enable_attitude_limits_ = false;
+    completed_stuck_turn_ = false;
 
     // Import parameters
     pnh_.param("enable_debug", debug_, false);
@@ -111,8 +112,8 @@ void NearnessController::init() {
     pnh_.param("safety_radius", safety_radius_, .5);
     pnh_.param("close_side_speed", close_side_speed_, .05);
     pnh_.param("reverse_forward_speed_cmd", reverse_u_cmd_, false);
-    pnh_.param("safety_getting_close_vote_thresh", safety_getting_close_vote_thresh_, 5);
-    pnh_.param("safety_too_close_vote_thresh", safety_too_close_vote_thresh_, 3);
+    pnh_.param("safety_getting_close_vote_thresh", safety_getting_close_vote_thresh_, 10);
+    pnh_.param("safety_too_close_vote_thresh", safety_too_close_vote_thresh_, 6);
 
     // Wide Field Forward Speed and Yaw Rate Control Gains
     pnh_.param("forward_speed_k_hb_1", u_k_hb_1_, 0.0);
@@ -978,50 +979,64 @@ void NearnessController::publishControlCommandMsg(){
         if(enable_terrain_control_){
             control_command_.twist.angular.z += terrain_r_cmd_;
         }
-/*
+
         if(enable_attractor_control_ && !lost_attractor_){
+            control_command_.twist.angular.z += attractor_yaw_cmd_;
 	          if(attractor_turn_){
     	          control_command_.twist.linear.x = 0.0;
     	          control_command_.twist.angular.z = sat(attractor_yaw_cmd_, -r_max_, r_max_);
-                if(flag_octo_too_close_ && enable_backup_){
-                    ROS_INFO_THROTTLE(1,"OBSTACLE TOO CLOSE, CANNOT TURN AROUND! BACKING UP");
-                    control_command_.twist.linear.x = -.1;
-                    control_command_.twist.angular.z = backup_attractor_yaw_cmd_;
-                }
+                // if(flag_octo_too_close_ && enable_backup_){
+                //     ROS_INFO_THROTTLE(1,"OBSTACLE TOO CLOSE, CANNOT TURN AROUND! BACKING UP");
+                //     control_command_.twist.linear.x = -.1;
+                //     control_command_.twist.angular.z = backup_attractor_yaw_cmd_;
+                // }
             }
             //ROS_INFO("att_cmd: %f", control_command_.twist.angular.z);
         }
-*/
 
-        // if(flag_stuck_ && enable_unstuck_){
-        //     //ROS_INFO_THROTTLE(1, "Executing stuck maneuver");
-        //     if(!flag_stuck_maneuver_){
-        //         flag_stuck_maneuver_ = true;
-        //         stuck_maneuver_timer_start_ = ros::Time::now();
-        //     }
-        //     float stuck_maneuver_timer = (ros::Time::now() - stuck_maneuver_timer_start_).toSec();
-        //     if(stuck_maneuver_timer < stuck_maneuver_backup_timer_){
-        //         //control_command_.twist.linear.x = -0.1;
-        //         enable_attractor_control_ = false;
-        //     } else {
-        //       enable_attractor_control_ = true;
-        //       flag_stuck_ = false;
-        //       flag_stuck_maneuver_ = false;
-        //       /*
-        //         if(enable_attractor_control_){
-        //             control_command_.twist.angular.z = attractor_yaw_cmd_;
-        //             if(abs(att_angle_error_) < .175){
-        //                flag_stuck_ = false;
-        //                //ROS_INFO("Exiting stuck");
-        //              }
-        //         } else {
-        //           //ROS_INFO("Exiting stuck");
-        //           flag_stuck_ = false;
-        //         }
-        //         */
-        //     }
-        //
-        // }
+        if(flag_stuck_ && enable_unstuck_){
+            //ROS_INFO_THROTTLE(1, "Executing stuck maneuver");
+            if(!flag_stuck_maneuver_){
+                flag_stuck_maneuver_ = true;
+                stuck_maneuver_timer_start_ = ros::Time::now();
+                turn_around_angle_ = wrapAngle(current_heading_ - M_PI);
+                completed_stuck_turn_ = false;
+                enable_attractor_control_ = false;
+            }
+            float turn_around_error_ = wrapAngle(turn_around_angle_ - current_heading_);
+            if(flag_stuck_maneuver_ && !completed_stuck_turn_){
+                control_command_.twist.linear.x = 0.0;
+                control_command_.twist.angular.z = r_k_att_turn_*turn_around_error_;
+                if(abs(turn_around_error_) < .35){
+                    ROS_INFO("TURN AROUND COMPLETE");
+                    completed_stuck_turn_ = true;
+                }
+            }
+
+            float stuck_maneuver_timer = (ros::Time::now() - stuck_maneuver_timer_start_).toSec();
+            if(stuck_maneuver_timer < stuck_maneuver_backup_timer_){
+                //control_command_.twist.linear.x = -0.1;
+                //enable_attractor_control_ = false;
+            } else {
+              ROS_INFO("END OF STUCK MANEUVER!!");
+              enable_attractor_control_ = true;
+              flag_stuck_ = false;
+              flag_stuck_maneuver_ = false;
+              /*
+                if(enable_attractor_control_){
+                    control_command_.twist.angular.z = attractor_yaw_cmd_;
+                    if(abs(att_angle_error_) < .175){
+                       flag_stuck_ = false;
+                       //ROS_INFO("Exiting stuck");
+                     }
+                } else {
+                  //ROS_INFO("Exiting stuck");
+                  flag_stuck_ = false;
+                }
+                */
+            }
+
+        }
 
 
         // Wait for an attractor before moving
@@ -1068,7 +1083,7 @@ void NearnessController::publishControlCommandMsg(){
 
     if(flag_too_close_side_ && !(flag_octo_too_close_ && enable_backup_)){
       control_command_.twist.linear.x = close_side_speed_;
-      ROS_INFO_THROTTLE(1,"Too close on the side!");
+      ROS_INFO_THROTTLE(1,"Too close! RPLidar side!");
     }
     if(flag_safety_getting_close_ && enable_tower_safety_ && !(flag_octo_too_close_ && enable_backup_)){
       control_command_.twist.linear.x = close_side_speed_;
@@ -1112,7 +1127,8 @@ void NearnessController::publishControlCommandMsg(){
     pub_control_commands_stamped_.publish(control_command_);
     pub_control_commands_.publish(control_command_.twist);
 
-    ROS_INFO_THROTTLE(1,"SF Yaw: %f, Terrain: %f", h_sf_r_cmd_, terrain_r_cmd_);
+    // ROS_INFO_THROTTLE(1,"SF Yaw: %f, Terrain: %f", h_sf_r_cmd_, terrain_r_cmd_);
+    ROS_INFO_THROTTLE(1,"WF: %f, SF: %f, TER: %f, ATT: %f, U: %f", h_wf_r_cmd_, h_sf_r_cmd_, ter_r_cmd_, attractor_yaw_cmd_, u_cmd_);
 
 }
 
@@ -1262,45 +1278,48 @@ void NearnessController::terrainScanCb(const sensor_msgs::LaserScan::ConstPtr& t
 
 void NearnessController::towerSafetyCb(const std_msgs::Int32ConstPtr& safety_msg)
 {
-    if(safety_msg->data == 1){
-        //flag_safety_too_close = true;
-        safety_getting_close_counter_[safety_counter1_] = 1;
-        safety_too_close_counter_[safety_counter2_] = 0;
-    } else if (safety_msg->data == 2){
-        //flag_safety_getting_close = true;
-        safety_too_close_counter_[safety_counter2_] = 1;
-        safety_getting_close_counter_[safety_counter1_] = 0;
-    } else {
-        //flag_safety_too_close = false;
-        //flag_safety_getting_close = false;
-        safety_getting_close_counter_[safety_counter1_] = 0;
-        safety_too_close_counter_[safety_counter2_] = 0;
-    }
+    if(enable_tower_safety_){
+        if(safety_msg->data == 1){
+            //flag_safety_too_close = true;
+            safety_getting_close_counter_[safety_counter1_] = 1;
+            safety_too_close_counter_[safety_counter2_] = 0;
+        } else if (safety_msg->data == 2){
+            //flag_safety_getting_close = true;
+            safety_too_close_counter_[safety_counter2_] = 1;
+            safety_getting_close_counter_[safety_counter1_] = 0;
+        } else {
+            //flag_safety_too_close = false;
+            //flag_safety_getting_close = false;
+            safety_getting_close_counter_[safety_counter1_] = 0;
+            safety_too_close_counter_[safety_counter2_] = 0;
+        }
 
-    // Tally the votes
-    int total_safety_getting_close_votes = std::accumulate(safety_getting_close_counter_.begin(), safety_getting_close_counter_.end(), 0);
-    int total_safety_too_close_votes = std::accumulate(safety_too_close_counter_.begin(), safety_too_close_counter_.end(), 0);
-    ROS_INFO_THROTTLE(2,"Getting close votes: %d, Too close votes: %d", total_safety_getting_close_votes, total_safety_too_close_votes);
+        // Tally the votes
+        int total_safety_getting_close_votes = std::accumulate(safety_getting_close_counter_.begin(), safety_getting_close_counter_.end(), 0);
+        int total_safety_too_close_votes = std::accumulate(safety_too_close_counter_.begin(), safety_too_close_counter_.end(), 0);
+        //ROS_INFO("Getting close votes: %d, Too close votes: %d", total_safety_getting_close_votes, total_safety_too_close_votes);
 
-    if(total_safety_getting_close_votes > safety_getting_close_vote_thresh_){
-        flag_safety_getting_close_ = true;
-    } else {
-        flag_safety_getting_close_ = false;
-    }
+        if(total_safety_getting_close_votes > safety_getting_close_vote_thresh_){
+            flag_safety_getting_close_ = true;
+        } else {
+            flag_safety_getting_close_ = false;
+        }
 
-    if(total_safety_too_close_votes > safety_too_close_vote_thresh_){
-        flag_safety_too_close_ = true;
-    } else {
-        flag_safety_too_close_ = false;
-    }
+        if(total_safety_too_close_votes > safety_too_close_vote_thresh_){
+            flag_safety_too_close_ = true;
+        } else {
+            flag_safety_too_close_ = false;
+        }
 
-    safety_counter1_++;
-    safety_counter2_++;
-    if (safety_counter1_ == safety_getting_close_num_votes_){
-        safety_counter1_ = 0;
-    }
-    if (safety_counter2_ == safety_too_close_num_votes_){
-        safety_counter2_ = 0;
+        safety_counter1_++;
+        safety_counter2_++;
+        if (safety_counter1_ == safety_getting_close_num_votes_){
+            safety_counter1_ = 0;
+        }
+        if (safety_counter2_ == safety_too_close_num_votes_){
+            safety_counter2_ = 0;
+        }
+
     }
 
 }
@@ -1422,15 +1441,15 @@ void NearnessController::checkVehicleStatus(){
     if((flag_too_close_front_ || flag_safety_too_close_ || flag_terrain_too_close_front_) && !flag_stuck_){
         // Start a stuck timer
         if(!stuck_timer_flag_){
-            //ROS_INFO("Starting stuck timer");
+            ROS_INFO("Starting stuck timer");
             stuck_timer_ = ros::Time::now();
             stuck_timer_flag_ = true;
         }
 
         float stuck_duration = (ros::Time::now() - stuck_timer_).toSec();
-        //ROS_INFO("stuck time: %f", stuck_duration);
+        ROS_INFO("stuck time: %f", stuck_duration);
         if(stuck_duration > stuck_time_limit_){
-            //ROS_INFO("We are stuck!");
+            ROS_INFO("We are stuck!");
             flag_stuck_ = true;
         }
     } else {
@@ -1452,7 +1471,7 @@ void NearnessController::saturateControls(){
     if(control_command_.twist.linear.x > u_max_){
         control_command_.twist.linear.x = u_max_;
     } else if ((control_command_.twist.linear.x < u_min_) && !(flag_octo_too_close_ && enable_backup_)){
-        if(attractor_turn_){
+        if(attractor_turn_ || (flag_stuck_ && !completed_stuck_turn_)){
             control_command_.twist.linear.x = 0.0;
         } else {
             control_command_.twist.linear.x = u_min_;

@@ -17,6 +17,7 @@
 
     <arg name="reverse_yaw_rate_cmd"        value="false"/>
     <arg name="reverse_wf_yaw_rate_cmd"     value="false"/>
+    <arg name="reverse_forward_speed_cmd"   value="true"/>
 
     <!-- Horizontal Scanner Sensor Parameters -->
     <!-- These values correspond with the RPLidar S1 -->
@@ -45,9 +46,9 @@
   <node pkg="dynamic_reconfigure" name="nearness_controller_parameter_config" type="dynparam" args="load nearness_control_node $(find nearness_control)/cfg/HD2_params.yaml"/>
 
   <node pkg="topic_tools" name="cmd_vel_relay" type="relay" args="nearness_controller/control_commands  nav_vel" />
-<!--
-  <include file="$(find safety_from_depth_image)/launch/Husky_safety_tower_camera_fwd_depth_pcl.launch"/>
 
+  <include file="$(find safety_from_depth_image)/launch/Husky_safety_tower_camera_fwd_depth_pcl.launch"/>
+<!--
   <include file="$(find pcl_ros)/launch/launch_HD2_realsense_normal.launch" />
 -->
 </launch>

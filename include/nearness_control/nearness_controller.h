@@ -350,6 +350,9 @@ class NearnessController {
     ros::Time stuck_maneuver_timer_start_;
     bool stuck_timer_flag_;
     bool flag_stuck_maneuver_;
+    bool completed_stuck_turn_;
+    float turn_around_error_;
+    float turn_around_angle_;
 
     // imuCb
     double roll_;
