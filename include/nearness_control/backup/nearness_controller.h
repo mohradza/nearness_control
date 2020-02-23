@@ -37,8 +37,7 @@
 #include <algorithm>
 #include <cstdlib>
 #include <cv_bridge/cv_bridge.h>
-#include <tf2_ros/transform_broadcaster.h>
-#include <geometry_msgs/TransformStamped.h>
+
 
 #include <std_msgs/String.h>
 #include <boost/thread.hpp>
@@ -61,7 +60,7 @@ class NearnessController {
 
     void joyconCb(const sensor_msgs::JoyConstPtr& joy_msg);
     void odomCb(const nav_msgs::OdometryConstPtr& odom_msg);
-    void imuCb(const sensor_msgs::ImuConstPtr& imu_msg);
+    //void imuCb(const sensor_msgs::ImuConstPtr& imu_msg);
     void sonarHeightCb(const sensor_msgs::RangeConstPtr& range_msg);
     void nextWaypointCb(const geometry_msgs::PointStampedConstPtr& next_waypoint_msg);
     void terrainScanCb(const sensor_msgs::LaserScan::ConstPtr& terrain_scan_msg);
@@ -81,7 +80,6 @@ class NearnessController {
     void computeWFVerticalSpeedCommand();
     void computeSFVerticalSpeedCommand();
     void publishControlCommandMsg();
-    void checkVehicleStatus();
     //void calc_sf_yaw_rate_command();
     //void pub_control_command_msg();
 
@@ -143,7 +141,6 @@ class NearnessController {
     double shortest_angle_err(const float angle1, const float angle2);
     void generateSafetyBox();
     void checkSafetyBoundary(std::vector<float> scan);
-
     void saturateControls();
     float wrapAngle(float angle);
     float sat(float num, float min_val, float max_val);
@@ -271,7 +268,6 @@ class NearnessController {
     float attractor_d_;
     float relative_attractor_heading_;
     bool stagger_waypoints_;
-    float att_angle_error_;
 
     // computeForwardSpeedCommand
     float u_cmd_;
@@ -314,7 +310,8 @@ class NearnessController {
     double ter_sf_k_0_;
     double ter_sf_k_d_;
     double ter_sf_k_psi_;
-
+    float last_ter_r_cmd_;
+    float alpha_ter_r_cmd_;
 
     // Tower Safety
     bool flag_safety_too_close_;
@@ -339,36 +336,6 @@ class NearnessController {
     double alpha_r_vel_;
     float x_vel_filt_last_;
     float r_vel_filt_last_;
-    float h_wf_r_filt_last_;
-    double alpha_h_wf_r_;
-    float h_sf_r_filt_last_;
-    double alpha_h_sf_r_;
-    float last_ter_r_cmd_;
-    double alpha_ter_r_cmd_;
-
-    // Stuck / Unstuck
-    bool enable_unstuck_;
-    double stuck_maneuver_backup_timer_;
-    double stuck_time_limit_;
-    bool flag_stuck_;
-    ros::Time stuck_timer_;
-    ros::Time stuck_maneuver_timer_start_;
-    bool stuck_timer_flag_;
-    bool flag_stuck_maneuver_;
-    bool completed_stuck_turn_;
-    float turn_around_error_;
-    float turn_around_angle_;
-
-    // imuCb
-    double roll_;
-    double pitch_;
-    double imu_yaw_;
-    double roll_limit_;
-    double pitch_limit_;
-    bool flag_safety_attitude_;
-    bool enable_attitude_limits_;
-
-
 
 
 }; // class SimpleNodeClass

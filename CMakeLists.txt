@@ -15,6 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   message_generation
   cv_bridge
+  tf2_ros
 )
 
 ## System dependencies are found with CMake's conventions
@@ -48,7 +49,7 @@ generate_dynamic_reconfigure_options(
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES nearness_control
-  CATKIN_DEPENDS roscpp sensor_msgs std_msgs cv_bridge message_runtime
+  CATKIN_DEPENDS roscpp sensor_msgs std_msgs cv_bridge message_runtime tf2_ros
   DEPENDS OpenCV
 )
 
