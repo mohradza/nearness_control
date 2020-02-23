@@ -314,8 +314,7 @@ class NearnessController {
     double ter_sf_k_0_;
     double ter_sf_k_d_;
     double ter_sf_k_psi_;
-    float last_ter_r_cmd_;
-    float alpha_ter_r_cmd_;
+
 
     // Tower Safety
     bool flag_safety_too_close_;
@@ -344,6 +343,8 @@ class NearnessController {
     double alpha_h_wf_r_;
     float h_sf_r_filt_last_;
     double alpha_h_sf_r_;
+    float last_ter_r_cmd_;
+    double alpha_ter_r_cmd_;
 
     // Stuck / Unstuck
     bool enable_unstuck_;

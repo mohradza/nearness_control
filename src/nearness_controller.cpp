@@ -155,6 +155,7 @@ void NearnessController::init() {
     pnh_.param("yaw_rate_lp_filter_alpha", alpha_r_vel_, 1.0);
     pnh_.param("wf_yaw_rate_lp_filter_alpha", alpha_h_wf_r_, 1.0);
     pnh_.param("sf_yaw_rate_lp_filter_alpha", alpha_h_sf_r_, 1.0);
+    pnh_.param("ter_yaw_rate_lp_filter_alpha_", alpha_ter_r_cmd_, 1.0);
     //ROS_INFO("u_a: %f, r_a: %f, wf_a: %f, sf_a: %f", alpha_x_vel_, alpha_r_vel_, alpha_h_wf_r_, alpha_h_sf_r_);
 
     // Vehicle status
@@ -824,7 +825,7 @@ void NearnessController::computeTerrainYawRateCommand(){
     // Add in the terrain num_points
     float ter_r_cmd = 0.0;
     int sign=1;
-    alpha_ter_r_cmd_ = .25;
+    //alpha_ter_r_cmd_ = .25;
     if(!ter_cluster_d_.empty()){
         for(int i=0; i < num_ter_clusters_; i++){
             if(ter_cluster_r_[i] >= 0) sign = -1;

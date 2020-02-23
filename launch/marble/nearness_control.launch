@@ -141,6 +141,7 @@
         <param name="yaw_rate_lp_filter_alpha" type="double" value=".25"/>
         <param name="wf_yaw_rate_lp_filter_alpha" type="double" value=".1"/>
         <param name="sf_yaw_rate_lp_filter_alpha" type="double" value=".1"/>
+        <param name="ter_yaw_rate_lp_filter_alpha" type="double" value=".25"/>
 
         <!-- Vehicle Status -->
         <param name="vehicle_roll_angle_limit" type="double" value="$(arg vehicle_roll_angle_limit)"/>
