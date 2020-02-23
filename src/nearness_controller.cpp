@@ -60,7 +60,6 @@ void NearnessController::init() {
     x_vel_filt_last_ = 0.0;
     r_vel_filt_last_ = 0.0;
     att_angle_error_ = 0.0;
-    enable_unstuck_ = true;
     flag_stuck_ = false;
     stuck_timer_flag_ = false;
     flag_stuck_maneuver_ = false;
@@ -995,7 +994,7 @@ void NearnessController::publishControlCommandMsg(){
         }
 
         if(flag_stuck_ && enable_unstuck_){
-            //ROS_INFO_THROTTLE(1, "Executing stuck maneuver");
+            ROS_INFO_THROTTLE(1, "Executing stuck maneuver");
             if(!flag_stuck_maneuver_){
                 flag_stuck_maneuver_ = true;
                 stuck_maneuver_timer_start_ = ros::Time::now();
@@ -1081,11 +1080,13 @@ void NearnessController::publishControlCommandMsg(){
 
     }
 
-    if(flag_too_close_side_ && !(flag_octo_too_close_ && enable_backup_)){
+    //if(flag_too_close_side_ && !(flag_octo_too_close_ && enable_backup_)){
+    if(flag_too_close_side_){
       control_command_.twist.linear.x = close_side_speed_;
       ROS_INFO_THROTTLE(1,"Too close! RPLidar side!");
     }
-    if(flag_safety_getting_close_ && enable_tower_safety_ && !(flag_octo_too_close_ && enable_backup_)){
+    //if(flag_safety_getting_close_ && enable_tower_safety_ && !(flag_octo_too_close_ && enable_backup_)){
+    if(flag_safety_getting_close_ && enable_tower_safety_){
       control_command_.twist.linear.x = close_side_speed_;
       ROS_INFO_THROTTLE(1,"Tower safety: getting close!");
     }
@@ -1104,7 +1105,8 @@ void NearnessController::publishControlCommandMsg(){
       ROS_INFO_THROTTLE(1,"Too close in the front! Lidar: %s, Terrain: %s", (flag_too_close_front_ ? "true" : "false"), (flag_terrain_too_close_front_ ? "true" : "false"));
       control_command_.twist.linear.x = 0.0;
     }
-    if((flag_safety_too_close_ && enable_tower_safety_) && !(flag_octo_too_close_ && enable_backup_)){
+//    if((flag_safety_too_close_ && enable_tower_safety_) && !(flag_octo_too_close_ && enable_backup_)){
+    if(flag_safety_too_close_ && enable_tower_safety_){
       ROS_INFO_THROTTLE(1,"Tower safety: too close!");
       control_command_.twist.linear.x = 0.0;
     }
@@ -1374,10 +1376,10 @@ void NearnessController::checkSafetyBoundary(std::vector<float> scan){
         if((scan[i] < safety_boundary_[i]) && (scan[i] > h_sensor_min_noise_)){
             if((i <= left_corner_index_) || (i >= (num_h_scan_points_ - left_corner_index_))) {
                 flag_too_close_side_ = true;
-                ROS_INFO("Side");
+                //ROS_INFO("Side");
             } else {
                 flag_too_close_front_ = true;
-                ROS_INFO("Front");
+                //ROS_INFO("Front");
             }
         } else {
           flag_too_close_front_ = flag_too_close_front_ || flag_too_close_front_;
@@ -1447,7 +1449,7 @@ void NearnessController::checkVehicleStatus(){
         }
 
         float stuck_duration = (ros::Time::now() - stuck_timer_).toSec();
-        ROS_INFO("stuck time: %f", stuck_duration);
+        ROS_INFO_THROTTLE(1,"stuck time: %f", stuck_duration);
         if(stuck_duration > stuck_time_limit_){
             ROS_INFO("We are stuck!");
             flag_stuck_ = true;
@@ -1470,7 +1472,8 @@ void NearnessController::saturateControls(){
     }
     if(control_command_.twist.linear.x > u_max_){
         control_command_.twist.linear.x = u_max_;
-    } else if ((control_command_.twist.linear.x < u_min_) && !(flag_octo_too_close_ && enable_backup_)){
+    //} else if ((control_command_.twist.linear.x < u_min_) && !(flag_octo_too_close_ && enable_backup_)){
+    } else if (control_command_.twist.linear.x < u_min_){
         if(attractor_turn_ || (flag_stuck_ && !completed_stuck_turn_)){
             control_command_.twist.linear.x = 0.0;
         } else {
