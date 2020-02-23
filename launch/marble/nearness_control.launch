@@ -47,7 +47,7 @@
         <remap from="nearness_controller/next_waypoint" to="lookahead_point"/>
         <remap from="nearness_controller/odometry" to="odometry"/>
         <remap from="nearness_controller/imu" to="imu_raw"/>
-        <remap from="nearness_controller/joy" to="joy_base"/>
+        <remap from="nearness_controller/joy" to="joy_mux"/>
         <remap from="nearness_controller/estop_cmd" to="estop_cmd"/>
         <remap from="nearness_controller/terrain_scan" to="terrain_assessment/scan"/>
         <remap from="nearness_controller/tower_safety" to="safety/tower_status"/>
