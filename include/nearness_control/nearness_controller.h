@@ -340,6 +340,10 @@ class NearnessController {
     double alpha_r_vel_;
     float x_vel_filt_last_;
     float r_vel_filt_last_;
+    float h_wf_r_filt_last_;
+    double alpha_h_wf_r_;
+    float h_sf_r_filt_last_;
+    double alpha_h_sf_r_;
 
     // Stuck / Unstuck
     bool enable_unstuck_;

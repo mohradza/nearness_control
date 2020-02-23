@@ -13,7 +13,7 @@
     <arg name="stagger_waypoints"           default="false"/>
     <arg name="enable_tower_safety"         default="false"/>
     <arg name="enable_cmd_lp_filter"        default="true"/>
-    <arg name="enable_unstuck"              default="true"/>
+    <arg name="enable_unstuck"              default="false"/>
 
     <arg name="reverse_yaw_rate_cmd"        default="false"/>
     <arg name="reverse_wf_yaw_rate_cmd"     default="false"/>
@@ -137,8 +137,10 @@
         <param name="attractor_watchdog_timer" type="double" value="3.0"/>
 
         <!-- LP Filter Constants -->
-        <param name="forward_speed_lp_filter_alpha" type="double" value=".9"/>
-        <param name="yaw_rate_lp_filter_alpha" type="double" value=".75"/>
+        <param name="forward_speed_lp_filter_alpha" type="double" value=".5"/>
+        <param name="yaw_rate_lp_filter_alpha" type="double" value=".25"/>
+        <param name="wf_yaw_rate_lp_filter_alpha" type="double" value=".1"/>
+        <param name="sf_yaw_rate_lp_filter_alpha" type="double" value=".1"/>
 
         <!-- Vehicle Status -->
         <param name="vehicle_roll_angle_limit" type="double" value="$(arg vehicle_roll_angle_limit)"/>
