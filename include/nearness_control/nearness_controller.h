@@ -358,6 +358,10 @@ class NearnessController {
     bool completed_stuck_turn_;
     float turn_around_error_;
     float turn_around_angle_;
+    bool move_forward_;
+    bool move_forward_switch_;
+    float move_forward_dur_s_;
+    ros::Time move_forward_time_;
 
     // imuCb
     double roll_;

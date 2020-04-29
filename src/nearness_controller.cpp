@@ -51,10 +51,11 @@ void NearnessController::init() {
     // Initialize global variables
     have_attractor_ = false;
     lost_attractor_ = false;
-    flag_estop_ = false;
+    flag_estop_ = true;
     flag_beacon_stop_ = false;
     control_command_.header.frame_id = "/base_stabilized";
     flag_octo_too_close_ = false;
+    flag_safety_too_close_ = false;
     enable_backup_ = false;
     last_ter_r_cmd_ = 0.0;
     x_vel_filt_last_ = 0.0;
@@ -164,6 +165,7 @@ void NearnessController::init() {
 
     // Stuck Parameters
     pnh_.param("enable_unstuck", enable_unstuck_, true);
+    ROS_INFO("%d", enable_unstuck_);
     pnh_.param("stuck_time_limit", stuck_time_limit_, 10.0);
     pnh_.param("stuck_maneuver_backup_timer", stuck_maneuver_backup_timer_, 10.0);
 
@@ -376,7 +378,7 @@ void NearnessController::convertHLaserscan2CVMat(const sensor_msgs::LaserScanPtr
     // Reformat the depth scan depending on the orientation of the scanner
     // scan_start_loc describes the location of the first scan index
     std::vector<float> h_depth_vector_reformat;
-    h_scan_start_loc_.data = "back";
+    h_scan_start_loc_.data = "forward";
     if (h_scan_start_loc_.data == "forward"){
         h_depth_vector_reformat = h_depth_vector;
     } else if (h_scan_start_loc_.data == "right"){
@@ -886,12 +888,14 @@ void NearnessController::computeAttractorCommand(){
     }
 
     att_angle_error_ = wrapAngle(relative_attractor_heading_ - current_heading_);
-    //ROS_INFO("att_err: %f", att_angle_error_);
+    //ROS_INFO("att_err: %f, current: %f", att_angle_error_, current_heading_);
     //float angle_error_backup = wrapAngle(relative_attractor_heading_ - wrapAngle(current_heading_ - M_PI));
     //backup_attractor_yaw_cmd_ = r_k_att_0_*angle_error_backup*exp(-r_k_att_d_*attractor_d_);
     //ROS_INFO_THROTTLE(1,"backup yaw cmd: %f", backup_attractor_yaw_cmd_);
     if(have_attractor_ && (abs(att_angle_error_) < 1.4)){
         attractor_yaw_cmd_ = r_k_att_0_*att_angle_error_*exp(-r_k_att_d_*attractor_d_);
+        //attractor_yaw_cmd_ = -r_k_att_d_*attractor_d_;
+        //ROS_INFO("%f, %f, %f, %f, %f", r_k_att_0_,r_k_att_d_, attractor_d_, att_angle_error_, attractor_yaw_cmd_);
         //float attractor_yaw_cmd = r_k_att_0_*wrapAngle(current_heading_ - relative_attractor_heading)*exp(-r_k_att_d_*attractor_d);
         //ROS_INFO_THROTTLE(.5,"del_t: %1.2f, e: %1.2f, yaw_cmd: %1.2f", wrapAngle(current_heading_ - relative_attractor_heading), exp(-r_k_att_d_*attractor_d), attractor_yaw_cmd);
         attractor_turn_ = false;
@@ -961,7 +965,7 @@ void NearnessController::publishControlCommandMsg(){
       //control_command_.twist.angular.z = sat(h_sf_nearness_l2_norm, 0.0, 1.0)*h_sf_r_cmd_ + (1.0 - sat(h_sf_nearness_l2_norm, 0.0, 1.0))*wf_att_cmd;
       float nearness_r_cmd = 0.0;
       if (enable_wf_control_){
-          nearness_r_cmd += h_wf_r_cmd_;
+        nearness_r_cmd += h_wf_r_cmd_;
       }
 
       if (enable_sf_control_){
@@ -986,7 +990,11 @@ void NearnessController::publishControlCommandMsg(){
                 control_command_.twist.linear.z = v_wf_w_cmd_;
                 control_command_.twist.angular.z = h_wf_r_cmd_;
             } else {
-                control_command_.twist.angular.z = h_wf_r_cmd_;
+                if(abs(terrain_r_cmd_) > 0.05){
+                  ROS_INFO_THROTTLE(1, "Ignoring WF and attractor cmds...");
+                } else {
+                    control_command_.twist.angular.z = h_wf_r_cmd_;
+                }
             }
         }
 
@@ -1004,16 +1012,22 @@ void NearnessController::publishControlCommandMsg(){
         }
 
         if(enable_attractor_control_ && !lost_attractor_){
-            control_command_.twist.angular.z += attractor_yaw_cmd_;
-	          if(attractor_turn_){
-    	          control_command_.twist.linear.x = 0.0;
-    	          control_command_.twist.angular.z = sat(attractor_yaw_cmd_, -r_max_, r_max_);
-                // if(flag_octo_too_close_ && enable_backup_){
-                //     ROS_INFO_THROTTLE(1,"OBSTACLE TOO CLOSE, CANNOT TURN AROUND! BACKING UP");
-                //     control_command_.twist.linear.x = -.1;
-                //     control_command_.twist.angular.z = backup_attractor_yaw_cmd_;
-                // }
+//          if(abs(terrain_r_cmd_ > 0.05) && !attractor_turn_){
+            if(false){
+              //
+            } else {
+                control_command_.twist.angular.z += attractor_yaw_cmd_;
+                if(attractor_turn_){
+                    control_command_.twist.linear.x = 0.0;
+                    control_command_.twist.angular.z = sat(attractor_yaw_cmd_, -r_max_, r_max_);
+                    // if(flag_octo_too_close_ && enable_backup_){
+                    //     ROS_INFO_THROTTLE(1,"OBSTACLE TOO CLOSE, CANNOT TURN AROUND! BACKING UP");
+                    //     control_command_.twist.linear.x = -.1;
+                    //     control_command_.twist.angular.z = backup_attractor_yaw_cmd_;
+                    // }
+                }
             }
+
             //ROS_INFO("att_cmd: %f", control_command_.twist.angular.z);
         }
 
@@ -1025,14 +1039,27 @@ void NearnessController::publishControlCommandMsg(){
                 turn_around_angle_ = wrapAngle(current_heading_ - M_PI);
                 completed_stuck_turn_ = false;
                 enable_attractor_control_ = false;
+                move_forward_ = true;
+                move_forward_switch_ = false;
             }
             float turn_around_error_ = wrapAngle(turn_around_angle_ - current_heading_);
             if(flag_stuck_maneuver_ && !completed_stuck_turn_){
-                control_command_.twist.linear.x = 0.0;
-                control_command_.twist.angular.z = r_k_att_turn_*turn_around_error_;
-                if(abs(turn_around_error_) < .35){
-                    ROS_INFO("TURN AROUND COMPLETE");
-                    completed_stuck_turn_ = true;
+              if(move_forward_){
+                ROS_INFO_THROTTLE(1, "Ignoring attractor, moving forward...");
+                if(!move_forward_switch_){
+                  move_forward_switch_ = false;
+                  move_forward_time_ = ros::Time::now();
+                }
+                move_forward_dur_s_ = (ros::Time::now() - move_forward_time_).toSec();
+                if(move_forward_dur_s_ > 5.0){
+                  move_forward_ = false;
+                }
+              } else {
+                //control_command_.twist.linear.x = 0.0;
+                //control_command_.twist.angular.z = r_k_att_turn_*turn_around_error_;
+                //if(abs(turn_around_error_) < .35){
+                //    ROS_INFO("TURN AROUND COMPLETE");
+                //    completed_stuck_turn_ = true;
                 }
             }
 
@@ -1061,6 +1088,8 @@ void NearnessController::publishControlCommandMsg(){
 
         }
 
+      }
+
 
         // Wait for an attractor before moving
         if(!have_attractor_ && enable_attractor_control_){
@@ -1084,7 +1113,7 @@ void NearnessController::publishControlCommandMsg(){
             weighting_msg.data.push_back(h_nearness_maxval_);
             pub_debug_weighting_.publish(weighting_msg);
         }
-    }
+
 
     if(enable_cmd_lp_filter_){
         float x_vel_filt = 0.0;
@@ -1133,7 +1162,7 @@ void NearnessController::publishControlCommandMsg(){
       ROS_INFO_THROTTLE(1,"Tower safety: too close!");
       control_command_.twist.linear.x = 0.0;
     }
-    ROS_INFO_THROTTLE(1, "WF: %f, SF: %f, TER: %f, ATT: %f, YAWMIX: %f, U: %f", h_wf_r_cmd_, h_sf_r_cmd_, terrain_r_cmd_, attractor_yaw_cmd_, control_command_.twist.angular.z, u_cmd_);
+    ROS_INFO_THROTTLE(1, "WF: %f, SF: %f, TER: %f, ATT: %f, YAWMIX: %f, U: %f", h_wf_r_cmd_, h_sf_r_cmd_, terrain_r_cmd_, attractor_yaw_cmd_, control_command_.twist.angular.z, control_command_.twist.linear.x);
 
     if(flag_beacon_stop_){
       control_command_.twist.linear.x = 0.0;
@@ -1197,7 +1226,7 @@ void NearnessController::nextWaypointCb(const geometry_msgs::PointStampedConstPt
     }
     last_wp_msg_time_ = ros::Time::now();
 
-    ROS_INFO_THROTTLE(2,"Received new ATTRACTOR");
+    //ROS_INFO_THROTTLE(2,"Received new ATTRACTOR");
 
     if(stagger_waypoints_){
         if(attractor_d_ < attractor_latch_thresh_){
@@ -1209,6 +1238,7 @@ void NearnessController::nextWaypointCb(const geometry_msgs::PointStampedConstPt
 
     attractor_d_ = sqrt(pow((current_pos_.x - next_waypoint_pos_.x), 2) + pow((current_pos_.y - next_waypoint_pos_.y), 2));
     relative_attractor_heading_ = atan2((next_waypoint_pos_.y - current_pos_.y),(next_waypoint_pos_.x - current_pos_.x));
+    //ROS_INFO("%f", relative_attractor_heading_);
 }
 
 void NearnessController::terrainScanCb(const sensor_msgs::LaserScan::ConstPtr& terrain_scan_msg) {
@@ -1267,17 +1297,17 @@ void NearnessController::terrainScanCb(const sensor_msgs::LaserScan::ConstPtr& t
         // Check too see if something is too close in the front or on the sides
         // of the vehicle
         flag_terrain_too_close_front_ = false;
-        //ROS_INFO("%f", terrain_nearness[i]);
-        if((i > 25) && (i < 65)){
-            if(terrain_nearness[i] > 1.0/terrain_front_safety_radius_){
-                //ROS_INFO_THROTTLE(1, "TERRAIN TOO CLOSE FRONT");
-                //flag_terrain_too_close_front = true;
-                scan_count++;
-            }
-        }
+        //ROS_INFO("%f, %f", 1.0/terrain_front_safety_radius_, terrain_nearness[i]);
+        //if((i > 25) && (i < 65)){
+          if(terrain_nearness[i] > 1.0/terrain_front_safety_radius_){
+              //ROS_INFO_THROTTLE(1, "TERRAIN TOO CLOSE FRONT");
+              //flag_terrain_too_close_front_ = true;
+              scan_count++;
+          }
+        //}
     }
 
-    if(scan_count >= 5){
+    if(scan_count >= 2){
         flag_terrain_too_close_front_ = true;
     } else {
         flag_terrain_too_close_front_ = false;
@@ -1463,7 +1493,8 @@ void NearnessController::checkVehicleStatus(){
     // Check odom
 
     // Check for stuck
-    if((flag_too_close_front_ || flag_safety_too_close_ || flag_terrain_too_close_front_) && !flag_stuck_){
+    //ROS_INFO_THROTTLE(1, "front: %s, safety: %s: ter: %s", (flag_too_close_front_ ? "true" : "false"), ((flag_safety_too_close_ && enable_tower_safety_) ? "true" : "false"), (flag_terrain_too_close_front_ ? "true" : "false"));
+    if((flag_too_close_front_ || (flag_safety_too_close_ && enable_tower_safety_) || flag_terrain_too_close_front_) && !flag_stuck_){
         // Start a stuck timer
         if(!stuck_timer_flag_){
             ROS_INFO("Starting stuck timer");
