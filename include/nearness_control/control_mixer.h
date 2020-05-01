@@ -62,6 +62,7 @@ class controlMixer {
     float ref_heading_;
     float k_height_;
     float k_heading_;
+    float k_v_;
     bool enable_joy_thrust_control_;
     bool enable_heading_controller_;
 

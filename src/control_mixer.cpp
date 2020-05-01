@@ -20,12 +20,14 @@ void controlMixer::init() {
 
     pub_cmd_ = nh_.advertise<geometry_msgs::Twist>("cmd_vel", 10);
 
-    ref_h_ = 1.0;
+    ref_h_ = 1.5;
     ref_heading_ = 0.0;
     k_height_ = .25;
     k_heading_ = .25;
+    k_v_ = -.25;
+
     enable_joy_thrust_control_ = false;
-    enable_heading_controller_ = false;
+    enable_heading_controller_ = true;
 }
 
 void controlMixer::joyconCb(const geometry_msgs::TwistConstPtr& joy_msg)
@@ -49,6 +51,8 @@ void controlMixer::odomCb(const nav_msgs::OdometryConstPtr& odom_msg)
     tf::Matrix3x3(quat_tf).getRPY(roll, pitch, current_heading);
 
     float heading_err = ref_heading_ - current_heading;
+
+    float lateral_err = odom_.pose.pose.position.y;
     //ROS_INFO("%f, %f", ref_h_, odom_.pose.pose.position.z);
 
     // if((ros::Time::now() - last_joy_msg_time_).toSec() > .05){
@@ -60,7 +64,7 @@ void controlMixer::odomCb(const nav_msgs::OdometryConstPtr& odom_msg)
 
     geometry_msgs::Twist cmd_out;
     cmd_out.linear.x = joy_cmd_.linear.x;
-    cmd_out.linear.y = joy_cmd_.linear.y;
+    cmd_out.linear.y = k_v_*lateral_err;
     if((abs(joy_cmd_.linear.z) > 0.0) && enable_joy_thrust_control_){
       cmd_out.linear.z = joy_cmd_.linear.z;
     } else {
