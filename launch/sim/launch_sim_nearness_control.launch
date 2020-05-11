@@ -1,6 +1,8 @@
 <launch>
   <!-- <arg name="vehicle" default="MARBLE_HUSKY"/> -->
   <!-- <group ns="$(arg vehicle)"> -->
+  <arg name="motion_on_startup" default="0"/>
+  
   <include file="$(find nearness_control)/launch/marble/sim_nearness_control.launch">
 
     <arg name="enable_debug"                value="true"/>
@@ -8,6 +10,7 @@
     <arg name="enable_wf_control"           value="true"/>
     <arg name="enable_sf_control"           value="true"/>
     <arg name="enable_terrain_control"      value="true"/>
+    <arg name="motion_on_startup"           value="$(arg motion_on_startup)"/>
 
     <arg name="enable_attractor_control"    value="true"/>
     <arg name="enable_command_weighting"    value="false"/>

@@ -229,6 +229,7 @@ class NearnessController {
     double attractor_latch_thresh_;
     bool enable_terrain_control_;
     bool enable_tower_safety_;
+    bool motion_on_startup_;
 
     // Init
     std::vector<float> h_gamma_vector_;

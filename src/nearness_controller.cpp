@@ -86,6 +86,11 @@ void NearnessController::init() {
     pnh_.param("stagger_waypoints_", stagger_waypoints_, false);
     pnh_.param("enable_tower_safety", enable_tower_safety_, false);
     pnh_.param("enable_cmd_lp_filter", enable_cmd_lp_filter_, true);
+    pnh_.param("motion_on_startup", motion_on_startup_, false);
+
+    if(motion_on_startup_){
+      flag_estop_ = false;
+    }
 
     pnh_.param("total_horiz_scan_points", total_h_scan_points_, 1440);
     pnh_.param("horiz_scan_limit", h_scan_limit_, M_PI);
