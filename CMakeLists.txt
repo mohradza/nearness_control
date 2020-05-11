@@ -20,7 +20,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
-find_package(OpenCV REQUIRED)
+find_package(OpenCV 3.4.4 REQUIRED)
 find_package(Boost REQUIRED COMPONENTS thread)
 #find_package(Boost REQUIRED COMPONENTS system filesystem)
 
@@ -68,7 +68,7 @@ include_directories(
 
 add_library(nearness_controller src/nearness_controller.cpp)
 add_dependencies(nearness_controller ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_generate_messages_cpp)
-target_link_libraries(nearness_controller ${catkin_LIBRARIES} ${Boost_LIBRARIES})
+target_link_libraries(nearness_controller ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${OpenCV_LIBS})
 
 add_executable(nearness_controller_node src/nearness_controller_node.cpp)
-target_link_libraries(nearness_controller_node nearness_controller ${catkin_LIBRARIES} ${Boost_LIBRARIES})
+target_link_libraries(nearness_controller_node nearness_controller ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${OpenCV_LIBS})

@@ -1,0 +1,10 @@
+<launch>
+    <arg name="vehicle" default="H01"/>
+
+    <include file="$(find nearness_control)/launch/sim/launch_sim_nearness_control.launch"/>
+<!--
+    <include file="$(find terrain_detection)/launch/terrain_detection.launch">
+         <arg name="vehicle" value="$(arg vehicle)"/>
+    </include>
+-->
+</launch>
