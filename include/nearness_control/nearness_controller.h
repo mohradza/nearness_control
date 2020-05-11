@@ -82,6 +82,7 @@ class NearnessController {
     void computeSFVerticalSpeedCommand();
     void publishControlCommandMsg();
     void checkVehicleStatus();
+    void enableControlCb(const std_msgs::BoolConstPtr& enable_msg);
     //void calc_sf_yaw_rate_command();
     //void pub_control_command_msg();
 
@@ -103,6 +104,7 @@ class NearnessController {
     ros::Subscriber sub_tower_safety_;
     ros::Subscriber sub_beacon_stop_;
     ros::Subscriber sub_octo_laserscan_;
+    ros::Subscriber subt_enable_control_;
 
     // PUBLISHERS //
     ros::Publisher pub_h_scan_reformat_;

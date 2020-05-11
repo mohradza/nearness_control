@@ -20,6 +20,7 @@ void NearnessController::init() {
     sub_odom_ = nh_.subscribe("odometry", 1, &NearnessController::odomCb, this);
     sub_imu_ = nh_.subscribe("imu", 1, &NearnessController::imuCb, this);
     sub_bluetooth_joy_ = nh_.subscribe("joy", 1, &NearnessController::joyconCb, this);
+    subt_enable_control_ = nh_.subscribe("enable_control", 1, &NearnessController::enableControlCb, this);
 
     //sub_imu_ = nh_.subscribe("imu_raw", 1, &NearnessController::imuCb, this);
     sub_next_waypoint_ = nh_.subscribe("next_waypoint", 1, &NearnessController::nextWaypointCb, this);
@@ -1217,6 +1218,15 @@ void NearnessController::joyconCb(const sensor_msgs::JoyConstPtr& joy_msg)
         std_msgs::Bool engage_msg;
         engage_msg.data = true;
         pub_estop_engage_.publish(engage_msg);
+    }
+}
+
+void NearnessController::enableControlCb(const std_msgs::BoolConstPtr& enable_msg){
+    flag_estop_ = !enable_msg->data;
+    if (!enable_msg->data){
+        ROS_INFO("Controller ESTOP engaged.");
+    } else {
+        ROS_INFO("Controller ESTOP disengaged.");
     }
 }
 
