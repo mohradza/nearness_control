@@ -33,10 +33,6 @@ lastSFScan = [ 0 for i in range( numReadings ) ]
 car_state = ''
 len_hist = 500
 
-
-
-
-
 def h_depth_scan_cb( msg ):
     global lastHDepthScan
     """ Process the laser scan message """
@@ -47,16 +43,16 @@ def h_nearness_cb( msg ):
     """ Process the nearness array """
     lastHNearnessScan = msg.data  #lastDepthImageScan = [ elem/25.50 for elem in msg.data ] # scale [0,255] to [0,10]
 
-def v_depth_scan_cb( msg ):
-    global lastVDepthScan
+def h_reonstructed_cb( msg ):
+    global lastWFReconScanNPScan
     """ Process the nearness array """
-    lastVDepthScan = msg.data  #lastDepthImageScan = [ elem/25.50 for elem in msg.data ] # scale [0,255] to [0,10]
+    lastHNearnessScan = msg.data  #lastDepthImageScan = [ elem/25.50 for elem in msg.data ] # scale [0,255] to [0,10]
 
-def v_nearness_cb( msg ):
-    global lastVNearnessScan
+def h_sf_cb( msg ):
+    global lastSFScan
     """ Process the nearness array """
-    lastVNearnessScan = msg.data  #lastDepthImageScan = [ elem/25.50 for elem in msg.data ] # scale [0,255] to [0,10]
-
+    lastHNearnessScan = msg.data  #lastDepthImageScan = [ elem/25.50 for elem in msg.data ] # scale [0,255] to [0,10]
+        2
 minAng = -pi
 maxAng = pi
 rospy.init_node( 'scan_plot' , anonymous = True )
