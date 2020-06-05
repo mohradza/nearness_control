@@ -34,20 +34,20 @@ void NearnessController::init() {
     pub_h_scan_nearness_ = nh_.advertise<std_msgs::Float32MultiArray>("horiz_nearness", 10);
     pub_h_sf_nearness_ = nh_.advertise<std_msgs::Float32MultiArray>("horiz_sf_nearness", 10);
     pub_h_recon_wf_nearness_ = nh_.advertise<std_msgs::Float32MultiArray>("horiz_recon_wf_nearness", 10);
-    pub_h_fourier_coefficients_ = nh_.advertise<nearness_control::FourierCoefsMsg>("horiz_fourier_coefficients", 10);
+    pub_h_fourier_coefficients_ = nh_.advertise<nearness_control_msgs::FourierCoefsMsg>("horiz_fourier_coefficients", 10);
     pub_v_scan_reformat_ = nh_.advertise<std_msgs::Float32MultiArray>("vert_depth_reformat", 10);
     pub_v_scan_nearness_ = nh_.advertise<std_msgs::Float32MultiArray>("vert_nearness", 10);
     pub_v_sf_nearness_ = nh_.advertise<std_msgs::Float32MultiArray>("vert_sf_nearness", 10);
     pub_v_recon_wf_nearness_ = nh_.advertise<std_msgs::Float32MultiArray>("vert_recon_wf_nearness", 10);
-    pub_v_fourier_coefficients_ = nh_.advertise<nearness_control::FourierCoefsMsg>("vert_fourier_coefficients", 10);
+    pub_v_fourier_coefficients_ = nh_.advertise<nearness_control_msgs::FourierCoefsMsg>("vert_fourier_coefficients", 10);
     pub_control_commands_stamped_ = nh_.advertise<geometry_msgs::TwistStamped>("control_commands_stamped", 10);
     pub_control_commands_ = nh_.advertise<geometry_msgs::Twist>("control_commands", 10);
     pub_debug_weighting_ = nh_.advertise<std_msgs::Float32MultiArray>("debug_weighting", 10);
     pub_h_sf_yawrate_command_ = nh_.advertise<std_msgs::Float32>("sf_yawrate_command", 10);
     pub_vehicle_status_ = nh_.advertise<std_msgs::Int32>("vehicle_status", 10);
     pub_estop_engage_ = nh_.advertise<std_msgs::Bool>("estop_cmd", 10);
-    pub_sf_clustering_debug_ = nh_.advertise<nearness_control::ClusterMsg>("sf_clusters", 10);
-    pub_ter_clusters_ = nh_.advertise<nearness_control::ClusterMsg>("ter_clusters", 10);
+    pub_sf_clustering_debug_ = nh_.advertise<nearness_control_msgs::ClusterMsg>("sf_clusters", 10);
+    pub_ter_clusters_ = nh_.advertise<nearness_control_msgs::ClusterMsg>("ter_clusters", 10);
 
     // Initialize global variables
     have_attractor_ = false;
@@ -563,7 +563,7 @@ void NearnessController::computeHorizFourierCoeffs(){
         std::vector<float> h_a_vector(h_a_, h_a_ + sizeof h_a_ / sizeof h_a_[0]);
         std::vector<float> h_b_vector(h_b_, h_b_ + sizeof h_b_ / sizeof h_b_[0]);
 
-        nearness_control::FourierCoefsMsg h_fourier_coefs_msg;
+        nearness_control_msgs::FourierCoefsMsg h_fourier_coefs_msg;
 
         h_fourier_coefs_msg.header.stamp = ros::Time::now();
         h_fourier_coefs_msg.a = h_a_vector;
@@ -609,7 +609,7 @@ void NearnessController::computeVertFourierCoeffs(){
         std::vector<float> v_a_vector(v_a_, v_a_ + sizeof v_a_ / sizeof v_a_[0]);
         std::vector<float> v_b_vector(v_b_, v_b_ + sizeof v_b_ / sizeof v_b_[0]);
 
-        nearness_control::FourierCoefsMsg v_fourier_coefs_msg;
+        nearness_control_msgs::FourierCoefsMsg v_fourier_coefs_msg;
 
         v_fourier_coefs_msg.header.stamp = ros::Time::now();
         v_fourier_coefs_msg.a = v_a_vector;
@@ -727,7 +727,7 @@ void NearnessController::computeSFYawRateCommand(){
         }
 
         if(debug_){
-            nearness_control::ClusterMsg cluster_msg;
+            nearness_control_msgs::ClusterMsg cluster_msg;
             cluster_msg.num_clusters = num_sf_clusters_;
             if(num_sf_clusters_ != 0){
                 for(int i = 0; i < num_sf_clusters_; i++){
@@ -1332,7 +1332,7 @@ void NearnessController::terrainScanCb(const sensor_msgs::LaserScan::ConstPtr& t
 
     // Publish the data
     if(debug_){
-        nearness_control::ClusterMsg terrain_msg;
+        nearness_control_msgs::ClusterMsg terrain_msg;
         terrain_msg.num_clusters = num_ter_clusters_;
         if(num_ter_clusters_ != 0){
             for(int i = 0; i < num_ter_clusters_; i++){
