@@ -18,6 +18,7 @@ find_package(catkin REQUIRED COMPONENTS
   tf2_ros
   pcl_conversions
   pcl_ros
+  nearness_control_msgs
 )
 
 ## System dependencies are found with CMake's conventions
