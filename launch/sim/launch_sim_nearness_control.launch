@@ -2,7 +2,7 @@
   <!-- <arg name="vehicle" default="MARBLE_HUSKY"/> -->
   <!-- <group ns="$(arg vehicle)"> -->
   <arg name="motion_on_startup" default="0"/>
-  
+
   <include file="$(find nearness_control)/launch/marble/sim_nearness_control.launch">
 
     <arg name="enable_debug"                value="true"/>

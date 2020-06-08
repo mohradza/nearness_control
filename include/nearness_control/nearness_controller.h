@@ -28,8 +28,8 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf/tf.h>
-#include <nearness_control/FourierCoefsMsg.h>
-#include <nearness_control/ClusterMsg.h>
+#include <nearness_control_msgs/FourierCoefsMsg.h>
+#include <nearness_control_msgs/ClusterMsg.h>
 #include <math.h>
 #include <numeric>
 #include <iterator>

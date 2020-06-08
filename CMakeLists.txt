@@ -89,3 +89,10 @@ target_link_libraries(control_mixer_node ${catkin_LIBRARIES} ${Boost_LIBRARIES})
 add_executable(control_mixer src/control_mixer.cpp)
 #add_dependencies(control_mixer ${PROJECT_NAME}_gencfg )
 target_link_libraries(control_mixer control_mixer_node ${catkin_LIBRARIES} ${Boost_LIBRARIES})
+
+add_library(joy_teleop_mixer_node src/joy_teleop_mixer_node.cpp)
+target_link_libraries(joy_teleop_mixer_node ${catkin_LIBRARIES} ${Boost_LIBRARIES})
+
+add_executable(joy_teleop_mixer src/joy_teleop_mixer.cpp)
+#add_dependencies(joy_teleop_mixer ${PROJECT_NAME}_gencfg )
+target_link_libraries(joy_teleop_mixer joy_teleop_mixer_node ${catkin_LIBRARIES} ${Boost_LIBRARIES})
