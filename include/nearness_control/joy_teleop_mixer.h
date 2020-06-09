@@ -38,7 +38,7 @@ class joyTeleopMixer {
 
     // FUNCTIONS //
 
-    void joyconCb(const geometry_msgs::TwistConstPtr& joy_msg);
+    void joyconCb(const sensor_msgs::JoyConstPtr& joy_msg);
     void odomCb (const nav_msgs::OdometryConstPtr& odom_msg);
 
  private:
@@ -63,6 +63,8 @@ class joyTeleopMixer {
     double max_lateral_speed_;
     double max_vertical_speed_;
     double max_yaw_rate_;
+
+    bool flag_alt_hold_;
 
 
 

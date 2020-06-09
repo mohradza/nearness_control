@@ -18,24 +18,41 @@ void joyTeleopMixer::init() {
 
     pub_cmd_ = nh_.advertise<geometry_msgs::Twist>("cmd_vel", 10);
 
+    pnh_.param("max_forward_speed", max_forward_speed_, 1.0);
+    pnh_.param("max_lateral_speed", max_lateral_speed_, 1.0);
+    pnh_.param("max_vertical_speed", max_vertical_speed_, .5);
+    pnh_.param("max_yaw_rate", max_yaw_rate_, .5);
+
+
     max_forward_speed_ = 1.0;
     max_lateral_speed_ = 1.0;
     max_vertical_speed_ = 1.0;
     max_yaw_rate_ = 1.0;
 
+    flag_alt_hold_ = false;
+
 }
 
 void joyTeleopMixer::joyconCb(const sensor_msgs::JoyConstPtr& joy_msg)
 {
+    ROS_INFO_THROTTLE(1,"joy cb");
     last_joy_msg_time_ = ros::Time::now();
     joy_ = *joy_msg;
+
+    if(joy_.buttons[5] == 1){
+        flag_alt_hold_ = true;
+        ROS_INFO("ALT HOLD");
+    }
 
     geometry_msgs::Twist cmd_out;
     if(joy_.buttons[4] == 1){
         cmd_out.linear.x = joy_.axes[4]*max_forward_speed_;
         cmd_out.linear.y = joy_.axes[3]*max_lateral_speed_;
-        cmd_out.linear.z = joy_.axes[0]*max_vertical_speed_;
-        cmd_out.linear.y = joy_.axes[1]*max_yaw_rate_;
+        cmd_out.linear.z = joy_.axes[1]*max_vertical_speed_;
+        if(flag_alt_hold_){
+            cmd_out.linear.z = 0;
+        }
+        cmd_out.angular.z = joy_.axes[0]*max_yaw_rate_;
         pub_cmd_.publish(cmd_out);
     } else {
         pub_cmd_.publish(cmd_out);
