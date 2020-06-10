@@ -4,6 +4,8 @@
   <arg name="name" default="OHRAD_X3"/>
   <group ns="$(arg name)">
 
+    <include file="$(find teleop_twist_joy)/launch/sim_teleop.launch"/>
+
     <node name="joy_teleop_mixer" type="joy_teleop_mixer" pkg="nearness_control" output="screen">
       <remap from="joy_teleop_mixer/joy" to="joy"/>
       <remap from="joy_teleop_mixer/cmd_vel" to="cmd_vel"/>

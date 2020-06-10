@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+
+<launch>
+  <arg name="name" default="OHRAD_X3"/>
+  <group ns="$(arg name)">
+    <node name="tf2odom" type="tf2odom" pkg="nearness_control" output="screen">
+      <remap from="tf2odom/cmd_vel" to="cmd_vel"/>
+
+    </node>
+
+  </group>
+
+</launch>
