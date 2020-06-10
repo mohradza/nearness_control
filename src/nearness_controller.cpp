@@ -22,6 +22,12 @@ void NearnessController::init() {
     subt_enable_control_ = nh_.subscribe("enable_control", 1, &NearnessController::enableControlCb, this);
     sub_next_waypoint_ = nh_.subscribe("next_waypoint", 1, &NearnessController::nextWaypointCb, this);
 
+    pub_h_scan_reformat_ = nh_.advertise<std_msgs::Float32MultiArray>("horiz_depth_reformat", 10);
+    pub_h_scan_nearness_ = nh_.advertise<std_msgs::Float32MultiArray>("horiz_nearness", 10);
+    pub_h_sf_nearness_ = nh_.advertise<std_msgs::Float32MultiArray>("horiz_sf_nearness", 10);
+    pub_h_recon_wf_nearness_ = nh_.advertise<std_msgs::Float32MultiArray>("horiz_recon_wf_nearness", 10);
+    pub_h_fourier_coefficients_ = nh_.advertise<nearness_control::FourierCoefsMsg>("horiz_fourier_coefficients", 10);
+    pub_h_sf_yawrate_command_ = nh_.advertise<std_msgs::Float32>("sf_yawrate_command", 10);
     pub_control_commands_ = nh_.advertise<geometry_msgs::Twist>("control_commands", 10);
     //pub_debug_weighting_ = nh_.advertise<std_msgs::Float32MultiArray>("debug_weighting", 10);
     pub_vehicle_status_ = nh_.advertise<std_msgs::Int32>("vehicle_status", 10);
@@ -185,6 +191,8 @@ void NearnessController::horizLaserscanCb(const sensor_msgs::LaserScanPtr h_lase
     computeForwardSpeedCommand();
 
     computeWFYawRateCommand();
+
+    computeSFYawRateCommand();
 
     if(enable_attractor_control_){
         computeAttractorCommand();
@@ -383,7 +391,6 @@ void NearnessController::computeSFYawRateCommand(){
     }
     int num_trimmed_points = num_h_scan_points_-(2*edge_band);
 
-
     // Compute the standard deviation of the SF signal
     h_sf_mean_val = h_sf_mean_sum / float(num_trimmed_points);
     float h_sf_std_dev = 0.0;
@@ -408,7 +415,6 @@ void NearnessController::computeSFYawRateCommand(){
             h_sf_r_cmd_ = h_sf_k_0_ * sgn(r_0) * exp(-h_sf_k_psi_ * abs(r_0)) * exp(-h_sf_k_d_/abs(d_0));
         }
     } else {
-
         // Do clustering and mixing
         std::vector<float> sf_d_cluster;
         std::vector<float> sf_r_cluster;
@@ -443,6 +449,7 @@ void NearnessController::computeSFYawRateCommand(){
         num_sf_clusters_ = c;
         h_sf_r_cmd_ = 0.0;
         int sign = 1;
+
         if(num_sf_clusters_ != 0){
             for(int i = 0; i < num_sf_clusters_; i++){
                 if(cluster_r[i] < 0) sign = 1;
@@ -470,6 +477,13 @@ void NearnessController::computeSFYawRateCommand(){
         std_msgs::Float32 h_sf_cmd_msg;
         h_sf_cmd_msg.data = h_sf_r_cmd_;
         pub_h_sf_yawrate_command_.publish(h_sf_cmd_msg);
+
+        std_msgs::Float32MultiArray h_sf_nearness_msg;
+        h_sf_nearness_msg.layout.dim.push_back(std_msgs::MultiArrayDimension());
+        h_sf_nearness_msg.layout.dim[0].size = h_sf_nearness_trimmed.size();
+        h_sf_nearness_msg.data.clear();
+        h_sf_nearness_msg.data.insert(h_sf_nearness_msg.data.end(), h_sf_nearness_trimmed.begin(), h_sf_nearness_trimmed.end());
+        pub_h_sf_nearness_.publish(h_sf_nearness_msg);
 
         std_msgs::Float32MultiArray recon_wf_nearness_msg;
         recon_wf_nearness_msg.layout.dim.push_back(std_msgs::MultiArrayDimension());
@@ -678,7 +692,7 @@ void NearnessController::publishControlCommandMsg(){
         control_command_.twist.angular.z = 0.0;
     }
 
-    pub_control_commands_stamped_.publish(control_command_);
+    //pub_control_commands_stamped_.publish(control_command_);
     pub_control_commands_.publish(control_command_.twist);
 
 }
@@ -693,28 +707,19 @@ void NearnessController::odomCb(const nav_msgs::OdometryConstPtr& odom_msg){
 
 void NearnessController::joyconCb(const sensor_msgs::JoyConstPtr& joy_msg)
 {
-    if((joy_msg->buttons[2] == 1)){
-        flag_estop_ = false;
-        ROS_INFO_THROTTLE(2,"Controller ESTOP disengaged");
 
-    }
-	  if(joy_msg->buttons[1] == 1){
-        flag_estop_ = true;
-	      ROS_INFO_THROTTLE(2,"Controller ESTOP engaged");
-    }
-
-    if(joy_msg->buttons[7] == 1){
-        ROS_INFO_THROTTLE(1,"Disable estop");
-        std_msgs::Bool engage_msg;
-        engage_msg.data = false;
-        pub_estop_engage_.publish(engage_msg);
-    }
-    if(joy_msg->buttons[6] == 1){
-        ROS_INFO_THROTTLE(1,"Enable estop");
-        std_msgs::Bool engage_msg;
-        engage_msg.data = true;
-        pub_estop_engage_.publish(engage_msg);
-    }
+    // if(joy_msg->buttons[7] == 1){
+    //     ROS_INFO_THROTTLE(1,"Disable estop");
+    //     std_msgs::Bool engage_msg;
+    //     engage_msg.data = false;
+    //     pub_estop_engage_.publish(engage_msg);
+    // }
+    // if(joy_msg->buttons[6] == 1){
+    //     ROS_INFO_THROTTLE(1,"Enable estop");
+    //     std_msgs::Bool engage_msg;
+    //     engage_msg.data = true;
+    //     pub_estop_engage_.publish(engage_msg);
+    // }
 }
 
 void NearnessController::enableControlCb(const std_msgs::BoolConstPtr& enable_msg){

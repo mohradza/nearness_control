@@ -1,11 +1,13 @@
 <launch>
 
+  <group ns="Zenith">
+
+
   <include file="$(find nearness_control)/launch/marble/nearness_control.launch">
 
     <arg name="enable_debug"                value="true"/>
-    <arg name="is_ground_vehicle"           value="true"/>
     <arg name="enable_wf_control"           value="true"/>
-    <arg name="enable_sf_control"           value="true"/>
+    <arg name="enable_sf_control"           value="false"/>
     <arg name="enable_attractor_control"    value="false"/>
     <arg name="enable_command_weighting"    value="false"/>
     <arg name="enable_sf_clustering"        value="true"/>
@@ -16,7 +18,7 @@
 
     <!-- CCW IS (should be) POS, FWD IS (should be) POS -->
     <arg name="reverse_yaw_rate_cmd"        value="false"/>
-    <arg name="reverse_wf_yaw_rate_cmd"     value="true"/>
+    <arg name="reverse_wf_yaw_rate_cmd"     value="false"/>
     <arg name="reverse_forward_speed_cmd"   value="false"/>
 
     <!-- Horizontal Scanner Sensor Parameters -->
@@ -46,5 +48,5 @@
   <node pkg="dynamic_reconfigure" name="nearness_controller_parameter_config" type="dynparam" args="load nearness_control_node $(find nearness_control)/cfg/Zenith_params.yaml"/>
 
   <node pkg="topic_tools" name="cmd_vel_relay" type="relay" args="nearness_controller/control_commands nav_vel" />
-
+</group>
 </launch>
