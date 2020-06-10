@@ -37,13 +37,13 @@
     <arg name="front_safety_distance"       value="0.2"/>
     <arg name="side_safety_distance"        value="0.35"/>
     <arg name="close_side_speed"            value="0.1"/>
-
-    <arg name="vehicle_roll_angle_limit"    value="15.0"/>
-    <arg name="vehicle_pitch_angle_limit"   value="15.0"/>
+    <!-- These aren't really used right now -->
+    <arg name="vehicle_roll_angle_limit"    value="45.0"/>
+    <arg name="vehicle_pitch_angle_limit"   value="45.0"/>
 
   </include>
 
-  <node pkg="dynamic_reconfigure" name="nearness_controller_parameter_config" type="dynparam" args="load nearness_control_node $(find nearness_control)/cfg/Husky_params.yaml"/>
+  <node pkg="dynamic_reconfigure" name="nearness_controller_parameter_config" type="dynparam" args="load nearness_control_node $(find nearness_control)/cfg/Zenith_params.yaml"/>
 
   <node pkg="topic_tools" name="cmd_vel_relay" type="relay" args="nearness_controller/control_commands nav_vel" />
 
