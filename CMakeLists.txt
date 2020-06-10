@@ -76,13 +76,6 @@ target_link_libraries(nearness_controller ${catkin_LIBRARIES} ${Boost_LIBRARIES}
 add_executable(nearness_controller_node src/nearness_controller_node.cpp)
 target_link_libraries(nearness_controller_node nearness_controller ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${OpenCV_LIBS})
 
-add_library(nearness_control_3d src/nearness_control_3d.cpp)
-add_dependencies(nearness_control_3d ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_generate_messages_cpp)
-target_link_libraries(nearness_control_3d ${catkin_LIBRARIES} ${Boost_LIBRARIES})
-
-add_executable(nearness_control_3d_node src/nearness_control_3d_node.cpp)
-target_link_libraries(nearness_control_3d_node nearness_control_3d ${catkin_LIBRARIES} ${Boost_LIBRARIES})
-
 add_library(control_mixer_node src/control_mixer_node.cpp)
 target_link_libraries(control_mixer_node ${catkin_LIBRARIES} ${Boost_LIBRARIES})
 

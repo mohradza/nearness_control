@@ -57,34 +57,23 @@ class NearnessController {
 
     // FUNCTIONS //
     void horizLaserscanCb(const sensor_msgs::LaserScanPtr h_laserscan_msg);
-    void vertLaserscanCb(const sensor_msgs::LaserScanPtr v_laserscan_msg);
-
     void joyconCb(const sensor_msgs::JoyConstPtr& joy_msg);
     void odomCb(const nav_msgs::OdometryConstPtr& odom_msg);
     void imuCb(const sensor_msgs::ImuConstPtr& imu_msg);
     void sonarHeightCb(const sensor_msgs::RangeConstPtr& range_msg);
     void nextWaypointCb(const geometry_msgs::PointStampedConstPtr& next_waypoint_msg);
-    void terrainScanCb(const sensor_msgs::LaserScan::ConstPtr& terrain_scan_msg);
     void towerSafetyCb(const std_msgs::Int32ConstPtr& safety_msg);
-    void beaconStopCb(const std_msgs::BoolConstPtr& beacon_stop_msg);
-    void octoLaserscanCb(const sensor_msgs::LaserScanConstPtr& octo_laserscan_msg);
     void convertHLaserscan2CVMat(const sensor_msgs::LaserScanPtr h_laserscan_msg);
-    void convertVLaserscan2CVMat(const sensor_msgs::LaserScanPtr v_laserscan_msg);
     void computeHorizFourierCoeffs();
-    void computeVertFourierCoeffs();
     void computeForwardSpeedCommand();
     void computeWFYawRateCommand();
     void computeSFYawRateCommand();
-    void computeTerrainYawRateCommand();
     void computeAttractorCommand();
-    void computeLateralSpeedCommand();
     void computeWFVerticalSpeedCommand();
     void computeSFVerticalSpeedCommand();
     void publishControlCommandMsg();
     void checkVehicleStatus();
     void enableControlCb(const std_msgs::BoolConstPtr& enable_msg);
-    //void calc_sf_yaw_rate_command();
-    //void pub_control_command_msg();
 
  private:
     // public ros node handle
@@ -96,14 +85,11 @@ class NearnessController {
     // SUBSCRIBERS //
     ros::Subscriber sub_horiz_laserscan_;
     ros::Subscriber sub_vert_laserscan_;
-    ros::Subscriber sub_bluetooth_joy_;
+    ros::Subscriber sub_joy_;
     ros::Subscriber sub_odom_;
     ros::Subscriber sub_imu_;
     ros::Subscriber sub_next_waypoint_;
-    ros::Subscriber sub_terrain_scan_;
     ros::Subscriber sub_tower_safety_;
-    ros::Subscriber sub_beacon_stop_;
-    ros::Subscriber sub_octo_laserscan_;
     ros::Subscriber subt_enable_control_;
 
     // PUBLISHERS //
@@ -114,16 +100,9 @@ class NearnessController {
     ros::Publisher pub_h_fourier_coefficients_;
     ros::Publisher pub_h_sf_yawrate_command_;
 
-    ros::Publisher pub_v_scan_reformat_;
-    ros::Publisher pub_v_scan_nearness_;
-    ros::Publisher pub_v_sf_nearness_;
-    ros::Publisher pub_v_recon_wf_nearness_;
-    ros::Publisher pub_v_fourier_coefficients_;
-    ros::Publisher pub_v_sf_vertspeed_command_;
-
     ros::Publisher pub_control_commands_;
     ros::Publisher pub_control_commands_stamped_;
-    ros::Publisher pub_debug_weighting_;
+    //ros::Publisher pub_debug_weighting_;
     ros::Publisher pub_vehicle_status_;
 
     ros::Publisher pub_estop_engage_;
@@ -163,16 +142,6 @@ class NearnessController {
     int h_scan_start_index_;
     double h_sensor_min_noise_;
     bool reverse_h_scan_;
-    // Sensor - Vertical
-    int total_v_scan_points_;
-    int num_v_scan_points_;
-    double v_scan_limit_;
-    std_msgs::String v_scan_start_loc_;
-    double v_sensor_max_dist_;
-    double v_sensor_min_dist_;
-    int v_scan_start_index_;
-    double v_sensor_min_noise_;
-    bool reverse_v_scan_;
 
     // Safety
     bool enable_safety_boundary_;
@@ -206,61 +175,37 @@ class NearnessController {
     double h_sf_k_d_;
     double h_sf_k_psi_;
     double h_sf_k_thresh_;
-    double v_sf_k_0_;
-    double v_sf_k_d_;
-    double v_sf_k_psi_;
-    double v_sf_k_thresh_;
-    double v_sf_w_cmd_;
-    double v_k_hb_1_;
-    double v_max_;
-    double w_k_1_;
-    double w_k_2_;
-    double w_max_;
     double r_k_att_0_;
     double r_k_att_d_;
     double r_k_att_turn_;
     bool enable_attractor_control_;
-    bool is_ground_vehicle_;
     bool have_attractor_;
     bool enable_wf_control_;
     bool attractor_turn_;
     bool enable_command_weighting_;
     bool enable_att_speed_reg_;
     double attractor_latch_thresh_;
-    bool enable_terrain_control_;
     bool enable_tower_safety_;
     bool motion_on_startup_;
 
     // Init
     std::vector<float> h_gamma_vector_;
-    std::vector<float> v_gamma_vector_;
     std::vector<float> safety_boundary_;
     int left_corner_index_;
     bool flag_too_close_front_;
     bool flag_too_close_side_;
     double close_side_speed_;
     float h_dg_;
-    float v_dg_;
-    float range_agl_;
     bool debug_;
-    bool flag_beacon_stop_;
 
     // converHtLaserscan2CVMat
     int h_num_fourier_terms_;
     cv::Mat h_depth_cvmat_;
 
-    // convertVLaserscan2CVMat
-    int v_num_fourier_terms_;
-    cv::Mat v_depth_cvmat_;
-
     // computeHorizFourierCoeffs
     float h_a_[10], h_b_[10];
     cv::Mat h_nearness_;
     float h_nearness_l2_norm_;
-
-    // computeVertFourierCoeffs
-    float v_a_[10], v_b_[10];
-    cv::Mat v_nearness_;
 
     // computeSFYawRateCommand
     float h_sf_r_cmd_;
@@ -282,12 +227,6 @@ class NearnessController {
     // computeWFYawRateCommand
     float h_wf_r_cmd_;
 
-    // computeLateralSpeedCommand
-    float h_wf_v_cmd_;
-
-    // computeVertFourierCoeffs
-    float v_wf_w_cmd_;
-
     // publishControlCommandMsg
     geometry_msgs::TwistStamped control_command_;
 
@@ -304,21 +243,6 @@ class NearnessController {
     double current_pitch_;
     double current_heading_;
 
-    // terrain
-    int num_tscan_points_;
-    std::vector<float> tscan_gamma_vector_;
-    std::vector<float> ter_cluster_d_;
-    std::vector<float> ter_cluster_r_;
-    int num_ter_clusters_;
-    double terrain_thresh_;
-    bool flag_terrain_too_close_front_;
-    double terrain_front_safety_radius_;
-    float terrain_r_cmd_;
-    double ter_sf_k_0_;
-    double ter_sf_k_d_;
-    double ter_sf_k_psi_;
-
-
     // Tower Safety
     bool flag_safety_too_close_;
     bool flag_safety_getting_close_;
@@ -330,11 +254,6 @@ class NearnessController {
     int safety_too_close_num_votes_;
     int safety_counter1_;
     int safety_counter2_;
-
-    // Octomap Turn Around
-    float turn_around_thresh_;
-    bool flag_octo_too_close_;
-    float backup_attractor_yaw_cmd_;
 
     // LP Filtering
     bool enable_cmd_lp_filter_;
@@ -349,23 +268,6 @@ class NearnessController {
     float last_ter_r_cmd_;
     double alpha_ter_r_cmd_;
 
-    // Stuck / Unstuck
-    bool enable_unstuck_;
-    double stuck_maneuver_backup_timer_;
-    double stuck_time_limit_;
-    bool flag_stuck_;
-    ros::Time stuck_timer_;
-    ros::Time stuck_maneuver_timer_start_;
-    bool stuck_timer_flag_;
-    bool flag_stuck_maneuver_;
-    bool completed_stuck_turn_;
-    float turn_around_error_;
-    float turn_around_angle_;
-    bool move_forward_;
-    bool move_forward_switch_;
-    float move_forward_dur_s_;
-    ros::Time move_forward_time_;
-
     // imuCb
     double roll_;
     double pitch_;
@@ -374,9 +276,6 @@ class NearnessController {
     double pitch_limit_;
     bool flag_safety_attitude_;
     bool enable_attitude_limits_;
-
-
-
 
 }; // class SimpleNodeClass
 

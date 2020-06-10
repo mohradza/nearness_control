@@ -18,50 +18,32 @@ void NearnessController::init() {
     sub_horiz_laserscan_ = nh_.subscribe("horiz_scan", 1, &NearnessController::horizLaserscanCb, this);
     sub_odom_ = nh_.subscribe("odometry", 1, &NearnessController::odomCb, this);
     sub_imu_ = nh_.subscribe("imu", 1, &NearnessController::imuCb, this);
-    sub_bluetooth_joy_ = nh_.subscribe("joy", 1, &NearnessController::joyconCb, this);
+    sub_joy_ = nh_.subscribe("joy", 1, &NearnessController::joyconCb, this);
     subt_enable_control_ = nh_.subscribe("enable_control", 1, &NearnessController::enableControlCb, this);
-
-    //sub_imu_ = nh_.subscribe("imu_raw", 1, &NearnessController::imuCb, this);
     sub_next_waypoint_ = nh_.subscribe("next_waypoint", 1, &NearnessController::nextWaypointCb, this);
-    sub_terrain_scan_ = nh_.subscribe("terrain_scan", 1, &NearnessController::terrainScanCb, this);
-    sub_beacon_stop_ = nh_.subscribe("beacon_stop", 1, &NearnessController::beaconStopCb, this);
 
     pub_control_commands_ = nh_.advertise<geometry_msgs::Twist>("control_commands", 10);
-    pub_debug_weighting_ = nh_.advertise<std_msgs::Float32MultiArray>("debug_weighting", 10);
+    //pub_debug_weighting_ = nh_.advertise<std_msgs::Float32MultiArray>("debug_weighting", 10);
     pub_vehicle_status_ = nh_.advertise<std_msgs::Int32>("vehicle_status", 10);
     pub_estop_engage_ = nh_.advertise<std_msgs::Bool>("estop_cmd", 10);
     pub_sf_clustering_debug_ = nh_.advertise<nearness_control::ClusterMsg>("sf_clusters", 10);
-    pub_ter_clusters_ = nh_.advertise<nearness_control::ClusterMsg>("ter_clusters", 10);
 
     // Initialize global variables
     have_attractor_ = false;
     lost_attractor_ = false;
     flag_estop_ = true;
-    flag_beacon_stop_ = false;
     control_command_.header.frame_id = "/base_stabilized";
-    flag_octo_too_close_ = false;
     flag_safety_too_close_ = false;
-    enable_backup_ = false;
-    last_ter_r_cmd_ = 0.0;
-    x_vel_filt_last_ = 0.0;scanf("
-    \n", );
+    x_vel_filt_last_ = 0.0;
     r_vel_filt_last_ = 0.0;
     h_wf_r_filt_last_ = 0.0;
     att_angle_error_ = 0.0;
-    flag_stuck_ = false;
-    stuck_timer_flag_ = false;
-    flag_stuck_maneuver_ = false;
-    stuck_timer_ = ros::Time::now();
-    stuck_maneuver_timer_start_ = ros::Time::now();
     enable_attitude_limits_ = false;
-    completed_stuck_turn_ = false;
 
     // Import parameters
     pnh_.param("enable_debug", debug_, false);
-    pnh_.param("is_ground_vehicle", is_ground_vehicle_, true);
     pnh_.param("enable_wf_control", enable_wf_control_, true);
     pnh_.param("enable_sf_control", enable_sf_control_, false);
-    pnh_.param("enable_terrain_control", enable_terrain_control_, false);
     pnh_.param("enable_attractor_control", enable_attractor_control_, false);
     pnh_.param("enable_command_weighting", enable_command_weighting_, false);
     pnh_.param("enable_sf_clustering", enable_sf_clustering_, false);
@@ -84,7 +66,6 @@ void NearnessController::init() {
     pnh_.param("horiz_sensor_min_noise", h_sensor_min_noise_ , .1);
     pnh_.param("reverse_horiz_scan", reverse_h_scan_, true);
     pnh_.param("num_horiz_fourier_terms", h_num_fourier_terms_, 5);
-
 
     // Safety
     pnh_.param("enable_safety_boundary", enable_safety_boundary_, false);
@@ -118,13 +99,6 @@ void NearnessController::init() {
     pnh_.param("h_sf_k_psi", h_sf_k_psi_, 0.4);
     pnh_.param("h_sf_k_thresh", h_sf_k_thresh_, 3.0);
 
-    // Terrain Control Gains
-    pnh_.param("ter_sf_k_0", ter_sf_k_0_, 0.5);
-    pnh_.param("ter_sf_k_d", ter_sf_k_d_, 1.0);
-    pnh_.param("ter_sf_k_psi", ter_sf_k_psi_, 0.4);
-    pnh_.param("terrain_thresh", terrain_thresh_, 3.0);
-    pnh_.param("terrain_front_safety_radius", terrain_front_safety_radius_, 1.0);
-
     // Attractor Control Gains
     pnh_.param("yaw_rate_k_att_0", r_k_att_0_, 1.0);
     pnh_.param("yaw_rate_k_att_d_", r_k_att_d_, 0.1);
@@ -137,30 +111,17 @@ void NearnessController::init() {
     pnh_.param("yaw_rate_lp_filter_alpha", alpha_r_vel_, 1.0);
     pnh_.param("wf_yaw_rate_lp_filter_alpha", alpha_h_wf_r_, 1.0);
     pnh_.param("sf_yaw_rate_lp_filter_alpha", alpha_h_sf_r_, 1.0);
-    pnh_.param("ter_yaw_rate_lp_filter_alpha_", alpha_ter_r_cmd_, 1.0);
     //ROS_INFO("u_a: %f, r_a: %f, wf_a: %f, sf_a: %f", alpha_x_vel_, alpha_r_vel_, alpha_h_wf_r_, alpha_h_sf_r_);
 
     // Vehicle status
     pnh_.param("vehicle_roll_angle_limit", roll_limit_, 15.0);
     pnh_.param("vehicle_pitch_angle_limit", pitch_limit_, 15.0);
 
-    // Stuck Parameters
-    pnh_.param("enable_unstuck", enable_unstuck_, true);
-    ROS_INFO("%d", enable_unstuck_);
-    pnh_.param("stuck_time_limit", stuck_time_limit_, 10.0);
-    pnh_.param("stuck_maneuver_backup_timer", stuck_maneuver_backup_timer_, 10.0);
-
     // Generate the horizontal gamma vector
     for(int i=0; i<num_h_scan_points_; i++){
         h_gamma_vector_.push_back((float(i)/float(num_h_scan_points_))*(2*h_scan_limit_) - h_scan_limit_);
     }
     h_dg_ = (2.0*h_scan_limit_)/num_h_scan_points_;
-    //ROS_INFO("%f", h_dg_);
-    // Initialize the gamma_array vector for terrain assesment
-    num_tscan_points_ = 90;
-    for(int i=0; i<num_tscan_points_; i++) {
-       tscan_gamma_vector_.push_back((float(i)/float(num_tscan_points_))*M_PI/2 - M_PI/4);
-    }
 
     // Create safety boundary
     if(enable_safety_boundary_){
@@ -210,15 +171,6 @@ void NearnessController::configCb(Config &config, uint32_t level)
     h_sf_k_psi_ = config_.h_sf_k_psi;
     h_sf_k_d_ = config_.h_sf_k_d;
 
-    terrain_thresh_ = config_.terrain_thresh;
-    ter_sf_k_0_ = config_.ter_sf_k_0;
-    ter_sf_k_psi_ = config_.ter_sf_k_psi;
-    ter_sf_k_d_ = config_.ter_sf_k_d;
-
-
-    //ROS_INFO("%f, %f", w_max_, u_min_);
-    //ROS_INFO("k_0: %f, kd: %f, thresh:%f", ter_sf_k_0_, ter_sf_k_d_, terrain_thresh_);
-
 }
 
 void NearnessController::horizLaserscanCb(const sensor_msgs::LaserScanPtr h_laserscan_msg){
@@ -234,25 +186,170 @@ void NearnessController::horizLaserscanCb(const sensor_msgs::LaserScanPtr h_lase
 
     computeWFYawRateCommand();
 
-    if(enable_terrain_control_){
-        computeTerrainYawRateCommand();
-    } else {
-        terrain_r_cmd_ = 0.0;
-    }
-
     if(enable_attractor_control_){
         computeAttractorCommand();
     } else {
         attractor_yaw_cmd_ = 0.0;
     }
 
-    if(enable_unstuck_){
-        checkVehicleStatus();
-    }
-
     publishControlCommandMsg();
 
 }
+
+void NearnessController::convertHLaserscan2CVMat(const sensor_msgs::LaserScanPtr h_laserscan_msg){
+    std::vector<float> h_depth_vector = h_laserscan_msg->ranges;
+    std::vector<float> h_depth_vector_noinfs = h_depth_vector;
+
+    // handle infs due to sensor max distance
+    for(int i = 0; i<total_h_scan_points_; i++){
+        if(isinf(h_depth_vector[i])){
+            //h_depth_vector[i] = h_sensor_max_dist_;
+            if(i == 0){
+                if(isinf(h_depth_vector[i+1])){
+                    h_depth_vector_noinfs[i] = h_sensor_max_dist_;
+                } else {
+                    h_depth_vector_noinfs[i] = h_depth_vector[i+1];
+                }
+            } else if(i == total_h_scan_points_){
+                if(isinf(h_depth_vector[i-1])){
+                    h_depth_vector_noinfs[i] = h_sensor_max_dist_;
+                } else {
+                    h_depth_vector_noinfs[i] = h_depth_vector[i-1];
+                }
+            } else {
+                if(isinf(h_depth_vector[i-1]) && isinf(h_depth_vector[i+1])){
+                    h_depth_vector_noinfs[i] = h_sensor_max_dist_;
+                } else {
+                    h_depth_vector_noinfs[i] = (h_depth_vector[i-1] + h_depth_vector[i+1])/2.0;
+                }
+            }
+        }
+        h_depth_vector = h_depth_vector_noinfs;
+    }
+
+    // Reverse the direction
+    // Only reverse if the scan point indices are positive ccw
+    if(reverse_h_scan_){
+        std::reverse(h_depth_vector.begin(), h_depth_vector.end());
+    }
+
+    // Reformat the depth scan depending on the orientation of the scanner
+    // scan_start_loc describes the location of the first scan index
+    std::vector<float> h_depth_vector_reformat;
+    h_scan_start_loc_.data = "back";
+    if (h_scan_start_loc_.data == "forward"){
+        h_depth_vector_reformat = h_depth_vector;
+    } else if (h_scan_start_loc_.data == "right"){
+        for (int i = 3*total_h_scan_points_/4; i < total_h_scan_points_; i++) {
+            h_depth_vector_reformat.push_back(h_depth_vector[i]);
+        }
+        for (int i = 0; i < 3*total_h_scan_points_/4; i++){
+            h_depth_vector_reformat.push_back(h_depth_vector[i]);
+        }
+    } else if (h_scan_start_loc_.data == "back"){
+        for (int i = total_h_scan_points_/2; i < total_h_scan_points_; i++) {
+            h_depth_vector_reformat.push_back(h_depth_vector[i]);
+        }
+        for (int i = 0; i < total_h_scan_points_/2; i++){
+            h_depth_vector_reformat.push_back(h_depth_vector[i]);
+        }
+    } else if (h_scan_start_loc_.data == "left"){
+        for (int i = total_h_scan_points_/4; i < total_h_scan_points_; i++) {
+            h_depth_vector_reformat.push_back(h_depth_vector[i]);
+        }
+        for (int i = 0; i < total_h_scan_points_/4; i++){
+            h_depth_vector_reformat.push_back(h_depth_vector[i]);
+        }
+    } else {
+        h_depth_vector_reformat = h_depth_vector;
+    }
+
+    // Trim the scan down if the entire scan is not being used
+    std::vector<float> h_depth_vector_trimmed;
+    //ROS_INFO("%d", h_scan_start_index_);
+    for(int i=0; i<num_h_scan_points_; i++){
+        h_depth_vector_trimmed.push_back(h_depth_vector_reformat[i+h_scan_start_index_]);
+    }
+
+    // Check to see if anything has entered the safety boundary
+    if(enable_safety_boundary_){
+        checkSafetyBoundary(h_depth_vector_trimmed);
+    }
+
+     // Publish the reformatted scan
+     if(debug_){
+        std_msgs::Float32MultiArray h_depth_scan_reformat_msg;
+        h_depth_scan_reformat_msg.layout.dim.push_back(std_msgs::MultiArrayDimension());
+        h_depth_scan_reformat_msg.data.clear();
+        h_depth_scan_reformat_msg.data = h_depth_vector_trimmed;
+        //h_depth_scan_reformat_msg.data = h_depth_vector;
+        pub_h_scan_reformat_.publish(h_depth_scan_reformat_msg);
+    }
+
+    // Last, convert to cvmat and saturate
+    h_depth_cvmat_ = cv::Mat(1,num_h_scan_points_, CV_32FC1);
+    std::memcpy(h_depth_cvmat_.data, h_depth_vector_trimmed.data(), h_depth_vector_trimmed.size()*sizeof(float));
+    h_depth_cvmat_.setTo(h_sensor_min_dist_, h_depth_cvmat_ < h_sensor_min_dist_);
+    h_depth_cvmat_.setTo(h_sensor_max_dist_, h_depth_cvmat_ > h_sensor_max_dist_);
+
+} // End of convertHLaserscan2CVMat
+
+void NearnessController::computeHorizFourierCoeffs(){
+    float h_cos_gamma_arr[h_num_fourier_terms_ + 1][num_h_scan_points_];
+    float h_sin_gamma_arr[h_num_fourier_terms_ + 1][num_h_scan_points_];
+
+
+    // Compute horizontal nearness
+    h_nearness_ = cv::Mat::zeros(cv::Size(1, num_h_scan_points_), CV_32FC1);
+    h_nearness_ = 1.0/ h_depth_cvmat_;
+
+    std::vector<float> h_nearness_array(h_nearness_.begin<float>(), h_nearness_.end<float>());
+    h_nearness_maxval_ = *std::max_element(h_nearness_array.begin(), h_nearness_array.end());
+
+    // Pull out the L2 norm of the measured nearness signal
+    float norm_sum = 0.0;
+    //std::accumulate(h_depth_vector_reformat.begin(), h_depth_vector_reformat.end
+    for(int i=0; i<num_h_scan_points_; i++){
+        norm_sum += pow(h_nearness_array[i],2);
+    }
+    h_nearness_l2_norm_ = sqrt(norm_sum);
+    //ROS_INFO_THROTTLE(1,"maxval: %f, norm: %f", h_nearness_maxval_, h_nearness_l2_norm_);
+
+    // Publish horizontal nearness
+    if(debug_){
+        std_msgs::Float32MultiArray h_nearness_msg;
+        h_nearness_msg.layout.dim.push_back(std_msgs::MultiArrayDimension());
+        h_nearness_msg.layout.dim[0].size = h_nearness_array.size();
+        h_nearness_msg.data.clear();
+        h_nearness_msg.data.insert(h_nearness_msg.data.end(), h_nearness_array.begin(), h_nearness_array.end());
+        pub_h_scan_nearness_.publish(h_nearness_msg);
+    }
+
+    // Compute the Fourier Coefficients
+    cv::Mat h_cos_gamma_mat(h_num_fourier_terms_ + 1, num_h_scan_points_, CV_32FC1, h_cos_gamma_arr);
+    cv::Mat h_sin_gamma_mat(h_num_fourier_terms_ + 1, num_h_scan_points_, CV_32FC1, h_sin_gamma_arr);
+
+    for (int i = 0; i < h_num_fourier_terms_ + 1; i++) {
+        for (int j = 0; j < num_h_scan_points_; j++) {
+            h_cos_gamma_arr[i][j] = cos(i * h_gamma_vector_[j]);
+            h_sin_gamma_arr[i][j] = sin(i * h_gamma_vector_[j]);
+        }
+        h_a_[i] = h_nearness_.dot(h_cos_gamma_mat.row(i)) * h_dg_ / M_PI;
+        h_b_[i] = h_nearness_.dot(h_sin_gamma_mat.row(i)) * h_dg_ / M_PI;
+    }
+
+    // Publish horizontal WFI Fourier coefficients
+    // Convert array to vector
+    std::vector<float> h_a_vector(h_a_, h_a_ + sizeof h_a_ / sizeof h_a_[0]);
+    std::vector<float> h_b_vector(h_b_, h_b_ + sizeof h_b_ / sizeof h_b_[0]);
+
+    nearness_control::FourierCoefsMsg h_fourier_coefs_msg;
+    h_fourier_coefs_msg.header.stamp = ros::Time::now();
+    h_fourier_coefs_msg.a = h_a_vector;
+    h_fourier_coefs_msg.b = h_b_vector;
+    pub_h_fourier_coefficients_.publish(h_fourier_coefs_msg);
+
+} // End of computeHorizFourierCoeffs
 
 void NearnessController::computeSFYawRateCommand(){
     std::vector<float> h_nearness(h_nearness_.begin<float>(), h_nearness_.end<float>());
@@ -373,7 +470,7 @@ void NearnessController::computeSFYawRateCommand(){
         std_msgs::Float32 h_sf_cmd_msg;
         h_sf_cmd_msg.data = h_sf_r_cmd_;
         pub_h_sf_yawrate_command_.publish(h_sf_cmd_msg);
-]
+
         std_msgs::Float32MultiArray recon_wf_nearness_msg;
         recon_wf_nearness_msg.layout.dim.push_back(std_msgs::MultiArrayDimension());
         recon_wf_nearness_msg.layout.dim[0].size = recon_wf_nearness.size();
@@ -383,24 +480,6 @@ void NearnessController::computeSFYawRateCommand(){
 
     }
 }
-void NearnessController::computeTerrainYawRateCommand(){
-    // Add in the terrain num_points
-    float ter_r_cmd = 0.0;
-    int sign=1;
-    //alpha_ter_r_cmd_ = .25;
-    if(!ter_cluster_d_.empty()){
-        for(int i=0; i < num_ter_clusters_; i++){
-            if(ter_cluster_r_[i] >= 0) sign = -1;
-            if(ter_cluster_r_[i] < 0) sign = 1;
-            ter_r_cmd += ter_sf_k_0_ * float(sign) * exp(-ter_sf_k_psi_ * abs(ter_cluster_r_[i])) * exp(-ter_sf_k_d_ / abs(ter_cluster_d_[i]));
-            //ROS_INFO("ter_r_cmd_: %f", terrain_r_cmd_);
-
-        }
-    }
-    terrain_r_cmd_ = alpha_ter_r_cmd_*ter_r_cmd + (1.0 - alpha_ter_r_cmd_)*last_ter_r_cmd_;
-    last_ter_r_cmd_ = terrain_r_cmd_;
-    //ROS_INFO("prefilter: %f, , last: %f, postfiler: %f", ter_r_cmd, last_ter_r_cmd_, terrain_r_cmd_);
-}
 
 void NearnessController::computeForwardSpeedCommand(){
     float angle_error = wrapAngle(relative_attractor_heading_ - current_heading_);
@@ -408,7 +487,7 @@ void NearnessController::computeForwardSpeedCommand(){
         angle_error = 0.0;
     }
     if(enable_wf_control_){
-        u_cmd_ = u_max_ * (1 - u_k_hb_1_*abs(h_b_[1]) - u_k_hb_2_*abs(h_b_[2]) - u_k_hb_1_*abs(h_a_[1]) - u_k_hb_2_*abs(h_a_[2]) -abs(h_sf_r_cmd_) - abs(terrain_r_cmd_) - u_k_att_*abs(angle_error));
+        u_cmd_ = u_max_ * (1 - u_k_hb_1_*abs(h_b_[1]) - u_k_hb_2_*abs(h_b_[2]) - u_k_hb_1_*abs(h_a_[1]) - u_k_hb_2_*abs(h_a_[2]) -abs(h_sf_r_cmd_) - u_k_att_*abs(angle_error));
         //ROS_INFO_THROTTLE(1, "%f %f", u_k_hb_1_, u_k_hb_2_);
         //u_cmd_ = u_max_ * (1 - u_k_hb_1_*abs(h_b_[1]) - u_k_hb_2_*abs(h_b_[2]));
     } else {
@@ -471,15 +550,6 @@ void NearnessController::computeAttractorCommand(){
     }
 }
 
-void NearnessController::computeLateralSpeedCommand(){
-    h_wf_v_cmd_ = v_k_hb_1_*h_b_[1];
-    if(h_wf_v_cmd_ < -v_max_) {
-        h_wf_v_cmd_ = -v_max_;
-    } else if(h_wf_v_cmd_ > v_max_) {
-        h_wf_v_cmd_ = v_max_;
-    }
-}
-
 void NearnessController::publishControlCommandMsg(){
 
     control_command_.header.stamp = ros::Time::now();
@@ -505,105 +575,46 @@ void NearnessController::publishControlCommandMsg(){
         //ROS_INFO("x_vel_prefilt: %f, x_vel_last: %f, x_vel_post: %f", x_vel_prefilt,  x_vel_filt_last_, x_vel_filt);
         h_sf_r_filt_last_ = h_sf_r_filt;
         h_sf_r_cmd_ = h_sf_r_filt;
-
-        //ROS_INFO("prefilter: %f, , last: %f, postfiler: %f", ter_r_cmd, last_ter_r_cmd_, terrain_r_cmd_);
     }
 
-    if(is_ground_vehicle_ && enable_command_weighting_){
-      //float wf_att_cmd = sat(h_nearness_l2_norm, 0.0 , 1.0)*h_wf_r_cmd_ + (1.0 - sat(h_nearness_l2_norm, 0.0 , 1.0)*attractor_yaw_cmd_);
-      //control_command_.twist.angular.z = sat(h_sf_nearness_l2_norm, 0.0, 1.0)*h_sf_r_cmd_ + (1.0 - sat(h_sf_nearness_l2_norm, 0.0, 1.0))*wf_att_cmd;
-      float nearness_r_cmd = 0.0;
-      if (enable_wf_control_){
-        nearness_r_cmd += h_wf_r_cmd_;
-      }
+    if(enable_wf_control_){
+        control_command_.twist.angular.z = h_wf_r_cmd_;
+    }
 
-      if (enable_sf_control_){
-          nearness_r_cmd += h_sf_r_cmd_;
-      }
+    if(enable_sf_control_){
+        control_command_.twist.angular.z += h_sf_r_cmd_;
+    }
 
-      control_command_.twist.angular.z = nearness_r_cmd + (1.0 - sat(h_nearness_l2_norm_, 0.0 , 1.0))*attractor_yaw_cmd_;
-      if(debug_){
-          std_msgs::Float32MultiArray weighting_msg;
-          weighting_msg.data.push_back(nearness_r_cmd);
-          weighting_msg.data.push_back(attractor_yaw_cmd_);
-
-          weighting_msg.data.push_back(control_command_.twist.angular.z);
-          weighting_msg.data.push_back(h_nearness_l2_norm_);
-          weighting_msg.data.push_back(h_nearness_maxval_);
-      }
-    } else {
-
-        if(enable_wf_control_){
-            if(!is_ground_vehicle_){
-                control_command_.twist.linear.y = h_wf_v_cmd_;
-                control_command_.twist.linear.z = v_wf_w_cmd_;
-                control_command_.twist.angular.z = h_wf_r_cmd_;
-            } else {
-                if(abs(terrain_r_cmd_) > 0.05){
-                  ROS_INFO_THROTTLE(1, "Ignoring WF and attractor cmds...");
-                } else {
-                    control_command_.twist.angular.z = h_wf_r_cmd_;
-                }
-            }
-        }
-
-        if(enable_sf_control_){
-            if(!is_ground_vehicle_){
-                control_command_.twist.angular.z += h_sf_r_cmd_;
-                control_command_.twist.linear.z += v_sf_w_cmd_;
-            } else {
-                control_command_.twist.angular.z += h_sf_r_cmd_;
-            }
-        }
-
-        if(enable_terrain_control_){
-            control_command_.twist.angular.z += terrain_r_cmd_;
-        }
-
-        if(enable_attractor_control_ && !lost_attractor_){
-//          if(abs(terrain_r_cmd_ > 0.05) && !attractor_turn_){
-            if(false){
-              //
-            } else {
-                control_command_.twist.angular.z += attractor_yaw_cmd_;
-                if(attractor_turn_){
-                    control_command_.twist.linear.x = 0.0;
-                    control_command_.twist.angular.z = sat(attractor_yaw_cmd_, -r_max_, r_max_);
-                    // if(flag_octo_too_close_ && enable_backup_){
-                    //     ROS_INFO_THROTTLE(1,"OBSTACLE TOO CLOSE, CANNOT TURN AROUND! BACKING UP");
-                    //     control_command_.twist.linear.x = -.1;
-                    //     control_command_.twist.angular.z = backup_attractor_yaw_cmd_;
-                    // }
-                }
-            }
-
-            //ROS_INFO("att_cmd: %f", control_command_.twist.angular.z);
-        }
-
-
-        // Wait for an attractor before moving
-        if(!have_attractor_ && enable_attractor_control_){
+    if(enable_attractor_control_ && !lost_attractor_){
+        control_command_.twist.angular.z += attractor_yaw_cmd_;
+        if(attractor_turn_){
             control_command_.twist.linear.x = 0.0;
+            control_command_.twist.angular.z = sat(attractor_yaw_cmd_, -r_max_, r_max_);
+          }
+    }
+
+    // Wait for an attractor before moving
+    if(!have_attractor_ && enable_attractor_control_){
+        control_command_.twist.linear.x = 0.0;
+    }
+
+    if(debug_){
+        float nearness_r_cmd = 0.0;
+        if (enable_wf_control_){
+            nearness_r_cmd += h_wf_r_cmd_;
         }
 
-        if(debug_){
-            float nearness_r_cmd = 0.0;
-            if (enable_wf_control_){
-                nearness_r_cmd += h_wf_r_cmd_;
-            }
-
-            if (enable_sf_control_){
-                nearness_r_cmd += h_sf_r_cmd_;
-            }
-            std_msgs::Float32MultiArray weighting_msg;
-            weighting_msg.data.push_back(nearness_r_cmd);
-            weighting_msg.data.push_back(attractor_yaw_cmd_);
-            weighting_msg.data.push_back(control_command_.twist.angular.z);
-            weighting_msg.data.push_back(h_nearness_l2_norm_);
-            weighting_msg.data.push_back(h_nearness_maxval_);
-            pub_debug_weighting_.publish(weighting_msg);
+        if (enable_sf_control_){
+            nearness_r_cmd += h_sf_r_cmd_;
         }
-
+        std_msgs::Float32MultiArray weighting_msg;
+        weighting_msg.data.push_back(nearness_r_cmd);
+        weighting_msg.data.push_back(attractor_yaw_cmd_);
+        weighting_msg.data.push_back(control_command_.twist.angular.z);
+        weighting_msg.data.push_back(h_nearness_l2_norm_);
+        weighting_msg.data.push_back(h_nearness_maxval_);
+        //pub_debug_weighting_.publish(weighting_msg);
+    }
 
     if(enable_cmd_lp_filter_){
         float x_vel_filt = 0.0;
@@ -619,20 +630,22 @@ void NearnessController::publishControlCommandMsg(){
         //ROS_INFO("r_vel_prefilt: %f, r_vel_last: %f, r_vel_post: %f", r_vel_prefilt,  r_vel_filt_last_, r_vel_filt);
         r_vel_filt_last_ = r_vel_filt;
         control_command_.twist.angular.z = r_vel_filt;
-        //ROS_INFO("prefilter: %f, , last: %f, postfiler: %f", ter_r_cmd, last_ter_r_cmd_, terrain_r_cmd_);
     }
 
-    //if(flag_too_close_side_ && !(flag_octo_too_close_ && enable_backup_)){
+    // If something is too close on either side, we should move slowly
     if(flag_too_close_side_){
       control_command_.twist.linear.x = close_side_speed_;
       ROS_INFO_THROTTLE(1,"Too close! RPLidar side!");
     }
-    //if(flag_safety_getting_close_ && enable_tower_safety_ && !(flag_octo_too_close_ && enable_backup_)){
+
+    // If we are getting close to hitting something with the ouster
+    // we should move slowly as we approach it.
     if(flag_safety_getting_close_ && enable_tower_safety_){
       control_command_.twist.linear.x = close_side_speed_;
       ROS_INFO_THROTTLE(1,"Tower safety: getting close!");
     }
 
+    // Saturate the outgoing control command
     saturateControls();
 
     if(reverse_r_cmd_){
@@ -643,22 +656,18 @@ void NearnessController::publishControlCommandMsg(){
         control_command_.twist.linear.x = -1*control_command_.twist.linear.x;
     }
 
-    if(flag_too_close_front_ || (flag_terrain_too_close_front_ && enable_terrain_control_)){
-      ROS_INFO_THROTTLE(1,"Too close in the front! Lidar: %s, Terrain: %s", (flag_too_close_front_ ? "true" : "false"), (flag_terrain_too_close_front_ ? "true" : "false"));
+    if(flag_too_close_front_){
+      ROS_INFO_THROTTLE(1,"Too close in the front! Lidar: %s", (flag_too_close_front_ ? "true" : "false"));
       control_command_.twist.linear.x = 0.0;
     }
-//    if((flag_safety_too_close_ && enable_tower_safety_) && !(flag_octo_too_close_ && enable_backup_)){
+
     if(flag_safety_too_close_ && enable_tower_safety_){
       ROS_INFO_THROTTLE(1,"Tower safety: too close!");
       control_command_.twist.linear.x = 0.0;
     }
-    ROS_INFO_THROTTLE(1, "WF: %f, SF: %f, TER: %f, ATT: %f, YAWMIX: %f, U: %f", h_wf_r_cmd_, h_sf_r_cmd_, terrain_r_cmd_, attractor_yaw_cmd_, control_command_.twist.angular.z, control_command_.twist.linear.x);
+    ROS_INFO_THROTTLE(1, "WF: %f, SF: %f, ATT: %f, YAWMIX: %f, U: %f", h_wf_r_cmd_, h_sf_r_cmd_, attractor_yaw_cmd_, control_command_.twist.angular.z, control_command_.twist.linear.x);
 
-    if(flag_beacon_stop_){
-      control_command_.twist.linear.x = 0.0;
-      control_command_.twist.angular.z = 0.0;
-    }
-
+    // Estop goes last so it overrides everything.
     if(flag_estop_){
         control_command_.twist.linear.x = 0.0;
         control_command_.twist.linear.y = 0.0;
@@ -671,8 +680,6 @@ void NearnessController::publishControlCommandMsg(){
 
     pub_control_commands_stamped_.publish(control_command_);
     pub_control_commands_.publish(control_command_.twist);
-
-    // ROS_INFO_THROTTLE(1,"SF Yaw: %f, Terrain: %f", h_sf_r_cmd_, terrain_r_cmd_);
 
 }
 
@@ -740,96 +747,6 @@ void NearnessController::nextWaypointCb(const geometry_msgs::PointStampedConstPt
     //ROS_INFO("%f", relative_attractor_heading_);
 }
 
-void NearnessController::terrainScanCb(const sensor_msgs::LaserScan::ConstPtr& terrain_scan_msg) {
-    std::vector<float> terrain_scan (terrain_scan_msg->ranges.begin(), terrain_scan_msg->ranges.end());
-    std::reverse(terrain_scan.begin(), terrain_scan.end());
-    std::vector<float> terrain_d_cluster;
-    std::vector<float> terrain_r_cluster;
-
-    int n = 0;
-    int c = 0;
-    float ter_alpha = 0.0;
-    num_ter_clusters_ = 0;
-    // Process the terrain scan
-    // Convert to nearness
-    std::vector<float> terrain_nearness(num_tscan_points_,0);
-    for(int i=0; i < num_tscan_points_; i++){
-        if(isinf(terrain_scan[i])){
-            terrain_nearness[i] = 0.0;
-        } else {
-            terrain_nearness[i] = 1.0 / terrain_scan[i];
-            //terrain_nearness[i] = (1-ter_alpha)*terrain_nearness_prefilt[i]+ter_alpha*terrain_nearness[i];
-        }
-        //ROS_INFO("%f", terrain_nearness_prefilt[i]);
-    }
-
-    int scan_count = 0;
-    // Do clustering
-    for(int i = 0; i < num_tscan_points_ -1; i++){
-        // Start clustering
-        // Just check to see if the current cluster has ended
-        if((terrain_nearness[i] > terrain_thresh_) && (terrain_nearness[i+1] > terrain_thresh_) && !(i==num_tscan_points_-2)){
-            terrain_d_cluster.push_back(terrain_nearness[i]);
-            terrain_r_cluster.push_back(tscan_gamma_vector_[i]);
-            //ROS_INFO("mu: %f, r: %f",terrain_nearness[i], tscan_gamma_vector[i]);
-            n++;
-        } else {
-            // End of the current cluster
-            if (n > 0){
-                ter_cluster_d_.push_back(0.0);
-                ter_cluster_r_.push_back(0.0);
-                // Average the cluster values
-                for(int j = 0; j < n; j++){
-                    ter_cluster_d_[c] += terrain_d_cluster[j];
-                    ter_cluster_r_[c] += terrain_r_cluster[j];
-                }
-                terrain_d_cluster.clear();
-                terrain_r_cluster.clear();
-                //ROS_INFO("n: %d, d: %f, r: %f", n, cluster_d[c], cluster_r[c]);
-                ter_cluster_d_[c] /= float(n);
-                ter_cluster_r_[c] /= float(n);
-                c++;
-                n = 0;
-            }
-        }
-
-        // Check too see if something is too close in the front or on the sides
-        // of the vehicle
-        flag_terrain_too_close_front_ = false;
-        //ROS_INFO("%f, %f", 1.0/terrain_front_safety_radius_, terrain_nearness[i]);
-        //if((i > 25) && (i < 65)){
-          if(terrain_nearness[i] > 1.0/terrain_front_safety_radius_){
-              //ROS_INFO_THROTTLE(1, "TERRAIN TOO CLOSE FRONT");
-              //flag_terrain_too_close_front_ = true;
-              scan_count++;
-          }
-        //}
-    }
-
-    if(scan_count >= 2){
-        flag_terrain_too_close_front_ = true;
-    } else {
-        flag_terrain_too_close_front_ = false;
-    }
-    //ROS_INFO("scan count: %d", scan_count);
-    num_ter_clusters_ = c;
-
-    // Publish the data
-    if(debug_){
-        nearness_control::ClusterMsg terrain_msg;
-        terrain_msg.num_clusters = num_ter_clusters_;
-        if(num_ter_clusters_ != 0){
-            for(int i = 0; i < num_ter_clusters_; i++){
-                terrain_msg.cluster_mag.push_back(ter_cluster_d_[i]);
-                terrain_msg.cluster_loc.push_back(ter_cluster_r_[i]);
-            }
-        }
-        pub_ter_clusters_.publish(terrain_msg);
-        terrain_msg.cluster_mag.clear();
-        terrain_msg.cluster_loc.clear();
-    }
-}
-
 void NearnessController::towerSafetyCb(const std_msgs::Int32ConstPtr& safety_msg)
 {
     if(enable_tower_safety_){
@@ -876,27 +793,6 @@ void NearnessController::towerSafetyCb(const std_msgs::Int32ConstPtr& safety_msg
 
     }
 
-}
-
-void NearnessController::beaconStopCb(const std_msgs::BoolConstPtr& beacon_stop_msg){
-    flag_beacon_stop_ = beacon_stop_msg->data;
-}
-
-void NearnessController::octoLaserscanCb(const sensor_msgs::LaserScanConstPtr& octo_laserscan_msg){
-    std::vector<float> octo_laserscan_ranges (octo_laserscan_msg->ranges.begin(), octo_laserscan_msg->ranges.end());
-    ROS_INFO_THROTTLE(1,"Received Octo laserscan, %f", turn_around_thresh_);
-    int vec_size = octo_laserscan_ranges.size();
-    turn_around_thresh_ = .82;
-    for (int i=0; i < vec_size; i++){
-        if(octo_laserscan_ranges[i] < turn_around_thresh_){
-            //ROS_INFO_THROTTLE(1,"OCTO TOO CLOSE");
-            flag_octo_too_close_ = true;
-        } else {
-            flag_octo_too_close_ = flag_octo_too_close_ || false;
-        }
-
-        flag_octo_too_close_ = (flag_octo_too_close_ || attractor_turn_);
-    }
 }
 
 void NearnessController::generateSafetyBox(){
@@ -955,32 +851,6 @@ void NearnessController::imuCb(const sensor_msgs::ImuConstPtr& imu_msg){
     } else {
         flag_safety_attitude_ = false;
     }
-/*
-    static tf2_ros::TransformBroadcaster br;
-    geometry_msgs::TransformStamped transformStamped;
-
-    transformStamped.header.stamp = ros::Time::now();
-    transformStamped.header.frame_id = "body_aligned_imu_link";
-    transformStamped.child_frame_id = "body_aligned_imu_link_rotated";
-    transformStamped.transform.translation.x = 0.0;
-    transformStamped.transform.translation.y = 0.0;
-    transformStamped.transform.translation.z = 0.0;
-
-    tf2::Quaternion q;
-    q.setRPY(roll_, pitch_, 0.0);
-    transformStamped.transform.rotation.x = q.x();
-    transformStamped.transform.rotation.y = q.y();
-    transformStamped.transform.rotation.z = q.z();
-    transformStamped.transform.rotation.w = q.w();
-
-    br.sendTransform(transformStamped);
-
-    transform.setOrigin( tf::Vector3(0.0, 0.0, 0.0) );
-    tf::Quaternion q;
-    q.setRPY(roll_, pitch_, 0.0);
-    transform.setRotation(q);
-    br.sendTransform(tf2::StampedTransform(transform, ros::Time::now(), "os1_lidar", "os1_lidar_rotated"));
-*/
 }
 
 void NearnessController::checkVehicleStatus(){
@@ -992,26 +862,8 @@ void NearnessController::checkVehicleStatus(){
     // Check odom
 
     // Check for stuck
-    //ROS_INFO_THROTTLE(1, "front: %s, safety: %s: ter: %s", (flag_too_close_front_ ? "true" : "false"), ((flag_safety_too_close_ && enable_tower_safety_) ? "true" : "false"), (flag_terrain_too_close_front_ ? "true" : "false"));
-    if((flag_too_close_front_ || (flag_safety_too_close_ && enable_tower_safety_) || flag_terrain_too_close_front_) && !flag_stuck_){
-        // Start a stuck timer
-        if(!stuck_timer_flag_){
-            ROS_INFO("Starting stuck timer");
-            stuck_timer_ = ros::Time::now();
-            stuck_timer_flag_ = true;
-        }
 
-        float stuck_duration = (ros::Time::now() - stuck_timer_).toSec();
-        ROS_INFO_THROTTLE(1,"stuck time: %f", stuck_duration);
-        if(stuck_duration > stuck_time_limit_){
-            ROS_INFO("We are stuck!");
-            flag_stuck_ = true;
-        }
-    } else {
-        stuck_timer_flag_ = false;
-    }
 }
-
 
 float NearnessController::sgn(double v) {
     return (v < 0.0) ? -1.0 : ((v > 0.0) ? 1.0 : 0.0);
@@ -1025,9 +877,8 @@ void NearnessController::saturateControls(){
     }
     if(control_command_.twist.linear.x > u_max_){
         control_command_.twist.linear.x = u_max_;
-    //} else if ((control_command_.twist.linear.x < u_min_) && !(flag_octo_too_close_ && enable_backup_)){
     } else if (control_command_.twist.linear.x < u_min_){
-        if(attractor_turn_ || (flag_stuck_ && !completed_stuck_turn_)){
+        if(attractor_turn_){
             control_command_.twist.linear.x = 0.0;
         } else {
             control_command_.twist.linear.x = u_min_;
