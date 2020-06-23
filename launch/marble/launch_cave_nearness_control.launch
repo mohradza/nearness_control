@@ -1,0 +1,65 @@
+<launch>
+  <!-- <arg name="vehicle" default="MARBLE_HUSKY"/> -->
+  <!-- <group ns="$(arg vehicle)"> -->
+  <arg name="motion_on_startup" default="0"/>
+  
+  <include file="$(find nearness_control)/launch/marble/sim_nearness_control.launch">
+
+    <arg name="enable_debug"                value="true"/>
+    <arg name="is_ground_vehicle"           value="true"/>
+    <arg name="enable_wf_control"           value="true"/>
+    <arg name="enable_sf_control"           value="true"/>
+    <arg name="enable_terrain_control"      value="true"/>
+    <arg name="motion_on_startup"           value="$(arg motion_on_startup)"/>
+
+    <arg name="enable_attractor_control"    value="true"/>
+    <arg name="enable_command_weighting"    value="false"/>
+    <arg name="enable_sf_clustering"        value="true"/>
+    <arg name="enable_att_speed_reg"        value="true"/>
+    <arg name="stagger_waypoints"           value="false"/>
+    <arg name="enable_tower_safety"         value="false"/>
+    <arg name="enable_cmd_lp_filter"        value="true"/>
+    <arg name="enable_unstuck"              value="false"/>
+
+    <!-- CW IS POS, FWD IS POS -->
+    <arg name="reverse_yaw_rate_cmd"        value="true"/>
+    <arg name="reverse_wf_yaw_rate_cmd"     value="true"/>
+    <arg name="reverse_forward_speed_cmd"   value="false"/>
+
+    <!-- Horizontal Scanner Sensor Parameters -->
+    <!-- These values correspond with the sim laserscanner -->
+    <arg name="total_horiz_scan_points"     value="920"/>
+    <arg name="num_horiz_scan_points"       value="460"/>
+    <arg name="horiz_scan_start_index"      value="230"/>
+    <arg name="horiz_scan_limit"            value="1.5707"/>
+    <arg name="horiz_sensor_min_distance"   value="0.1"/>
+    <arg name="horiz_sensor_max_distance"   value="40.0"/>
+    <arg name="horiz_sensor_min_noise"      value="0.15"/>
+    <arg name="reverse_horiz_scan"          value="true"/>
+    <arg name="num_horiz_fourier_terms"     value="5"/>
+
+    <!-- Safety Parameters -->
+    <arg name="enable_safety_boundary"      value="true"/>
+    <arg name="enable_safety_box"           value="true"/>
+    <arg name="front_safety_distance"       value="0.2"/>
+    <arg name="side_safety_distance"        value="0.35"/>
+    <arg name="close_side_speed"            value="0.1"/>
+
+    <arg name="vehicle_roll_angle_limit"    value="15.0"/>
+    <arg name="vehicle_pitch_angle_limit"   value="15.0"/>
+
+  </include>
+
+  <node pkg="dynamic_reconfigure" name="nearness_controller_parameter_config" type="dynparam" args="load nearness_control_node $(find nearness_control)/cfg/Husky_sim_params.yaml"/>
+
+  <node pkg="topic_tools" name="cmd_vel_relay" type="relay" args="nearness_controller/control_commands cmd_vel" />
+
+<!-- </group> -->
+<!--
+  <include file="$(find safety_from_depth_image)/launch/Husky_safety_tower_camera_fwd_depth_pcl.launch"/>
+
+<<<<<<< HEAD
+  <include file="$find pcl_ros)/launch/launch_Husky_realsense_normal.launch" />
+-->
+
+</launch>
