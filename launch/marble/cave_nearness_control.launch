@@ -43,10 +43,10 @@
     <node pkg="nearness_control" type="nearness_controller_node" name="nearness_control_node" output="screen">
 
         <!-- SUBSCRIBED TOPICS -->
-        <remap from="nearness_controller/horiz_scan" to="planar_laser_scan"/>
+        <remap from="nearness_controller/horiz_scan" to="scan"/>
         <remap from="nearness_controller/vert_scan" to="scan1"/>
         <remap from="nearness_controller/next_waypoint" to="lookahead_point"/>
-        <remap from="nearness_controller/odometry" to="odometry_map"/>
+        <remap from="nearness_controller/odometry" to="odometry"/>
         <remap from="nearness_controller/imu" to="imu_raw"/>
         <remap from="nearness_controller/joy" to="joy"/>
         <remap from="nearness_controller/estop_cmd" to="estop_cmd"/>

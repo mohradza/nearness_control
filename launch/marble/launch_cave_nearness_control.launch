@@ -2,14 +2,14 @@
   <!-- <arg name="vehicle" default="MARBLE_HUSKY"/> -->
   <!-- <group ns="$(arg vehicle)"> -->
   <arg name="motion_on_startup" default="0"/>
-  
-  <include file="$(find nearness_control)/launch/marble/sim_nearness_control.launch">
+
+  <include file="$(find nearness_control)/launch/marble/cave_nearness_control.launch">
 
     <arg name="enable_debug"                value="true"/>
     <arg name="is_ground_vehicle"           value="true"/>
     <arg name="enable_wf_control"           value="true"/>
     <arg name="enable_sf_control"           value="true"/>
-    <arg name="enable_terrain_control"      value="true"/>
+    <arg name="enable_terrain_control"      value="false"/>
     <arg name="motion_on_startup"           value="$(arg motion_on_startup)"/>
 
     <arg name="enable_attractor_control"    value="true"/>
@@ -22,15 +22,15 @@
     <arg name="enable_unstuck"              value="false"/>
 
     <!-- CW IS POS, FWD IS POS -->
-    <arg name="reverse_yaw_rate_cmd"        value="true"/>
-    <arg name="reverse_wf_yaw_rate_cmd"     value="true"/>
+    <arg name="reverse_yaw_rate_cmd"        value="false"/>
+    <arg name="reverse_wf_yaw_rate_cmd"     value="false"/>
     <arg name="reverse_forward_speed_cmd"   value="false"/>
 
     <!-- Horizontal Scanner Sensor Parameters -->
     <!-- These values correspond with the sim laserscanner -->
-    <arg name="total_horiz_scan_points"     value="920"/>
-    <arg name="num_horiz_scan_points"       value="460"/>
-    <arg name="horiz_scan_start_index"      value="230"/>
+    <arg name="total_horiz_scan_points"     value="720"/>
+    <arg name="num_horiz_scan_points"       value="360"/>
+    <arg name="horiz_scan_start_index"      value="180"/>
     <arg name="horiz_scan_limit"            value="1.5707"/>
     <arg name="horiz_sensor_min_distance"   value="0.1"/>
     <arg name="horiz_sensor_max_distance"   value="40.0"/>
@@ -50,16 +50,9 @@
 
   </include>
 
-  <node pkg="dynamic_reconfigure" name="nearness_controller_parameter_config" type="dynparam" args="load nearness_control_node $(find nearness_control)/cfg/Husky_sim_params.yaml"/>
+  <node pkg="dynamic_reconfigure" name="nearness_controller_parameter_config" type="dynparam" args="load nearness_control_node $(find nearness_control)/cfg/Husky_params.yaml"/>
 
   <node pkg="topic_tools" name="cmd_vel_relay" type="relay" args="nearness_controller/control_commands cmd_vel" />
 
-<!-- </group> -->
-<!--
-  <include file="$(find safety_from_depth_image)/launch/Husky_safety_tower_camera_fwd_depth_pcl.launch"/>
-
-<<<<<<< HEAD
-  <include file="$find pcl_ros)/launch/launch_Husky_realsense_normal.launch" />
--->
 
 </launch>

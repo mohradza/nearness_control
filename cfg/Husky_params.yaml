@@ -10,13 +10,13 @@ yaw_rate_max: 0.5
 
 yaw_rate_k_hb_1: .75
 yaw_rate_k_hb_2: .75
-yaw_rate_k_att_0: -2.0
+yaw_rate_k_att_0: 2.0
 
 yaw_rate_k_att_d: 1.0
-yaw_rate_k_turn: -0.75
+yaw_rate_k_turn: 0.75
 
 h_sf_k_thresh: 4.0
-h_sf_k_0: -.75
+h_sf_k_0: .75
 h_sf_k_d: 1.0
 h_sf_k_psi: 0.4
 

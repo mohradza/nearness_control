@@ -384,7 +384,7 @@ void NearnessController::convertHLaserscan2CVMat(const sensor_msgs::LaserScanPtr
     // Reformat the depth scan depending on the orientation of the scanner
     // scan_start_loc describes the location of the first scan index
     std::vector<float> h_depth_vector_reformat;
-    h_scan_start_loc_.data = "forward";
+    h_scan_start_loc_.data = "back";
     if (h_scan_start_loc_.data == "forward"){
         h_depth_vector_reformat = h_depth_vector;
     } else if (h_scan_start_loc_.data == "right"){
@@ -422,6 +422,9 @@ void NearnessController::convertHLaserscan2CVMat(const sensor_msgs::LaserScanPtr
     // Check to see if anything has entered the safety boundary
     if(enable_safety_boundary_){
         checkSafetyBoundary(h_depth_vector_trimmed);
+    } else {
+        flag_too_close_side_ = false;
+        flag_too_close_front_ = false;
     }
 
      // Publish the reformatted scan
