@@ -2,11 +2,11 @@
     <arg name="vehicle" default="H01"/>
     <arg name="motion_on_startup" default="0"/>
 
-    <include file="$(find nearness_control)/launch/sim/launch_sim_nearness_control.launch">
+    <include file="$(find nearness_control)/launch/sim/launch_cave_nearness_control.launch">
          <arg name="motion_on_startup" value="$(arg motion_on_startup)"/>
     </include>
 
-    <include file="$(find terrain_detection)/launch/terrain_detection.launch">
+    <include file="$(find terrain_detection)/launch/terrain_detection_2pico.launch">
          <arg name="vehicle" value="$(arg vehicle)"/>
     </include>
 
