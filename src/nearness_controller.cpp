@@ -910,7 +910,7 @@ void NearnessController::computeAttractorCommand(){
         attractor_turn_ = false;
     } else {
 	      ROS_INFO_THROTTLE(1,"Pure attractor turn");
-        attractor_yaw_cmd_ = r_k_att_turn_*att_angle_error_;
+        attractor_yaw_cmd_ = sat(r_k_att_turn_*att_angle_error_,-.25, .25);
         //attractor_yaw_cmd_ = .05;
 	      attractor_turn_ = true;
         //u_cmd_ = 0.0;
