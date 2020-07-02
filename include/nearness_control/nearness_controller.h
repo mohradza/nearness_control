@@ -306,6 +306,7 @@ class NearnessController {
 
     // terrain
     int num_tscan_points_;
+    double tscan_fov_;
     std::vector<float> tscan_gamma_vector_;
     std::vector<float> ter_cluster_d_;
     std::vector<float> ter_cluster_r_;

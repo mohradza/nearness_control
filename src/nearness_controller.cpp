@@ -144,6 +144,8 @@ void NearnessController::init() {
     pnh_.param("h_sf_k_thresh", h_sf_k_thresh_, 3.0);
 
     // Terrain Control Gains
+    pnh_.param("num_tscan_points", num_tscan_points_, 90);
+    pnh_.param("tscan_fov", tscan_fov_, .5);
     pnh_.param("ter_sf_k_0", ter_sf_k_0_, 0.5);
     pnh_.param("ter_sf_k_d", ter_sf_k_d_, 1.0);
     pnh_.param("ter_sf_k_psi", ter_sf_k_psi_, 0.4);
@@ -202,9 +204,8 @@ void NearnessController::init() {
     v_dg_ = (2.0*v_scan_limit_)/num_v_scan_points_;
 
     // Initialize the gamma_array vector for terrain assesment
-    num_tscan_points_ = 90;
     for(int i=0; i<num_tscan_points_; i++) {
-       tscan_gamma_vector_.push_back((float(i)/float(num_tscan_points_))*M_PI/2 - M_PI/4);
+       tscan_gamma_vector_.push_back((float(i)/float(num_tscan_points_))*tscan_fov_ - tscan_fov_/2);
     }
 
     // Create safety boundary
