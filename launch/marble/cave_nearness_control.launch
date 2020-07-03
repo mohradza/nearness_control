@@ -50,7 +50,7 @@
         <remap from="nearness_controller/imu" to="imu_raw"/>
         <remap from="nearness_controller/joy" to="joy"/>
         <remap from="nearness_controller/estop_cmd" to="estop_cmd"/>
-        <remap from="nearness_controller/terrain_scan" to="terrain_detection/scan_out_center"/>
+        <remap from="nearness_controller/terrain_scan" to="terrain_detection/concat_scan_out"/>
         <remap from="nearness_controller/tower_safety" to="safety/tower_status"/>
         <remap from="nearness_controller/beacon_stop" to="stop_for_beacon_drop"/>
         <remap from="nearness_controller/octo_laserscan" to="octomap_laserscan"/>
@@ -127,10 +127,10 @@
         <param name="h_sf_k_d" type="double" value="0.5"/>
 
         <!-- Parameters for Terrain control -->
-        <param name="num_tscan_points" type="int" value="90"/>
+        <param name="num_tscan_points" type="int" value="180"/>
         <param name="tscan_fov" type="double" value="1.5707"/>
         <param name="terrain_front_safety_radius" type="double" value=".85"/>
-        <param name="ter_sf_k_0" type="double" value="0.4"/>
+        <param name="ter_sf_k_0" type="double" value="-0.4"/>
         <param name="ter_sf_k_psi" type="double" value="0.5"/>
         <param name="ter_sf_k_d" type="double" value="0.5"/>
         <param name="terrain_thresh" type="double" value="0.5"/>

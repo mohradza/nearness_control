@@ -1,5 +1,5 @@
 forward_speed_min: .01
-forward_speed_max: 1.0
+forward_speed_max: .5
 forward_speed_k_hb_1: 0.5
 forward_speed_k_hb_2: 0.5
 forward_speed_k_ha_1: 0.5
@@ -20,7 +20,7 @@ h_sf_k_0: .75
 h_sf_k_d: 1.0
 h_sf_k_psi: 0.4
 
-ter_sf_k_0: .1
+ter_sf_k_0: -.15
 ter_sf_k_d: .5
 ter_sf_k_psi: 0.8
 terrain_thresh: 0.5
