@@ -1,5 +1,5 @@
 forward_speed_min: .01
-forward_speed_max: .5
+forward_speed_max: .85
 forward_speed_k_hb_1: 0.5
 forward_speed_k_hb_2: 0.5
 forward_speed_k_ha_1: 0.5

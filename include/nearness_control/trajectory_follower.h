@@ -1,5 +1,5 @@
-#ifndef trajectory_follower_H
-#define trajectory_follower_H
+#ifndef TRAJECTORY_FOLLOWER_H
+#define TRAJECTORY_FOLLOWER_H
 
 #include <ros/ros.h>
 #include <dynamic_reconfigure/server.h>
@@ -16,8 +16,10 @@
 #include <std_msgs/Float32MultiArray.h>
 #include <std_msgs/Float32.h>
 #include <std_msgs/Int32.h>
+#include <std_msgs/String.h>
 #include <geometry_msgs/Twist.h>
 #include <geometry_msgs/Pose.h>
+#include <visualization_msgs/MarkerArray.h>
 #include <sensor_msgs/Joy.h>
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/Imu.h>
@@ -25,24 +27,26 @@
 #include <sensor_msgs/Range.h>
 #include <nav_msgs/Odometry.h>
 #include <tf/tf.h>
+#include <math.h>
 
+using namespace std;
 namespace trajectory_follower{
 
-class controlMixer {
+class trajectoryFollower {
  public:
-    controlMixer(const ros::NodeHandle &node_handle,
+    trajectoryFollower(const ros::NodeHandle &node_handle,
                             const ros::NodeHandle &private_node_handle);
-    ~controlMixer() = default;
+    ~trajectoryFollower() = default;
 
     void init();
 
     // FUNCTIONS //
-    void trajCb(const vector<geometry_msgs::PoseStamped>& msg);
+    void trajCb(const visualization_msgs::MarkerArrayConstPtr& msg);
     void odomCb(const nav_msgs::OdometryConstPtr& odom_msg);
     void findNextLookahead();
     void publishLookahead();
     void taskCb(const std_msgs::String task_msg);
-    float dist(const geometry_msgs::Point p1, const geomtry_msgs::Point p2);
+    float dist(const geometry_msgs::Point p1, const geometry_msgs::Point p2);
     bool doLookup();
 
  private:
@@ -73,6 +77,9 @@ class controlMixer {
     int last_lookahead_index_;
     bool enable_lookahead_lookup_;
     bool have_current_traj_home_;
+
+    int traj_list_size_;
+    double lookahead_dist_;
 
 
 }; // class SimpleNodeClass
