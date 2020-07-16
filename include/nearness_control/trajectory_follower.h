@@ -67,7 +67,7 @@ class trajectoryFollower {
 
     nav_msgs::Odometry odom_;
     geometry_msgs::Point odom_point_;
-    geometry_msgs::Point lookahead_point_;
+    geometry_msgs::PointStamped lookahead_point_;
 
     vector<geometry_msgs::Point> traj_list_points_;
 
