@@ -23,7 +23,9 @@ void NearnessController::init() {
     subt_enable_control_ = nh_.subscribe("enable_control", 1, &NearnessController::enableControlCb, this);
 
     //sub_imu_ = nh_.subscribe("imu_raw", 1, &NearnessController::imuCb, this);
-    sub_next_waypoint_ = nh_.subscribe("next_waypoint", 1, &NearnessController::nextWaypointCb, this);
+    sub_att_lookahead_ = nh_.subscribe("att_lookahead", 1, &NearnessController::attLookaheadCb, this);
+    sub_traj_lookahead_ = nh_.subscribe("traj_lookahead", 1, &NearnessController::trajLookaheadCb, this);
+    sub_task_ = nh_.subscribe("task", 1, &NearnessController::taskCb, this);
     sub_terrain_scan_ = nh_.subscribe("terrain_scan", 1, &NearnessController::terrainScanCb, this);
     sub_tower_safety_ = nh_.subscribe("tower_safety", 1, &NearnessController::towerSafetyCb, this);
     sub_beacon_stop_ = nh_.subscribe("beacon_stop", 1, &NearnessController::beaconStopCb, this);
@@ -71,6 +73,9 @@ void NearnessController::init() {
     stuck_maneuver_timer_start_ = ros::Time::now();
     enable_attitude_limits_ = false;
     completed_stuck_turn_ = false;
+    enable_traj_lookahead_ = false;
+    unable_to_plan_home_str_ = "Unable to plan home";
+    unable_to_plan_str_ = "Unable to plan";
 
     // Import parameters
     pnh_.param("enable_debug", debug_, false);
@@ -80,10 +85,10 @@ void NearnessController::init() {
     pnh_.param("enable_sf_control", enable_sf_control_, false);
     pnh_.param("enable_terrain_control", enable_terrain_control_, false);
     pnh_.param("enable_attractor_control", enable_attractor_control_, false);
+    pnh_.param("enable_trajectory_following", enable_trajectory_following_, false);
     pnh_.param("enable_command_weighting", enable_command_weighting_, false);
     pnh_.param("enable_sf_clustering", enable_sf_clustering_, false);
     pnh_.param("enable_att_speed_reg", enable_att_speed_reg_, false);
-    pnh_.param("stagger_waypoints_", stagger_waypoints_, false);
     pnh_.param("enable_tower_safety", enable_tower_safety_, false);
     pnh_.param("enable_cmd_lp_filter", enable_cmd_lp_filter_, true);
     pnh_.param("motion_on_startup", motion_on_startup_, false);
@@ -1000,7 +1005,7 @@ void NearnessController::publishControlCommandMsg(){
                 control_command_.twist.linear.z = v_wf_w_cmd_;
                 control_command_.twist.angular.z = h_wf_r_cmd_;
             } else {
-                if(abs(terrain_r_cmd_) > 0.05){
+                if(abs(terrain_r_cmd_) > 0.1){
                   ROS_INFO_THROTTLE(1, "Ignoring WF and attractor cmds...");
                 } else {
                     control_command_.twist.angular.z = h_wf_r_cmd_;
@@ -1174,6 +1179,12 @@ void NearnessController::publishControlCommandMsg(){
     }
     ROS_INFO_THROTTLE(1, "WF: %f, SF: %f, TER: %f, ATT: %f, YAWMIX: %f, U: %f", h_wf_r_cmd_, h_sf_r_cmd_, terrain_r_cmd_, attractor_yaw_cmd_, control_command_.twist.angular.z, control_command_.twist.linear.x);
 
+
+    if(enable_attractor_control_ && attractor_d_ < .25){
+      control_command_.twist.linear.x = 0.0;
+      control_command_.twist.angular.z = 0.0;
+    }
+
     if(flag_beacon_stop_){
       control_command_.twist.linear.x = 0.0;
       control_command_.twist.angular.z = 0.0;
@@ -1239,25 +1250,41 @@ void NearnessController::enableControlCb(const std_msgs::BoolConstPtr& enable_ms
     }
 }
 
-void NearnessController::nextWaypointCb(const geometry_msgs::PointStampedConstPtr& next_waypoint_msg){
+void NearnessController::attLookaheadCb(const geometry_msgs::PointStampedConstPtr& next_waypoint_msg){
     if (!have_attractor_){
         have_attractor_ = true;
     }
-    last_wp_msg_time_ = ros::Time::now();
 
-    //ROS_INFO_THROTTLE(2,"Received new ATTRACTOR");
-
-    if(stagger_waypoints_){
-        if(attractor_d_ < attractor_latch_thresh_){
-          next_waypoint_pos_ = next_waypoint_msg->point;
-        }
-    } else {
+    if(!enable_traj_lookahead_){
+        last_wp_msg_time_ = ros::Time::now();
         next_waypoint_pos_ = next_waypoint_msg->point;
+        attractor_d_ = sqrt(pow((current_pos_.x - next_waypoint_pos_.x), 2) + pow((current_pos_.y - next_waypoint_pos_.y), 2));
+        relative_attractor_heading_ = atan2((next_waypoint_pos_.y - current_pos_.y),(next_waypoint_pos_.x - current_pos_.x));
+    }
+}
+
+void NearnessController::trajLookaheadCb(const geometry_msgs::PointStampedConstPtr& traj_lookahead_msg){
+
+    if(enable_traj_lookahead_){
+        last_wp_msg_time_ = ros::Time::now();
+        next_waypoint_pos_ = traj_lookahead_msg->point;
+        attractor_d_ = sqrt(pow((current_pos_.x - next_waypoint_pos_.x), 2) + pow((current_pos_.y - next_waypoint_pos_.y), 2));
+        relative_attractor_heading_ = atan2((next_waypoint_pos_.y - current_pos_.y),(next_waypoint_pos_.x - current_pos_.x));
     }
 
-    attractor_d_ = sqrt(pow((current_pos_.x - next_waypoint_pos_.x), 2) + pow((current_pos_.y - next_waypoint_pos_.y), 2));
-    relative_attractor_heading_ = atan2((next_waypoint_pos_.y - current_pos_.y),(next_waypoint_pos_.x - current_pos_.x));
     //ROS_INFO("%f", relative_attractor_heading_);
+}
+
+void NearnessController::taskCb(const std_msgs::StringConstPtr& task_msg){
+  //std::string unable_to_plan_home_str("Unable to plan home");
+  //std::string unable_to_plan_str("Unable to plan");
+  //if((task_msg.data.c_str() == "Unable to plan home") || (task_msg.data.c_str() == "Unable to plan")){
+    if((unable_to_plan_home_str_.compare(task_msg->data.c_str()) == 0)||(unable_to_plan_str_.compare(task_msg->data.c_str())== 0)){
+        enable_traj_lookahead_ = (true || enable_trajectory_following_);
+        //ROS_INFO("Unable to plan home!!!!!");
+    } else {
+        enable_traj_lookahead_ = false;
+    }
 }
 
 void NearnessController::terrainScanCb(const sensor_msgs::LaserScan::ConstPtr& terrain_scan_msg) {

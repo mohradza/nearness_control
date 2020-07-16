@@ -79,7 +79,8 @@ class trajectoryFollower {
     bool have_current_traj_home_;
 
     int traj_list_size_;
-    double lookahead_dist_;
+    double lookahead_dist_short_;
+    double lookahead_dist_long_;
 
 
 }; // class SimpleNodeClass
