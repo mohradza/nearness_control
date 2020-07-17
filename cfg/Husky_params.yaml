@@ -21,6 +21,6 @@ h_sf_k_d: 1.0
 h_sf_k_psi: 0.4
 
 ter_sf_k_0: -.15
-ter_sf_k_d: .5
+ter_sf_k_d: 1.0
 ter_sf_k_psi: 0.8
 terrain_thresh: 0.5

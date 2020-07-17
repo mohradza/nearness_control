@@ -1465,6 +1465,8 @@ void NearnessController::generateSafetyBox(){
     for(int i = 0; i < num_h_scan_points_/2; i++){
         safety_boundary_.push_back(safety_boundary_[num_h_scan_points_/2 - i]);
     }
+    safety_boundary_[num_h_scan_points_/2] = f_dist_;
+
 }
 
 void NearnessController::checkSafetyBoundary(std::vector<float> scan){
@@ -1478,6 +1480,7 @@ void NearnessController::checkSafetyBoundary(std::vector<float> scan){
                 //ROS_INFO("Side");
             } else {
                 flag_too_close_front_ = true;
+                //ROS_INFO("index: %d, value: %f, safety_boundary: %f", i, scan[i], safety_boundary_[i]);
                 //ROS_INFO("Front");
             }
         } else {
