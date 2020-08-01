@@ -25,6 +25,7 @@ void trajectoryFollower::init() {
     lookahead_dist_long_ = 1.5;
     enable_lookahead_lookup_ = false;
     have_current_traj_home_ = false;
+    lookahead_point_.header.frame_id = "world";
 }
 
 void trajectoryFollower::odomCb(const nav_msgs::OdometryConstPtr& odom_msg)
@@ -32,28 +33,30 @@ void trajectoryFollower::odomCb(const nav_msgs::OdometryConstPtr& odom_msg)
     //ROS_INFO_THROTTLE(1,"Received odom");
     odom_ = *odom_msg;
     odom_point_ =  odom_.pose.pose.position;
-    ROS_INFO_THROTTLE(1,"x: %f, y: %f", odom_point_.x, odom_point_.y);
+    //ROS_INFO_THROTTLE(1,"x: %f, y: %f", odom_point_.x, odom_point_.y);
 }
 
 void trajectoryFollower::trajCb(const visualization_msgs::MarkerArrayConstPtr& msg)
 {
     //ROS_INFO_THROTTLE(1,"Received traj");
-    // We only need to do this when we can't plan home
+    // e only need to do this when we can't plan home
     if(enable_lookahead_lookup_ && !have_current_traj_home_){
-        traj_list_points_.clear();
         uint32_t traj_list_size_ = msg->markers[1].points.size();
-        ROS_INFO_THROTTLE(1, "traj_list_size: %d", traj_list_size_);
-        last_lookahead_index_ = traj_list_size_-2;
-        // Import trajectory list
-        for (int i = 0; i < traj_list_size_; i++){
-            traj_list_points_.push_back(msg->markers[1].points[i]);
-            //traj_list_points_[i].x = msg[i].pose.position.x;
-            //traj_list_points_[i].y = msg[i].pose.position.y;
-            //traj_list_points_[i].z = msg[i].pose.position.z;
-            //ROS_INFO("i: %d, x: %f, y: %f", i, traj_list_points_[i].x, traj_list_points_[i].y);
-        }
-        //ROS_INFO("%d", last_lookahead_index_);
-        have_current_traj_home_ = true;
+        if(traj_list_size_ > 2){
+            traj_list_points_.clear();
+            ROS_INFO_THROTTLE(1, "traj_list_size: %d", traj_list_size_);
+            last_lookahead_index_ = traj_list_size_-2;
+            // Import trajectory list
+            for (int i = 0; i < traj_list_size_; i++){
+                traj_list_points_.push_back(msg->markers[1].points[i]);
+                //traj_list_points_[i].x = msg[i].pose.position.x;
+                //traj_list_points_[i].y = msg[i].pose.position.y;
+                //traj_list_points_[i].z = msg[i].pose.position.z;
+                //ROS_INFO("i: %d, x: %f, y: %f", i, traj_list_points_[i].x, traj_list_points_[i].y);
+            }
+            //ROS_INFO("%d", last_lookahead_index_);
+            have_current_traj_home_ = true;
+          }
     }
 
 }
@@ -68,7 +71,7 @@ void trajectoryFollower::findNextLookahead(){
         ROS_INFO_THROTTLE(5,"last_lookahead_index #2: %d", last_lookahead_index_);
         for (int i = last_lookahead_index_; i > 0; i--){
             float dist_err = dist(odom_point_, traj_list_points_[i]);
-            //ROS_INFO("%f, %d", dist_err, i);
+          //  ROS_INFO("%f, %d", dist_err, i);
             if((dist_err > lookahead_dist_short_) && (dist_err < lookahead_dist_long_)){
                 lookahead_point_.point = traj_list_points_[i];
                 last_lookahead_index_ = i + 1;
