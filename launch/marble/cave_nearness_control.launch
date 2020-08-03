@@ -46,8 +46,8 @@
         <remap from="nearness_controller/vert_scan" to="scan1"/>
         <remap from="nearness_controller/att_lookahead" to="lookahead_point"/>
         <remap from="nearness_controller/traj_lookahead" to="trajectory_follower/traj_lookahead"/>
-        <!-- <remap from="nearness_controller/task" to="fake_task"/> -->
         <remap from="nearness_controller/follow_traj" to="follow_traj"/>
+        <remap from="nearness_controller/task" to="fake_task"/>
         <remap from="nearness_controller/odometry" to="odometry"/>
         <remap from="nearness_controller/imu" to="imu_raw"/>
         <remap from="nearness_controller/joy" to="joy"/>
