@@ -1,0 +1,11 @@
+<launch>
+
+    <!-- <arg name="enable_debug" /> -->
+    <node pkg="nearness_control" type="trajectory_follower" name="trajectory_follower_node" output="screen">
+        <!-- TOPICS -->
+        <remap from="trajectory_follower/odometry" to="odometry"/>
+        <remap from="trajectory_follower/trajectory" to="trajectory_node_list"/>
+        <remap from="trajectory_follower/task" to="fake_task"/>
+    </node>
+
+</launch>

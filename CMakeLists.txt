@@ -98,5 +98,11 @@ add_executable(joy_teleop_mixer src/joy_teleop_mixer.cpp)
 #add_dependencies(joy_teleop_mixer ${PROJECT_NAME}_gencfg )
 target_link_libraries(joy_teleop_mixer joy_teleop_mixer_node ${catkin_LIBRARIES} ${Boost_LIBRARIES})
 
+add_library(trajectory_follower_node src/trajectory_follower_node.cpp)
+target_link_libraries(trajectory_follower_node ${catkin_LIBRARIES} ${Boost_LIBRARIES})
+
+add_executable(trajectory_follower src/trajectory_follower.cpp)
+target_link_libraries(trajectory_follower trajectory_follower_node ${catkin_LIBRARIES} ${Boost_LIBRARIES})
+
 add_executable(tf2odom src/tf2odom.cpp)
 target_link_libraries(tf2odom ${catkin_LIBRARIES})

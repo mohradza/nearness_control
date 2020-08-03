@@ -63,7 +63,9 @@ class NearnessController {
     void odomCb(const nav_msgs::OdometryConstPtr& odom_msg);
     void imuCb(const sensor_msgs::ImuConstPtr& imu_msg);
     void sonarHeightCb(const sensor_msgs::RangeConstPtr& range_msg);
-    void nextWaypointCb(const geometry_msgs::PointStampedConstPtr& next_waypoint_msg);
+    void attLookaheadCb(const geometry_msgs::PointStampedConstPtr& next_waypoint_msg);
+    void trajLookaheadCb(const geometry_msgs::PointStampedConstPtr& next_waypoint_msg);
+    void taskCb(const std_msgs::StringConstPtr& task_msg);
     void terrainScanCb(const sensor_msgs::LaserScan::ConstPtr& terrain_scan_msg);
     void towerSafetyCb(const std_msgs::Int32ConstPtr& safety_msg);
     void beaconStopCb(const std_msgs::BoolConstPtr& beacon_stop_msg);
@@ -99,7 +101,9 @@ class NearnessController {
     ros::Subscriber sub_bluetooth_joy_;
     ros::Subscriber sub_odom_;
     ros::Subscriber sub_imu_;
-    ros::Subscriber sub_next_waypoint_;
+    ros::Subscriber sub_att_lookahead_;
+    ros::Subscriber sub_task_;
+    ros::Subscriber sub_traj_lookahead_;
     ros::Subscriber sub_terrain_scan_;
     ros::Subscriber sub_tower_safety_;
     ros::Subscriber sub_beacon_stop_;
@@ -220,6 +224,7 @@ class NearnessController {
     double r_k_att_d_;
     double r_k_att_turn_;
     bool enable_attractor_control_;
+    bool enable_trajectory_following_;
     bool is_ground_vehicle_;
     bool have_attractor_;
     bool enable_wf_control_;
@@ -297,6 +302,9 @@ class NearnessController {
     double attractor_watchdog_timer_;
     bool lost_attractor_;
     bool enable_backup_;
+    bool enable_traj_lookahead_;
+    std::string unable_to_plan_home_str_;
+    std::string unable_to_plan_str_;
 
     // odomCb
     geometry_msgs::Point current_pos_;
