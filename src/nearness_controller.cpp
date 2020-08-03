@@ -1006,7 +1006,7 @@ void NearnessController::publishControlCommandMsg(){
                 control_command_.twist.linear.z = v_wf_w_cmd_;
                 control_command_.twist.angular.z = h_wf_r_cmd_;
             } else {
-                if(abs(terrain_r_cmd_) > 0.1){
+                if(abs(terrain_r_cmd_) > 0.1 && !attractor_turn_){
                   ROS_INFO_THROTTLE(1, "Ignoring WF and attractor cmds...");
                 } else {
                     control_command_.twist.angular.z = h_wf_r_cmd_;

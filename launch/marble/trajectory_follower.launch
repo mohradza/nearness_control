@@ -5,7 +5,7 @@
         <!-- TOPICS -->
         <remap from="trajectory_follower/odometry" to="odometry"/>
         <remap from="trajectory_follower/trajectory" to="trajectory_node_list"/>
-        <remap from="trajectory_follower/task" to="task"/>
+        <remap from="trajectory_follower/task" to="fake_task"/>
         <remap from="trajectory_follower/follow_traj" to="follow_traj"/>
 
     </node>
