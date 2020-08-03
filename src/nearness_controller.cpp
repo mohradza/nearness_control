@@ -858,7 +858,7 @@ void NearnessController::computeForwardSpeedCommand(){
         angle_error = 0.0;
     }
     if(enable_wf_control_){
-        u_cmd_ = u_max_ * (1 - u_k_hb_1_*abs(h_b_[1]) - u_k_hb_2_*abs(h_b_[2]) - u_k_hb_1_*abs(h_a_[1]) - u_k_hb_2_*abs(h_a_[2]) -abs(h_sf_r_cmd_) - abs(terrain_r_cmd_) - u_k_att_*abs(angle_error));
+        u_cmd_ = u_max_ * (1 - u_k_hb_1_*abs(h_b_[1]) - u_k_hb_2_*abs(h_b_[2]) - u_k_hb_1_*abs(h_a_[1]) - u_k_hb_2_*abs(h_a_[2]) -1.25*abs(h_sf_r_cmd_) - abs(terrain_r_cmd_) - u_k_att_*abs(angle_error));
         //ROS_INFO_THROTTLE(1, "%f %f", u_k_hb_1_, u_k_hb_2_);
         //u_cmd_ = u_max_ * (1 - u_k_hb_1_*abs(h_b_[1]) - u_k_hb_2_*abs(h_b_[2]));
     } else {
@@ -1234,8 +1234,10 @@ void NearnessController::enableControlCb(const std_msgs::BoolConstPtr& enable_ms
     flag_estop_ = !enable_msg->data;
     if (!enable_msg->data){
         ROS_INFO("Controller ESTOP engaged.");
+        flag_estop_ = true;
     } else {
         ROS_INFO("Controller ESTOP disengaged.");
+        flag_estop_ = false;
     }
 }
 
