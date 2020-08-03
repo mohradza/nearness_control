@@ -1032,15 +1032,19 @@ void NearnessController::publishControlCommandMsg(){
             if(false){
               //
             } else {
-                control_command_.twist.angular.z += attractor_yaw_cmd_;
-                if(attractor_turn_){
-                    control_command_.twist.linear.x = 0.0;
-                    control_command_.twist.angular.z = sat(attractor_yaw_cmd_, -r_max_, r_max_);
-                    // if(flag_octo_too_close_ && enable_backup_){
-                    //     ROS_INFO_THROTTLE(1,"OBSTACLE TOO CLOSE, CANNOT TURN AROUND! BACKING UP");
-                    //     control_command_.twist.linear.x = -.1;
-                    //     control_command_.twist.angular.z = backup_attractor_yaw_cmd_;
-                    // }
+                if((abs(terrain_r_cmd_) > 0.1) && !attractor_turn_){
+                  ROS_INFO_THROTTLE(1, "Ignoring WF and attractor cmds...");
+                } else {
+                    control_command_.twist.angular.z += attractor_yaw_cmd_;
+                    if(attractor_turn_){
+                        control_command_.twist.linear.x = 0.0;
+                        control_command_.twist.angular.z = sat(attractor_yaw_cmd_, -r_max_, r_max_);
+                        // if(flag_octo_too_close_ && enable_backup_){
+                        //     ROS_INFO_THROTTLE(1,"OBSTACLE TOO CLOSE, CANNOT TURN AROUND! BACKING UP");
+                        //     control_command_.twist.linear.x = -.1;
+                        //     control_command_.twist.angular.z = backup_attractor_yaw_cmd_;
+                        // }
+                    }
                 }
             }
 
