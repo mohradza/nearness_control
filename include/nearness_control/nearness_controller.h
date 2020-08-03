@@ -66,6 +66,7 @@ class NearnessController {
     void attLookaheadCb(const geometry_msgs::PointStampedConstPtr& next_waypoint_msg);
     void trajLookaheadCb(const geometry_msgs::PointStampedConstPtr& next_waypoint_msg);
     void taskCb(const std_msgs::StringConstPtr& task_msg);
+    void followTrajCb(const std_msgs::BoolConstPtr& follow_traj_msg);
     void terrainScanCb(const sensor_msgs::LaserScan::ConstPtr& terrain_scan_msg);
     void towerSafetyCb(const std_msgs::Int32ConstPtr& safety_msg);
     void beaconStopCb(const std_msgs::BoolConstPtr& beacon_stop_msg);
@@ -103,6 +104,7 @@ class NearnessController {
     ros::Subscriber sub_imu_;
     ros::Subscriber sub_att_lookahead_;
     ros::Subscriber sub_task_;
+    ros::Subscriber sub_follow_traj_;
     ros::Subscriber sub_traj_lookahead_;
     ros::Subscriber sub_terrain_scan_;
     ros::Subscriber sub_tower_safety_;

@@ -18,6 +18,7 @@ void trajectoryFollower::init() {
     sub_odom_ = nh_.subscribe("odometry", 1, &trajectoryFollower::odomCb, this);
     sub_traj_ = nh_.subscribe("trajectory", 1, &trajectoryFollower::trajCb, this);
     sub_task_ = nh_.subscribe("task", 1, &trajectoryFollower::taskCb, this);
+    sub_follow_traj_ = nh_.subscribe("follow_traj", 1, &trajectoryFollower::followTrajCb, this);
 
     pub_lookahead_ = nh_.advertise<geometry_msgs::PointStamped>("traj_lookahead", 10);
     last_lookahead_index_ = 0;
@@ -110,6 +111,15 @@ void trajectoryFollower::taskCb(const std_msgs::String task_msg)
         have_current_traj_home_ = false;
     }
 
+}
+
+void trajectoryFollower::followTrajCb(const std_msgs::BoolConstPtr& follow_traj_msg){
+    if(follow_traj_msg->data){
+        enable_lookahead_lookup_ = true;
+    } else {
+      enable_lookahead_lookup_ = false;
+      last_lookahead_index_ = 0;
+      have_current_traj_home_ = false;    }
 }
 
 

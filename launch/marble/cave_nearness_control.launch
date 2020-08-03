@@ -5,7 +5,7 @@
     <arg name="is_ground_vehicle"           default="true"/>
     <arg name="enable_wf_control"           default="true"/>
     <arg name="enable_sf_control"           default="true"/>
-    <arg name="enable_terrain_control"      default="false"/>
+    <arg name="enable_terrain_control"      default="true"/>
     <arg name="enable_attractor_control"    default="false"/>
     <arg name="enable_command_weighting"    default="false"/>
     <arg name="enable_sf_clustering"        default="true"/>
@@ -46,7 +46,8 @@
         <remap from="nearness_controller/vert_scan" to="scan1"/>
         <remap from="nearness_controller/att_lookahead" to="lookahead_point"/>
         <remap from="nearness_controller/traj_lookahead" to="trajectory_follower/traj_lookahead"/>
-        <remap from="nearness_controller/task" to="fake_task"/>
+        <!-- <remap from="nearness_controller/task" to="fake_task"/> -->
+        <remap from="nearness_controller/follow_traj" to="follow_traj"/>
         <remap from="nearness_controller/odometry" to="odometry"/>
         <remap from="nearness_controller/imu" to="imu_raw"/>
         <remap from="nearness_controller/joy" to="joy"/>

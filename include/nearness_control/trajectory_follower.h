@@ -46,6 +46,7 @@ class trajectoryFollower {
     void findNextLookahead();
     void publishLookahead();
     void taskCb(const std_msgs::String task_msg);
+    void followTrajCb(const std_msgs::BoolConstPtr& follow_traj_msg);
     float dist(const geometry_msgs::Point p1, const geometry_msgs::Point p2);
     bool doLookup();
 
@@ -61,6 +62,7 @@ class trajectoryFollower {
     ros::Subscriber sub_odom_;
     ros::Subscriber sub_traj_;
     ros::Subscriber sub_task_;
+    ros::Subscriber sub_follow_traj_;
 
     // PUBLISHERS //
     ros::Publisher pub_lookahead_;

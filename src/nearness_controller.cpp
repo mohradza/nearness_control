@@ -25,6 +25,7 @@ void NearnessController::init() {
     //sub_imu_ = nh_.subscribe("imu_raw", 1, &NearnessController::imuCb, this);
     sub_att_lookahead_ = nh_.subscribe("att_lookahead", 1, &NearnessController::attLookaheadCb, this);
     sub_traj_lookahead_ = nh_.subscribe("traj_lookahead", 1, &NearnessController::trajLookaheadCb, this);
+    sub_follow_traj_ = nh_.subscribe("follow_traj", 1, &NearnessController::followTrajCb, this);
     sub_task_ = nh_.subscribe("task", 1, &NearnessController::taskCb, this);
     sub_terrain_scan_ = nh_.subscribe("terrain_scan", 1, &NearnessController::terrainScanCb, this);
     sub_tower_safety_ = nh_.subscribe("tower_safety", 1, &NearnessController::towerSafetyCb, this);
@@ -1284,6 +1285,14 @@ void NearnessController::taskCb(const std_msgs::StringConstPtr& task_msg){
     if((unable_to_plan_home_str_.compare(task_msg->data.c_str()) == 0)||(unable_to_plan_str_.compare(task_msg->data.c_str())== 0)){
         enable_traj_lookahead_ = (true || enable_trajectory_following_);
         //ROS_INFO("Unable to plan home!!!!!");
+    } else {
+        enable_traj_lookahead_ = false;
+    }
+}
+
+void NearnessController::followTrajCb(const std_msgs::BoolConstPtr& follow_traj_msg){
+    if(follow_traj_msg->data){
+        enable_traj_lookahead_ = (true || enable_trajectory_following_);
     } else {
         enable_traj_lookahead_ = false;
     }
