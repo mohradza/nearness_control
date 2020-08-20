@@ -88,7 +88,6 @@
         <param name="total_vert_scan_points" type="int" value="1081"/>
         <param name="num_vert_scan_points" type="int" value="720"/>
         <param name="vert_scan_limit" type="double" value="1.5707"/>
-        <param name="scan_start_location" type="string" value="back" /> <!-- Valid args: 'forward', 'back', 'left', 'right' -->
         <param name="vert_sensor_min_distance" type="double" value="0.1"/>
         <param name="vert_sensor_max_distance" type="double" value="25.0"/>
         <param name="vert_scan_start_index" type="int" value="180"/>

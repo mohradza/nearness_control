@@ -107,6 +107,9 @@ void NearnessController::init() {
     pnh_.param("horiz_sensor_min_noise", h_sensor_min_noise_ , .1);
     pnh_.param("reverse_horiz_scan", reverse_h_scan_, true);
     pnh_.param("num_horiz_fourier_terms", h_num_fourier_terms_, 5);
+    std::string scan_start_loc_;
+    pnh_.param<std::string>("scan_start_location", scan_start_loc_,"forward");
+    h_scan_start_loc_.data = scan_start_loc_.c_str();
 
     pnh_.param("total_vert_scan_points", total_v_scan_points_, 1440);
     pnh_.param("num_vert_scan_points", num_v_scan_points_, 720);
@@ -391,7 +394,7 @@ void NearnessController::convertHLaserscan2CVMat(const sensor_msgs::LaserScanPtr
     // Reformat the depth scan depending on the orientation of the scanner
     // scan_start_loc describes the location of the first scan index
     std::vector<float> h_depth_vector_reformat;
-    h_scan_start_loc_.data = "back";
+    //h_scan_start_loc_.data = "back";
     if (h_scan_start_loc_.data == "forward"){
         h_depth_vector_reformat = h_depth_vector;
     } else if (h_scan_start_loc_.data == "right"){
@@ -402,6 +405,7 @@ void NearnessController::convertHLaserscan2CVMat(const sensor_msgs::LaserScanPtr
             h_depth_vector_reformat.push_back(h_depth_vector[i]);
         }
     } else if (h_scan_start_loc_.data == "back"){
+        ROS_INFO("back");
         for (int i = total_h_scan_points_/2; i < total_h_scan_points_; i++) {
             h_depth_vector_reformat.push_back(h_depth_vector[i]);
         }
