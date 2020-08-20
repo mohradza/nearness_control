@@ -359,6 +359,7 @@ void NearnessController::vertLaserscanCb(const sensor_msgs::LaserScanPtr v_laser
 }
 
 void NearnessController::convertHLaserscan2CVMat(const sensor_msgs::LaserScanPtr h_laserscan_msg){
+    ros::Time process_scan_start = ros::Time::now();
     std::vector<float> h_depth_vector = h_laserscan_msg->ranges;
     std::vector<float> h_depth_vector_noinfs = h_depth_vector;
 
@@ -433,6 +434,8 @@ void NearnessController::convertHLaserscan2CVMat(const sensor_msgs::LaserScanPtr
     for(int i=0; i<num_h_scan_points_; i++){
         h_depth_vector_trimmed.push_back(h_depth_vector_reformat[i+h_scan_start_index_]);
     }
+    float process_scan_duration = (ros::Time::now() - process_scan_start).toSec();
+    ROS_INFO("Process time: %f", process_scan_duration);
 
     // Check to see if anything has entered the safety boundary
     if(enable_safety_boundary_){
@@ -535,7 +538,7 @@ void NearnessController::computeHorizFourierCoeffs(){
     float h_cos_gamma_arr[h_num_fourier_terms_ + 1][num_h_scan_points_];
     float h_sin_gamma_arr[h_num_fourier_terms_ + 1][num_h_scan_points_];
 
-
+    ros::Time process_horiz_start = ros::Time::now();
     // Compute horizontal nearness
     h_nearness_ = cv::Mat::zeros(cv::Size(1, num_h_scan_points_), CV_32FC1);
     h_nearness_ = 1.0/ h_depth_cvmat_;
@@ -575,6 +578,10 @@ void NearnessController::computeHorizFourierCoeffs(){
         h_a_[i] = h_nearness_.dot(h_cos_gamma_mat.row(i)) * h_dg_ / M_PI;
         h_b_[i] = h_nearness_.dot(h_sin_gamma_mat.row(i)) * h_dg_ / M_PI;
     }
+    float process_horiz_duration = (ros::Time::now() - process_horiz_start).toSec();
+    ROS_INFO("Process time: %f", process_horiz_duration);
+
+
 
         // Publish horizontal WFI Fourier coefficients
         // Convert array to vector
