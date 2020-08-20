@@ -110,6 +110,10 @@ void NearnessController::init() {
     std::string scan_start_loc_;
     pnh_.param<std::string>("scan_start_location", scan_start_loc_,"forward");
     h_scan_start_loc_.data = scan_start_loc_.c_str();
+    // ROS_INFO("%s",scan_start_loc_.c_str());
+    // if (h_scan_start_loc_.data == "back"){
+    //   ROS_INFO("TRUE");
+    // }
 
     pnh_.param("total_vert_scan_points", total_v_scan_points_, 1440);
     pnh_.param("num_vert_scan_points", num_v_scan_points_, 720);
@@ -182,7 +186,7 @@ void NearnessController::init() {
 
     // Stuck Parameters
     pnh_.param("enable_unstuck", enable_unstuck_, true);
-    ROS_INFO("%d", enable_unstuck_);
+    //ROS_INFO("%d", enable_unstuck_);
     pnh_.param("stuck_time_limit", stuck_time_limit_, 10.0);
     pnh_.param("stuck_maneuver_backup_timer", stuck_maneuver_backup_timer_, 10.0);
 
