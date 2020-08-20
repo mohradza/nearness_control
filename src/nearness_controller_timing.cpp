@@ -305,44 +305,134 @@ void NearnessController::configCb(Config &config, uint32_t level)
 
 void NearnessController::horizLaserscanCb(const sensor_msgs::LaserScanPtr h_laserscan_msg){
 
-    // Convert incoming scan to cv matrix and reformat
-    convertHLaserscan2CVMat(h_laserscan_msg);
+  ros::Time process_start_time = ros::Time::now();
+  std::vector<float> h_depth_vector = h_laserscan_msg->ranges;
+  std::vector<float> h_depth_vector_noinfs = h_depth_vector;
 
-    // Compute the Fourier harmonics of the signal
-    computeHorizFourierCoeffs();
+  // handle infs due to sensor max distance
+  for(int i = 0; i<total_h_scan_points_; i++){
+      if(isinf(h_depth_vector[i])){
+          //h_depth_vector[i] = h_sensor_max_dist_;
+          if(i == 0){
+              if(isinf(h_depth_vector[i+1])){
+                  h_depth_vector_noinfs[i] = h_sensor_max_dist_;
+              } else {
+                  h_depth_vector_noinfs[i] = h_depth_vector[i+1];
+              }
+          } else if(i == total_h_scan_points_){
+              if(isinf(h_depth_vector[i-1])){
+                  h_depth_vector_noinfs[i] = h_sensor_max_dist_;
+              } else {
+                  h_depth_vector_noinfs[i] = h_depth_vector[i-1];
+              }
+          } else {
+              if(isinf(h_depth_vector[i-1]) && isinf(h_depth_vector[i+1])){
+                  h_depth_vector_noinfs[i] = h_sensor_max_dist_;
+              } else {
+                  h_depth_vector_noinfs[i] = (h_depth_vector[i-1] + h_depth_vector[i+1])/2.0;
+              }
+          }
+      }
+      h_depth_vector = h_depth_vector_noinfs;
+  }
 
-    // Feed back fourier coefficients for forward speed regulation
-    computeForwardSpeedCommand();
+  // Reverse the direction
+  // Only reverse if the scan point indices are positive ccw
+  if(reverse_h_scan_){
+      std::reverse(h_depth_vector.begin(), h_depth_vector.end());
+  }
 
-    computeWFYawRateCommand();
+  // Reformat the depth scan depending on the orientation of the scanner
+  // scan_start_loc describes the location of the first scan index
+  std::vector<float> h_depth_vector_reformat;
+  //h_scan_start_loc_.data = "back";
+  if (h_scan_start_loc_.data == "forward"){
+      h_depth_vector_reformat = h_depth_vector;
+  } else if (h_scan_start_loc_.data == "right"){
+      for (int i = 3*total_h_scan_points_/4; i < total_h_scan_points_; i++) {
+          h_depth_vector_reformat.push_back(h_depth_vector[i]);
+      }
+      for (int i = 0; i < 3*total_h_scan_points_/4; i++){
+          h_depth_vector_reformat.push_back(h_depth_vector[i]);
+      }
+  } else if (h_scan_start_loc_.data == "back"){
+      ROS_INFO("back");
+      for (int i = total_h_scan_points_/2; i < total_h_scan_points_; i++) {
+          h_depth_vector_reformat.push_back(h_depth_vector[i]);
+      }
+      for (int i = 0; i < total_h_scan_points_/2; i++){
+          h_depth_vector_reformat.push_back(h_depth_vector[i]);
+      }
+  } else if (h_scan_start_loc_.data == "left"){
+      for (int i = total_h_scan_points_/4; i < total_h_scan_points_; i++) {
+          h_depth_vector_reformat.push_back(h_depth_vector[i]);
+      }
+      for (int i = 0; i < total_h_scan_points_/4; i++){
+          h_depth_vector_reformat.push_back(h_depth_vector[i]);
+      }
+  } else {
+      h_depth_vector_reformat = h_depth_vector;
+  }
 
-    if(!is_ground_vehicle_){
-        computeLateralSpeedCommand();
-    }
+  // Trim the scan down if the entire scan is not being used
+  std::vector<float> h_depth_vector_trimmed;
+  //ROS_INFO("%d", h_scan_start_index_);
+  for(int i=0; i<num_h_scan_points_; i++){
+      h_depth_vector_trimmed.push_back(h_depth_vector_reformat[i+h_scan_start_index_]);
+  }
+  //float process_scan_duration = (ros::Time::now() - process_scan_start).toSec();
+  //ROS_INFO("Process time: %f", process_scan_duration);
 
-    if(enable_sf_control_){
-        computeSFYawRateCommand();
-    } else {
-        h_sf_r_cmd_ = 0.0;
-    }
+  // Last, convert to cvmat and saturate
+  h_depth_cvmat_ = cv::Mat(1,num_h_scan_points_, CV_32FC1);
+  std::memcpy(h_depth_cvmat_.data, h_depth_vector_trimmed.data(), h_depth_vector_trimmed.size()*sizeof(float));
+  h_depth_cvmat_.setTo(h_sensor_min_dist_, h_depth_cvmat_ < h_sensor_min_dist_);
+  h_depth_cvmat_.setTo(h_sensor_max_dist_, h_depth_cvmat_ > h_sensor_max_dist_);
 
-    if(enable_terrain_control_){
-        computeTerrainYawRateCommand();
-    } else {
-        terrain_r_cmd_ = 0.0;
-    }
+  //float h_cos_gamma_arr[h_num_fourier_terms_ + 1][num_h_scan_points_];
+  float h_sin_gamma_arr[h_num_fourier_terms_ + 1][num_h_scan_points_];
 
-    if(enable_attractor_control_){
-        computeAttractorCommand();
-    } else {
-        attractor_yaw_cmd_ = 0.0;
-    }
+  ros::Time process_horiz_start = ros::Time::now();
+  // Compute horizontal nearness
+  h_nearness_ = cv::Mat::zeros(cv::Size(1, num_h_scan_points_), CV_32FC1);
+  h_nearness_ = 1.0/ h_depth_cvmat_;
 
-    if(enable_unstuck_){
-        checkVehicleStatus();
-    }
+  std::vector<float> h_nearness_array(h_nearness_.begin<float>(), h_nearness_.end<float>());
+  h_nearness_maxval_ = *std::max_element(h_nearness_array.begin(), h_nearness_array.end());
 
-    publishControlCommandMsg();
+  // Pull out the L2 norm of the measured nearness signal
+  float norm_sum = 0.0;
+  //std::accumulate(h_depth_vector_reformat.begin(), h_depth_vector_reformat.end
+  for(int i=0; i<num_h_scan_points_; i++){
+      norm_sum += pow(h_nearness_array[i],2);
+  }
+  h_nearness_l2_norm_ = sqrt(norm_sum);
+
+  // Compute the Fourier Coefficients
+  //cv::Mat h_cos_gamma_mat(h_num_fourier_terms_ + 1, num_h_scan_points_, CV_32FC1, h_cos_gamma_arr);
+  cv::Mat h_sin_gamma_mat(h_num_fourier_terms_ + 1, num_h_scan_points_, CV_32FC1, h_sin_gamma_arr);
+
+  for (int i = 0; i < h_num_fourier_terms_ + 1; i++) {
+      for (int j = 0; j < num_h_scan_points_; j++) {
+          //h_cos_gamma_arr[i][j] = cos(i * h_gamma_vector_[j]);
+          h_sin_gamma_arr[i][j] = sin(i * h_gamma_vector_[j]);
+      }
+      //h_a_[i] = h_nearness_.dot(h_cos_gamma_mat.row(i)) * h_dg_ / M_PI;
+      h_b_[i] = h_nearness_.dot(h_sin_gamma_mat.row(i)) * h_dg_ / M_PI;
+  }
+
+  if(reverse_wf_r_cmd_){
+      h_wf_r_cmd_ = -1*(r_k_hb_1_*h_b_[1] + r_k_hb_2_*h_b_[2]);
+  } else {
+      h_wf_r_cmd_ = r_k_hb_1_*h_b_[1] + r_k_hb_2_*h_b_[2];
+  }
+  // Saturate the wide field yaw rate command
+  if(h_wf_r_cmd_ < -r_max_) {
+      h_wf_r_cmd_ = -r_max_;
+  } else if(h_wf_r_cmd_ > r_max_) {
+      h_wf_r_cmd_ = r_max_;
+  }
+  float total_duration = (ros::Time::now() - process_start_time);
 
 }
 
@@ -359,7 +449,7 @@ void NearnessController::vertLaserscanCb(const sensor_msgs::LaserScanPtr v_laser
 }
 
 void NearnessController::convertHLaserscan2CVMat(const sensor_msgs::LaserScanPtr h_laserscan_msg){
-    ros::Time process_scan_start = ros::Time::now();
+    ros::Time process_start_time = ros::Time::now();
     std::vector<float> h_depth_vector = h_laserscan_msg->ranges;
     std::vector<float> h_depth_vector_noinfs = h_depth_vector;
 
@@ -434,32 +524,59 @@ void NearnessController::convertHLaserscan2CVMat(const sensor_msgs::LaserScanPtr
     for(int i=0; i<num_h_scan_points_; i++){
         h_depth_vector_trimmed.push_back(h_depth_vector_reformat[i+h_scan_start_index_]);
     }
-    float process_scan_duration = (ros::Time::now() - process_scan_start).toSec();
-    ROS_INFO("Process time: %f", process_scan_duration);
-
-    // Check to see if anything has entered the safety boundary
-    if(enable_safety_boundary_){
-        checkSafetyBoundary(h_depth_vector_trimmed);
-    } else {
-        flag_too_close_side_ = false;
-        flag_too_close_front_ = false;
-    }
-
-     // Publish the reformatted scan
-     if(debug_){
-        std_msgs::Float32MultiArray h_depth_scan_reformat_msg;
-        h_depth_scan_reformat_msg.layout.dim.push_back(std_msgs::MultiArrayDimension());
-        h_depth_scan_reformat_msg.data.clear();
-        h_depth_scan_reformat_msg.data = h_depth_vector_trimmed;
-        //h_depth_scan_reformat_msg.data = h_depth_vector;
-        pub_h_scan_reformat_.publish(h_depth_scan_reformat_msg);
-    }
+    //float process_scan_duration = (ros::Time::now() - process_scan_start).toSec();
+    //ROS_INFO("Process time: %f", process_scan_duration);
 
     // Last, convert to cvmat and saturate
     h_depth_cvmat_ = cv::Mat(1,num_h_scan_points_, CV_32FC1);
     std::memcpy(h_depth_cvmat_.data, h_depth_vector_trimmed.data(), h_depth_vector_trimmed.size()*sizeof(float));
     h_depth_cvmat_.setTo(h_sensor_min_dist_, h_depth_cvmat_ < h_sensor_min_dist_);
     h_depth_cvmat_.setTo(h_sensor_max_dist_, h_depth_cvmat_ > h_sensor_max_dist_);
+
+    float h_cos_gamma_arr[h_num_fourier_terms_ + 1][num_h_scan_points_];
+    float h_sin_gamma_arr[h_num_fourier_terms_ + 1][num_h_scan_points_];
+
+    ros::Time process_horiz_start = ros::Time::now();
+    // Compute horizontal nearness
+    h_nearness_ = cv::Mat::zeros(cv::Size(1, num_h_scan_points_), CV_32FC1);
+    h_nearness_ = 1.0/ h_depth_cvmat_;
+
+    std::vector<float> h_nearness_array(h_nearness_.begin<float>(), h_nearness_.end<float>());
+    h_nearness_maxval_ = *std::max_element(h_nearness_array.begin(), h_nearness_array.end());
+
+    // Pull out the L2 norm of the measured nearness signal
+    float norm_sum = 0.0;
+    //std::accumulate(h_depth_vector_reformat.begin(), h_depth_vector_reformat.end
+    for(int i=0; i<num_h_scan_points_; i++){
+        norm_sum += pow(h_nearness_array[i],2);
+    }
+    h_nearness_l2_norm_ = sqrt(norm_sum);
+
+    // Compute the Fourier Coefficients
+    cv::Mat h_cos_gamma_mat(h_num_fourier_terms_ + 1, num_h_scan_points_, CV_32FC1, h_cos_gamma_arr);
+    cv::Mat h_sin_gamma_mat(h_num_fourier_terms_ + 1, num_h_scan_points_, CV_32FC1, h_sin_gamma_arr);
+
+    for (int i = 0; i < h_num_fourier_terms_ + 1; i++) {
+        for (int j = 0; j < num_h_scan_points_; j++) {
+            h_cos_gamma_arr[i][j] = cos(i * h_gamma_vector_[j]);
+            h_sin_gamma_arr[i][j] = sin(i * h_gamma_vector_[j]);
+        }
+        h_a_[i] = h_nearness_.dot(h_cos_gamma_mat.row(i)) * h_dg_ / M_PI;
+        h_b_[i] = h_nearness_.dot(h_sin_gamma_mat.row(i)) * h_dg_ / M_PI;
+    }
+
+    if(reverse_wf_r_cmd_){
+        h_wf_r_cmd_ = -1*(r_k_hb_1_*h_b_[1] + r_k_hb_2_*h_b_[2]);
+    } else {
+        h_wf_r_cmd_ = r_k_hb_1_*h_b_[1] + r_k_hb_2_*h_b_[2];
+    }
+    // Saturate the wide field yaw rate command
+    if(h_wf_r_cmd_ < -r_max_) {
+        h_wf_r_cmd_ = -r_max_;
+    } else if(h_wf_r_cmd_ > r_max_) {
+        h_wf_r_cmd_ = r_max_;
+    }
+    float total_duration = (ros::Time::now() - process_start_time);
 
 } // End of convertHLaserscan2CVMat
 
