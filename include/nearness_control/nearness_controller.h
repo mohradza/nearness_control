@@ -180,6 +180,9 @@ class NearnessController {
     double v_sensor_min_noise_;
     bool reverse_v_scan_;
 
+    bool sim_start_;
+    bool at_gate_;
+
     // Safety
     bool enable_safety_boundary_;
     bool enable_safety_box_;

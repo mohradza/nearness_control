@@ -77,6 +77,7 @@ void NearnessController::init() {
     enable_traj_lookahead_ = false;
     unable_to_plan_home_str_ = "Unable to plan home";
     unable_to_plan_str_ = "Unable to plan";
+    at_gate_ = false;
 
     // Import parameters
     pnh_.param("enable_debug", debug_, false);
@@ -93,6 +94,17 @@ void NearnessController::init() {
     pnh_.param("enable_tower_safety", enable_tower_safety_, false);
     pnh_.param("enable_cmd_lp_filter", enable_cmd_lp_filter_, true);
     pnh_.param("motion_on_startup", motion_on_startup_, false);
+    pnh_.param("sim_start", sim_start_, false);
+
+    if(sim_start_){
+      have_attractor_ = true;
+      last_wp_msg_time_ = ros::Time::now();
+      next_waypoint_pos_.x = 0.0;
+      next_waypoint_pos_.y = 0.0;
+      next_waypoint_pos_.z = 0.0;
+      attractor_d_ = sqrt(pow((current_pos_.x - next_waypoint_pos_.x), 2) + pow((current_pos_.y - next_waypoint_pos_.y), 2));
+      relative_attractor_heading_ = atan2((next_waypoint_pos_.y - current_pos_.y),(next_waypoint_pos_.x - current_pos_.x));
+    }
 
     if(motion_on_startup_){
       flag_estop_ = false;
@@ -907,6 +919,7 @@ void NearnessController::computeAttractorCommand(){
     if(attractor_timer > attractor_watchdog_timer_){
         ROS_INFO_THROTTLE(1,"Have not received a new attractor for %f seconds.", attractor_timer);
         lost_attractor_ = true;
+        have_attractor_ = false;
     } else {
         lost_attractor_ = false;
     }
@@ -916,21 +929,25 @@ void NearnessController::computeAttractorCommand(){
     //float angle_error_backup = wrapAngle(relative_attractor_heading_ - wrapAngle(current_heading_ - M_PI));
     //backup_attractor_yaw_cmd_ = r_k_att_0_*angle_error_backup*exp(-r_k_att_d_*attractor_d_);
     //ROS_INFO_THROTTLE(1,"backup yaw cmd: %f", backup_attractor_yaw_cmd_);
-    if(have_attractor_ && (abs(att_angle_error_) < 1.0)){
-        attractor_yaw_cmd_ = r_k_att_0_*att_angle_error_*exp(-r_k_att_d_*attractor_d_);
-        //attractor_yaw_cmd_ = -r_k_att_d_*attractor_d_;
-        //ROS_INFO("%f, %f, %f, %f, %f", r_k_att_0_,r_k_att_d_, attractor_d_, att_angle_error_, attractor_yaw_cmd_);
-        //float attractor_yaw_cmd = r_k_att_0_*wrapAngle(current_heading_ - relative_attractor_heading)*exp(-r_k_att_d_*attractor_d);
-        //ROS_INFO_THROTTLE(.5,"del_t: %1.2f, e: %1.2f, yaw_cmd: %1.2f", wrapAngle(current_heading_ - relative_attractor_heading), exp(-r_k_att_d_*attractor_d), attractor_yaw_cmd);
-        attractor_turn_ = false;
+    if(!lost_attractor_) {
+        if(abs(att_angle_error_) < 1.0){
+            attractor_yaw_cmd_ = r_k_att_0_*att_angle_error_*exp(-r_k_att_d_*attractor_d_);
+            //attractor_yaw_cmd_ = -r_k_att_d_*attractor_d_;
+            //ROS_INFO("%f, %f, %f, %f, %f", r_k_att_0_,r_k_att_d_, attractor_d_, att_angle_error_, attractor_yaw_cmd_);
+            //float attractor_yaw_cmd = r_k_att_0_*wrapAngle(current_heading_ - relative_attractor_heading)*exp(-r_k_att_d_*attractor_d);
+            //ROS_INFO_THROTTLE(.5,"del_t: %1.2f, e: %1.2f, yaw_cmd: %1.2f", wrapAngle(current_heading_ - relative_attractor_heading), exp(-r_k_att_d_*attractor_d), attractor_yaw_cmd);
+            attractor_turn_ = false;
+        } else {
+    	      ROS_INFO_THROTTLE(1,"Pure attractor turn");
+            attractor_yaw_cmd_ = sat(r_k_att_turn_*att_angle_error_,-.2, .2);
+            //attractor_yaw_cmd_ = .05;
+    	      attractor_turn_ = true;
+            //u_cmd_ = 0.0;
+        }
+        if(isnan(attractor_yaw_cmd_)){
+            attractor_yaw_cmd_ = 0.0;
+        }
     } else {
-	      ROS_INFO_THROTTLE(1,"Pure attractor turn");
-        attractor_yaw_cmd_ = sat(r_k_att_turn_*att_angle_error_,-.2, .2);
-        //attractor_yaw_cmd_ = .05;
-	      attractor_turn_ = true;
-        //u_cmd_ = 0.0;
-    }
-    if(isnan(attractor_yaw_cmd_)){
         attractor_yaw_cmd_ = 0.0;
     }
 }
@@ -1035,27 +1052,21 @@ void NearnessController::publishControlCommandMsg(){
             control_command_.twist.angular.z += terrain_r_cmd_;
         }
 
-        if(enable_attractor_control_ && !lost_attractor_){
-//          if(abs(terrain_r_cmd_ > 0.05) && !attractor_turn_){
-            if(false){
-              //
+        if(enable_attractor_control_ && (!lost_attractor_ || !at_gate_)){
+            if((abs(terrain_r_cmd_) > 0.1) && !attractor_turn_){
+              ROS_INFO_THROTTLE(1, "Ignoring WF and attractor cmds...");
             } else {
-                if((abs(terrain_r_cmd_) > 0.1) && !attractor_turn_){
-                  ROS_INFO_THROTTLE(1, "Ignoring WF and attractor cmds...");
-                } else {
-                    control_command_.twist.angular.z += attractor_yaw_cmd_;
-                    if(attractor_turn_){
-                        control_command_.twist.linear.x = 0.0;
-                        control_command_.twist.angular.z = sat(attractor_yaw_cmd_, -r_max_, r_max_);
-                        // if(flag_octo_too_close_ && enable_backup_){
-                        //     ROS_INFO_THROTTLE(1,"OBSTACLE TOO CLOSE, CANNOT TURN AROUND! BACKING UP");
-                        //     control_command_.twist.linear.x = -.1;
-                        //     control_command_.twist.angular.z = backup_attractor_yaw_cmd_;
-                        // }
-                    }
+                control_command_.twist.angular.z += attractor_yaw_cmd_;
+                if(attractor_turn_){
+                    control_command_.twist.linear.x = 0.0;
+                    control_command_.twist.angular.z = sat(attractor_yaw_cmd_, -r_max_, r_max_);
+                    // if(flag_octo_too_close_ && enable_backup_){
+                    //     ROS_INFO_THROTTLE(1,"OBSTACLE TOO CLOSE, CANNOT TURN AROUND! BACKING UP");
+                    //     control_command_.twist.linear.x = -.1;
+                    //     control_command_.twist.angular.z = backup_attractor_yaw_cmd_;
+                    // }
                 }
             }
-
             //ROS_INFO("att_cmd: %f", control_command_.twist.angular.z);
         }
 
@@ -1120,9 +1131,9 @@ void NearnessController::publishControlCommandMsg(){
 
 
         // Wait for an attractor before moving
-        if(!have_attractor_ && enable_attractor_control_){
-            control_command_.twist.linear.x = 0.0;
-        }
+        // if(!have_attractor_ && enable_attractor_control_){
+        //     control_command_.twist.linear.x = 0.0;
+        // }
 
         if(debug_){
             float nearness_r_cmd = 0.0;
@@ -1193,9 +1204,16 @@ void NearnessController::publishControlCommandMsg(){
     ROS_INFO_THROTTLE(1, "WF: %f, SF: %f, TER: %f, ATT: %f, YAWMIX: %f, U: %f", h_wf_r_cmd_, h_sf_r_cmd_, terrain_r_cmd_, attractor_yaw_cmd_, control_command_.twist.angular.z, control_command_.twist.linear.x);
 
 
-    if(enable_attractor_control_ && attractor_d_ < .25){
-      control_command_.twist.linear.x = 0.0;
-      control_command_.twist.angular.z = 0.0;
+    if(enable_attractor_control_){
+        if(attractor_d_ < .25){
+            if(sim_start_ && !at_gate){
+                at_gate = true;
+            }
+            if(!lost_attractor_){
+              control_command_.twist.linear.x = 0.0;
+              control_command_.twist.angular.z = 0.0;
+            }
+        }
     }
 
     if(flag_beacon_stop_){
@@ -1226,6 +1244,10 @@ void NearnessController::odomCb(const nav_msgs::OdometryConstPtr& odom_msg){
     tf::Quaternion vehicle_quat_tf;
     tf::quaternionMsgToTF(vehicle_quat_msg, vehicle_quat_tf);
     tf::Matrix3x3(vehicle_quat_tf).getRPY(current_roll_, current_pitch_, current_heading_);
+
+    if(!at_gate_){
+        last_wp_msg_time_ = ros::Time::now();
+    }
 }
 
 void NearnessController::joyconCb(const sensor_msgs::JoyConstPtr& joy_msg)
