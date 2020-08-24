@@ -24,6 +24,7 @@ void NearnessController::init() {
 
     //sub_imu_ = nh_.subscribe("imu_raw", 1, &NearnessController::imuCb, this);
     sub_att_lookahead_ = nh_.subscribe("att_lookahead", 1, &NearnessController::attLookaheadCb, this);
+    sub_goal_pose_ = nh_.subscribe("goal_pose", 1, &NearnessController::goalPoseCb, this);
     sub_traj_lookahead_ = nh_.subscribe("traj_lookahead", 1, &NearnessController::trajLookaheadCb, this);
     sub_follow_traj_ = nh_.subscribe("follow_traj", 1, &NearnessController::followTrajCb, this);
     sub_task_ = nh_.subscribe("task", 1, &NearnessController::taskCb, this);
@@ -55,6 +56,7 @@ void NearnessController::init() {
     // Initialize global variables
     have_attractor_ = false;
     lost_attractor_ = false;
+    run_start_ = false;
     flag_estop_ = true;
     flag_beacon_stop_ = false;
     control_command_.header.frame_id = "/base_stabilized";
@@ -97,6 +99,7 @@ void NearnessController::init() {
     pnh_.param("sim_start", sim_start_, false);
 
     if(sim_start_){
+      ROS_INFO("SIM_START");
       have_attractor_ = true;
       last_wp_msg_time_ = ros::Time::now();
       next_waypoint_pos_.x = 0.0;
@@ -883,6 +886,7 @@ void NearnessController::computeForwardSpeedCommand(){
     if(!enable_att_speed_reg_ || !enable_attractor_control_ || lost_attractor_){
         angle_error = 0.0;
     }
+    ROS_INFO_THROTTLE(1,"angle_error: %f", angle_error);
     if(enable_wf_control_){
         u_cmd_ = u_max_ * (1 - u_k_hb_1_*abs(h_b_[1]) - u_k_hb_2_*abs(h_b_[2]) - u_k_hb_1_*abs(h_a_[1]) - u_k_hb_2_*abs(h_a_[2]) -1.25*abs(h_sf_r_cmd_) - abs(terrain_r_cmd_) - u_k_att_*abs(angle_error));
         //ROS_INFO_THROTTLE(1, "%f %f", u_k_hb_1_, u_k_hb_2_);
@@ -950,6 +954,7 @@ void NearnessController::computeAttractorCommand(){
     } else {
         attractor_yaw_cmd_ = 0.0;
     }
+    ROS_INFO_THROTTLE(1,"Attractor cmd: %f", attractor_yaw_cmd_);
 }
 
 void NearnessController::computeLateralSpeedCommand(){
@@ -1203,11 +1208,12 @@ void NearnessController::publishControlCommandMsg(){
     }
     ROS_INFO_THROTTLE(1, "WF: %f, SF: %f, TER: %f, ATT: %f, YAWMIX: %f, U: %f", h_wf_r_cmd_, h_sf_r_cmd_, terrain_r_cmd_, attractor_yaw_cmd_, control_command_.twist.angular.z, control_command_.twist.linear.x);
 
-
     if(enable_attractor_control_){
-        if(attractor_d_ < .25){
-            if(sim_start_ && !at_gate){
-                at_gate = true;
+        //ROS_INFO("%f", attractor_d_);
+        if((attractor_d_ < .25) && (attractor_d_ > .001)){
+            if(sim_start_ && !at_gate_){
+                at_gate_ = true;
+                ROS_INFO("REACHED THE GATE!");
             }
             if(!lost_attractor_){
               control_command_.twist.linear.x = 0.0;
@@ -1247,6 +1253,8 @@ void NearnessController::odomCb(const nav_msgs::OdometryConstPtr& odom_msg){
 
     if(!at_gate_){
         last_wp_msg_time_ = ros::Time::now();
+        attractor_d_ = sqrt(pow((current_pos_.x - next_waypoint_pos_.x), 2) + pow((current_pos_.y - next_waypoint_pos_.y), 2));
+        relative_attractor_heading_ = atan2((next_waypoint_pos_.y - current_pos_.y),(next_waypoint_pos_.x - current_pos_.x));
     }
 }
 
@@ -1292,12 +1300,22 @@ void NearnessController::attLookaheadCb(const geometry_msgs::PointStampedConstPt
         have_attractor_ = true;
     }
 
-    if(!enable_traj_lookahead_){
+    if(!enable_traj_lookahead_ && at_gate_ && run_start_){
         last_wp_msg_time_ = ros::Time::now();
         next_waypoint_pos_ = next_waypoint_msg->point;
         attractor_d_ = sqrt(pow((current_pos_.x - next_waypoint_pos_.x), 2) + pow((current_pos_.y - next_waypoint_pos_.y), 2));
         relative_attractor_heading_ = atan2((next_waypoint_pos_.y - current_pos_.y),(next_waypoint_pos_.x - current_pos_.x));
+        //ROS_INFO_THROTTLE(1,"attactor cb");
+     }
+}
+
+void NearnessController::goalPoseCb(const geometry_msgs::PoseStampedConstPtr& next_goal_msg){
+    ROS_INFO("Goal pose cb");
+    if((next_goal_msg->pose.position.x > 1.0) && !run_start_){
+        run_start_ = true;
+        ROS_INFO("RUN START");
     }
+
 }
 
 void NearnessController::trajLookaheadCb(const geometry_msgs::PointStampedConstPtr& traj_lookahead_msg){
@@ -1307,6 +1325,7 @@ void NearnessController::trajLookaheadCb(const geometry_msgs::PointStampedConstP
         next_waypoint_pos_ = traj_lookahead_msg->point;
         attractor_d_ = sqrt(pow((current_pos_.x - next_waypoint_pos_.x), 2) + pow((current_pos_.y - next_waypoint_pos_.y), 2));
         relative_attractor_heading_ = atan2((next_waypoint_pos_.y - current_pos_.y),(next_waypoint_pos_.x - current_pos_.x));
+        //ROS_INFO_THROTTLE(1,"traj cb");
     }
 
     //ROS_INFO("%f", relative_attractor_heading_);

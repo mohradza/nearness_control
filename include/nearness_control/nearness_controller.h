@@ -64,6 +64,7 @@ class NearnessController {
     void imuCb(const sensor_msgs::ImuConstPtr& imu_msg);
     void sonarHeightCb(const sensor_msgs::RangeConstPtr& range_msg);
     void attLookaheadCb(const geometry_msgs::PointStampedConstPtr& next_waypoint_msg);
+    void goalPoseCb(const geometry_msgs::PoseStampedConstPtr& next_goal_msg);
     void trajLookaheadCb(const geometry_msgs::PointStampedConstPtr& next_waypoint_msg);
     void taskCb(const std_msgs::StringConstPtr& task_msg);
     void followTrajCb(const std_msgs::BoolConstPtr& follow_traj_msg);
@@ -103,6 +104,7 @@ class NearnessController {
     ros::Subscriber sub_odom_;
     ros::Subscriber sub_imu_;
     ros::Subscriber sub_att_lookahead_;
+    ros::Subscriber sub_goal_pose_;
     ros::Subscriber sub_task_;
     ros::Subscriber sub_follow_traj_;
     ros::Subscriber sub_traj_lookahead_;
@@ -240,6 +242,7 @@ class NearnessController {
     bool enable_terrain_control_;
     bool enable_tower_safety_;
     bool motion_on_startup_;
+    bool run_start_;
 
     // Init
     std::vector<float> h_gamma_vector_;
