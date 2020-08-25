@@ -6,7 +6,7 @@
         <remap from="trajectory_follower/odometry_map" to="odometry_map"/>
         <remap from="trajectory_follower/trajectory" to="pose_graph"/>
         <remap from="trajectory_follower/task" to="fake_task"/>
-        <remap from="trajectory_follower/follow_traj" to="follow_traj_fake"/>
+        <remap from="trajectory_follower/follow_traj" to="follow_traj"/>
 
     </node>
 
