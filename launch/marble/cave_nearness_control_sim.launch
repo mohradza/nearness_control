@@ -48,6 +48,7 @@
         <remap from="nearness_controller/att_lookahead" to="lookahead_point"/>
         <remap from="nearness_controller/traj_lookahead" to="trajectory_follower/traj_lookahead"/>
         <remap from="nearness_controller/follow_traj" to="follow_traj_fake"/>
+        <remap from="nearness_controller/goal_pose" to="ma_goal"/>
         <remap from="nearness_controller/task" to="fake_task"/>
         <remap from="nearness_controller/odometry" to="odometry"/>
         <remap from="nearness_controller/odometry_map" to="odometry_map"/>
@@ -73,7 +74,7 @@
         <param name="enable_tower_safety" type="bool" value="$(arg enable_tower_safety)"/>
         <param name="enable_cmd_lp_filter" type="bool" value="$(arg enable_cmd_lp_filter)"/>
         <param name="enable_unstuck" type="bool" value="$(arg enable_unstuck)"/>
-        <param name="motion_on_startup" type="bool" value="$(arg motion_on_startup)"/>
+        <param name="sim_start" type="bool" value="true"/>
 
         <!-- Sensor Parameters -->
         <param name="total_horiz_scan_points" type="int" value="$(arg total_horiz_scan_points)"/>

@@ -887,7 +887,7 @@ void NearnessController::computeForwardSpeedCommand(){
     if(!enable_att_speed_reg_ || !enable_attractor_control_ || lost_attractor_){
         angle_error = 0.0;
     }
-    ROS_INFO_THROTTLE(1,"angle_error: %f", angle_error);
+    //ROS_INFO_THROTTLE(1,"angle_error: %f", angle_error);
     if(enable_wf_control_){
         u_cmd_ = u_max_ * (1 - u_k_hb_1_*abs(h_b_[1]) - u_k_hb_2_*abs(h_b_[2]) - u_k_hb_1_*abs(h_a_[1]) - u_k_hb_2_*abs(h_a_[2]) -1.25*abs(h_sf_r_cmd_) - abs(terrain_r_cmd_) - u_k_att_*abs(angle_error));
         //ROS_INFO_THROTTLE(1, "%f %f", u_k_hb_1_, u_k_hb_2_);
@@ -955,7 +955,7 @@ void NearnessController::computeAttractorCommand(){
     } else {
         attractor_yaw_cmd_ = 0.0;
     }
-    ROS_INFO_THROTTLE(1,"Attractor cmd: %f", attractor_yaw_cmd_);
+    //ROS_INFO_THROTTLE(1,"Attractor cmd: %f", attractor_yaw_cmd_);
 }
 
 void NearnessController::computeLateralSpeedCommand(){
@@ -1310,6 +1310,7 @@ void NearnessController::attLookaheadCb(const geometry_msgs::PointStampedConstPt
     }
 
     if(!enable_traj_lookahead_ && at_gate_ && run_start_){
+    //if(true){
         last_wp_msg_time_ = ros::Time::now();
         next_waypoint_pos_ = next_waypoint_msg->point;
         attractor_d_ = sqrt(pow((current_pos_.x - next_waypoint_pos_.x), 2) + pow((current_pos_.y - next_waypoint_pos_.y), 2));

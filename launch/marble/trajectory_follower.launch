@@ -1,7 +1,7 @@
 <launch>
 
     <!-- <arg name="enable_debug" /> -->
-    <node pkg="nearness_control" type="trajectory_follower" name="trajectory_follower_node" output="screen">
+    <node pkg="nearness_control" type="trajectory_follower" name="trajectory_follower_node">
         <!-- TOPICS -->
         <remap from="trajectory_follower/odometry_map" to="odometry_map"/>
         <remap from="trajectory_follower/trajectory" to="pose_graph"/>
