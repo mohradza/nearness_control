@@ -26,6 +26,7 @@
 #include <sensor_msgs/LaserScan.h>
 #include <sensor_msgs/Range.h>
 #include <nav_msgs/Odometry.h>
+#include <lcd_pkg/PoseGraph.h>
 #include <tf/tf.h>
 #include <math.h>
 
@@ -41,7 +42,7 @@ class trajectoryFollower {
     void init();
 
     // FUNCTIONS //
-    void trajCb(const visualization_msgs::MarkerArrayConstPtr& msg);
+    void trajCb(const lcd_pkg::PoseGraphConstPtr& msg);
     void odomCb(const nav_msgs::OdometryConstPtr& odom_msg);
     void findNextLookahead();
     void publishLookahead();

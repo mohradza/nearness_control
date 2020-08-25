@@ -15,19 +15,18 @@ void trajectoryFollower::init() {
     //priv_nh.param("k_height", k_height_);
     //ROS_INFO("alt: %f, k: %f",  ref_h_, k_height_);
 
-    sub_odom_ = nh_.subscribe("odometry_map", 1, &trajectoryFollower::odomCb, this);
+    sub_odom_ = nh_.subscribe("odometry", 1, &trajectoryFollower::odomCb, this);
     sub_traj_ = nh_.subscribe("trajectory", 1, &trajectoryFollower::trajCb, this);
     sub_task_ = nh_.subscribe("task", 1, &trajectoryFollower::taskCb, this);
     sub_follow_traj_ = nh_.subscribe("follow_traj", 1, &trajectoryFollower::followTrajCb, this);
 
     pub_lookahead_ = nh_.advertise<geometry_msgs::PointStamped>("traj_lookahead", 10);
-
     last_lookahead_index_ = 0;
     lookahead_dist_short_ = 1.25;
     lookahead_dist_long_ = 1.5;
     enable_lookahead_lookup_ = false;
     have_current_traj_home_ = false;
-    lookahead_point_.header.frame_id = "X1/map";
+    lookahead_point_.header.frame_id = "world";
 }
 
 void trajectoryFollower::odomCb(const nav_msgs::OdometryConstPtr& odom_msg)
@@ -38,28 +37,33 @@ void trajectoryFollower::odomCb(const nav_msgs::OdometryConstPtr& odom_msg)
     ROS_INFO_THROTTLE(1,"x: %f, y: %f", odom_point_.x, odom_point_.y);
 }
 
-void trajectoryFollower::trajCb(const lcd_pkg::PoseGraphConstPtr& msg)
+void trajectoryFollower::trajCb(const visualization_msgs::MarkerArrayConstPtr& msg)
 {
-    //ROS_INFO_THROTTLE(1,"Received traj");
+    ROS_INFO_THROTTLE(1,"Received traj");
     // e only need to do this when we can't plan home
-    uint32_t traj_list_size_ = msg->poseArray.size();
-
-    //ROS_INFO_THROTTLE(1, "Traj list size: %d,", traj_list_size_);
+    uint32_t traj_list_size_ = msg->markers[0].points.size();
+    uint32_t traj_list_size1_ = msg->markers[1].points.size();
+    uint32_t traj_list_size2_ = msg->markers[2].points.size();
+    ROS_INFO_THROTTLE(1, "Traj list size: %d, %d, %d", traj_list_size_, traj_list_size1_, traj_list_size2_);
     if(enable_lookahead_lookup_ && !have_current_traj_home_){
-        traj_list_points_.clear();
-        //ROS_INFO_THROTTLE(1, "traj_list_size: %d", traj_list_size_);
-        last_lookahead_index_ = traj_list_size_-1;
-        // Import trajectory list
-        for (int i = 0; i < traj_list_size_; i++){
-            traj_list_points_.push_back(msg->poseArray[i].pose.position);
-            //traj_list_points_[i].x = msg[i].pose.position.x;
-            //traj_list_points_[i].y = msg[i].pose.position.y;
-            //traj_list_points_[i].z = msg[i].pose.position.z;
-            //ROS_INFO("i: %d, x: %f, y: %f", i, traj_list_points_[i].x, traj_list_points_[i].y);
-        }
-        //ROS_INFO("%d", last_lookahead_index_);
-        have_current_traj_home_ = true;
-      }
+
+        if(traj_list_size_ > 2){
+            traj_list_points_.clear();
+            ROS_INFO_THROTTLE(1, "traj_list_size: %d", traj_list_size_);
+            last_lookahead_index_ = traj_list_size_-2;
+            // Import trajectory list
+            for (int i = 0; i < traj_list_size_; i++){
+                traj_list_points_.push_back(msg->markers[1].points[i]);
+                //traj_list_points_[i].x = msg[i].pose.position.x;
+                //traj_list_points_[i].y = msg[i].pose.position.y;
+                //traj_list_points_[i].z = msg[i].pose.position.z;
+                //ROS_INFO("i: %d, x: %f, y: %f", i, traj_list_points_[i].x, traj_list_points_[i].y);
+            }
+            //ROS_INFO("%d", last_lookahead_index_);
+            have_current_traj_home_ = true;
+          }
+    }
+
 }
 
 void trajectoryFollower::findNextLookahead(){
@@ -69,7 +73,7 @@ void trajectoryFollower::findNextLookahead(){
         // while(traj_list_points_[last_lookahead_index_].x < .01){
         //     last_lookahead_index_ -= 1;
         // }
-        //ROS_INFO_THROTTLE(1,"last_lookahead_index #2: %d", last_lookahead_index_);
+        ROS_INFO_THROTTLE(1,"last_lookahead_index #2: %d", last_lookahead_index_);
         for (int i = last_lookahead_index_; i > 0; i--){
             float dist_err = dist(odom_point_, traj_list_points_[i]);
           //  ROS_INFO("%f, %d", dist_err, i);

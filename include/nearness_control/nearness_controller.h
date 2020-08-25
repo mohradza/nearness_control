@@ -61,6 +61,7 @@ class NearnessController {
 
     void joyconCb(const sensor_msgs::JoyConstPtr& joy_msg);
     void odomCb(const nav_msgs::OdometryConstPtr& odom_msg);
+    void mapOdomCb(const nav_msgs::OdometryConstPtr& map_odom_msg);
     void imuCb(const sensor_msgs::ImuConstPtr& imu_msg);
     void sonarHeightCb(const sensor_msgs::RangeConstPtr& range_msg);
     void attLookaheadCb(const geometry_msgs::PointStampedConstPtr& next_waypoint_msg);
@@ -102,6 +103,7 @@ class NearnessController {
     ros::Subscriber sub_vert_laserscan_;
     ros::Subscriber sub_bluetooth_joy_;
     ros::Subscriber sub_odom_;
+    ros::Subscriber sub_map_odom_;
     ros::Subscriber sub_imu_;
     ros::Subscriber sub_att_lookahead_;
     ros::Subscriber sub_goal_pose_;
@@ -319,6 +321,12 @@ class NearnessController {
     double current_roll_;
     double current_pitch_;
     double current_heading_;
+
+    // mapOdomCb
+    geometry_msgs::Point current_map_pos_;
+    double current_map_roll_;
+    double current_map_pitch_;
+    double current_map_heading_;
 
     // terrain
     int num_tscan_points_;

@@ -18,6 +18,7 @@ void NearnessController::init() {
     sub_horiz_laserscan_ = nh_.subscribe("horiz_scan", 1, &NearnessController::horizLaserscanCb, this);
     sub_vert_laserscan_ = nh_.subscribe("vert_scan", 1, &NearnessController::vertLaserscanCb, this);
     sub_odom_ = nh_.subscribe("odometry", 1, &NearnessController::odomCb, this);
+    sub_map_odom_ = nh_.subscribe("odometry_map", 1, &NearnessController::mapOdomCb, this);
     sub_imu_ = nh_.subscribe("imu", 1, &NearnessController::imuCb, this);
     sub_bluetooth_joy_ = nh_.subscribe("joy", 1, &NearnessController::joyconCb, this);
     subt_enable_control_ = nh_.subscribe("enable_control", 1, &NearnessController::enableControlCb, this);
@@ -1258,6 +1259,14 @@ void NearnessController::odomCb(const nav_msgs::OdometryConstPtr& odom_msg){
     }
 }
 
+void NearnessController::mapOdomCb(const nav_msgs::OdometryConstPtr& map_odom_msg){
+    current_map_pos_ = map_odom_msg->pose.pose.position;
+    geometry_msgs::Quaternion vehicle_quat_msg = map_odom_msg->pose.pose.orientation;
+    tf::Quaternion vehicle_quat_tf;
+    tf::quaternionMsgToTF(vehicle_quat_msg, vehicle_quat_tf);
+    tf::Matrix3x3(vehicle_quat_tf).getRPY(current_map_roll_, current_map_pitch_, current_map_heading_);
+}
+
 void NearnessController::joyconCb(const sensor_msgs::JoyConstPtr& joy_msg)
 {
     if((joy_msg->buttons[2] == 1)){
@@ -1323,8 +1332,8 @@ void NearnessController::trajLookaheadCb(const geometry_msgs::PointStampedConstP
     if(enable_traj_lookahead_){
         last_wp_msg_time_ = ros::Time::now();
         next_waypoint_pos_ = traj_lookahead_msg->point;
-        attractor_d_ = sqrt(pow((current_pos_.x - next_waypoint_pos_.x), 2) + pow((current_pos_.y - next_waypoint_pos_.y), 2));
-        relative_attractor_heading_ = atan2((next_waypoint_pos_.y - current_pos_.y),(next_waypoint_pos_.x - current_pos_.x));
+        attractor_d_ = sqrt(pow((current_map_pos_.x - next_waypoint_pos_.x), 2) + pow((current_map_pos_.y - next_waypoint_pos_.y), 2));
+        relative_attractor_heading_ = atan2((next_waypoint_pos_.y - current_map_pos_.y),(next_waypoint_pos_.x - current_map_pos_.x));
         //ROS_INFO_THROTTLE(1,"traj cb");
     }
 
@@ -1335,12 +1344,12 @@ void NearnessController::taskCb(const std_msgs::StringConstPtr& task_msg){
   //std::string unable_to_plan_home_str("Unable to plan home");
   //std::string unable_to_plan_str("Unable to plan");
   //if((task_msg.data.c_str() == "Unable to plan home") || (task_msg.data.c_str() == "Unable to plan")){
-    if((unable_to_plan_home_str_.compare(task_msg->data.c_str()) == 0)||(unable_to_plan_str_.compare(task_msg->data.c_str())== 0)){
-        enable_traj_lookahead_ = (true || enable_trajectory_following_);
-        //ROS_INFO("Unable to plan home!!!!!");
-    } else {
-        enable_traj_lookahead_ = false;
-    }
+    // if((unable_to_plan_home_str_.compare(task_msg->data.c_str()) == 0)||(unable_to_plan_str_.compare(task_msg->data.c_str())== 0)){
+    //     enable_traj_lookahead_ = (true || enable_trajectory_following_);
+    //     //ROS_INFO("Unable to plan home!!!!!");
+    // } else {
+    //     enable_traj_lookahead_ = false;
+    // }
 }
 
 void NearnessController::followTrajCb(const std_msgs::BoolConstPtr& follow_traj_msg){

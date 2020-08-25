@@ -19,6 +19,7 @@ find_package(catkin REQUIRED COMPONENTS
   pcl_conversions
   pcl_ros
   nearness_control_msgs
+  lcd_pkg
 )
 
 ## System dependencies are found with CMake's conventions
