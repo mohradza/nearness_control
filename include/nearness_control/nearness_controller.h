@@ -57,6 +57,7 @@ class NearnessController {
 
     // FUNCTIONS //
     void horizLaserscanCb(const sensor_msgs::LaserScanPtr h_laserscan_msg);
+    void octoLaserscanCb(const sensor_msgs::LaserScanPtr octo_laserscan_msg);
     void vertLaserscanCb(const sensor_msgs::LaserScanPtr v_laserscan_msg);
 
     void joyconCb(const sensor_msgs::JoyConstPtr& joy_msg);
@@ -72,7 +73,6 @@ class NearnessController {
     void terrainScanCb(const sensor_msgs::LaserScan::ConstPtr& terrain_scan_msg);
     void towerSafetyCb(const std_msgs::Int32ConstPtr& safety_msg);
     void beaconStopCb(const std_msgs::BoolConstPtr& beacon_stop_msg);
-    void octoLaserscanCb(const sensor_msgs::LaserScanConstPtr& octo_laserscan_msg);
     void convertHLaserscan2CVMat(const sensor_msgs::LaserScanPtr h_laserscan_msg);
     void convertVLaserscan2CVMat(const sensor_msgs::LaserScanPtr v_laserscan_msg);
     void computeHorizFourierCoeffs();
@@ -245,6 +245,7 @@ class NearnessController {
     bool enable_tower_safety_;
     bool motion_on_startup_;
     bool run_start_;
+    bool enable_octomap_control_;
 
     // Init
     std::vector<float> h_gamma_vector_;

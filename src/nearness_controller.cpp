@@ -98,16 +98,20 @@ void NearnessController::init() {
     pnh_.param("enable_cmd_lp_filter", enable_cmd_lp_filter_, true);
     pnh_.param("motion_on_startup", motion_on_startup_, false);
     pnh_.param("sim_start", sim_start_, false);
+    pnh_.param("enable_octomap_control", enable_octomap_control_, false);
 
     if(sim_start_){
-      ROS_INFO("SIM_START");
-      have_attractor_ = true;
-      last_wp_msg_time_ = ros::Time::now();
-      next_waypoint_pos_.x = 0.0;
-      next_waypoint_pos_.y = 0.0;
-      next_waypoint_pos_.z = 0.0;
-      attractor_d_ = sqrt(pow((current_pos_.x - next_waypoint_pos_.x), 2) + pow((current_pos_.y - next_waypoint_pos_.y), 2));
-      relative_attractor_heading_ = atan2((next_waypoint_pos_.y - current_pos_.y),(next_waypoint_pos_.x - current_pos_.x));
+        ROS_INFO("SIM_START");
+        have_attractor_ = true;
+        last_wp_msg_time_ = ros::Time::now();
+        next_waypoint_pos_.x = 0.0;
+        next_waypoint_pos_.y = 0.0;
+        next_waypoint_pos_.z = 0.0;
+        attractor_d_ = sqrt(pow((current_pos_.x - next_waypoint_pos_.x), 2) + pow((current_pos_.y - next_waypoint_pos_.y), 2));
+        relative_attractor_heading_ = atan2((next_waypoint_pos_.y - current_pos_.y),(next_waypoint_pos_.x - current_pos_.x));
+    } else{
+        at_gate_ = true;
+        run_start_ = true;
     }
 
     if(motion_on_startup_){
@@ -126,10 +130,20 @@ void NearnessController::init() {
     std::string scan_start_loc_;
     pnh_.param<std::string>("scan_start_location", scan_start_loc_,"forward");
     h_scan_start_loc_.data = scan_start_loc_.c_str();
-    // ROS_INFO("%s",scan_start_loc_.c_str());
-    // if (h_scan_start_loc_.data == "back"){
-    //   ROS_INFO("TRUE");
-    // }
+
+    if(enable_octomap_control_){
+        pnh_.param("total_octo_scan_points", total_h_scan_points_, 1440);
+        pnh_.param("octo_scan_limit", h_scan_limit_, M_PI);
+        pnh_.param("num_horiz_scan_points", num_h_scan_points_, 720);
+        pnh_.param("octo_sensor_min_distance", h_sensor_min_dist_, .1);
+        pnh_.param("octo_sensor_max_distance", h_sensor_max_dist_, 25.0);
+        pnh_.param("octo_scan_start_index", h_scan_start_index_, 0);
+        pnh_.param("octo_sensor_min_noise", h_sensor_min_noise_ , .1);
+        pnh_.param("reverse_octo_scan", reverse_h_scan_, true);
+        std::string scan_start_loc_;
+        pnh_.param<std::string>("scan_start_location", scan_start_loc_,"forward");
+        h_scan_start_loc_.data = scan_start_loc_.c_str();
+    }
 
     pnh_.param("total_vert_scan_points", total_v_scan_points_, 1440);
     pnh_.param("num_vert_scan_points", num_v_scan_points_, 720);
@@ -359,6 +373,52 @@ void NearnessController::horizLaserscanCb(const sensor_msgs::LaserScanPtr h_lase
     }
 
     publishControlCommandMsg();
+
+}
+
+void NearnessController::octoLaserscanCb(const sensor_msgs::LaserScanPtr octo_laserscan_msg){
+
+    if(enable_octomap_control_){
+
+        // Convert incoming scan to cv matrix and reformat
+        convertHLaserscan2CVMat(octo_laserscan_msg);
+
+        // Compute the Fourier harmonics of the signal
+        computeHorizFourierCoeffs();
+
+        // Feed back fourier coefficients for forward speed regulation
+        computeForwardSpeedCommand();
+
+        computeWFYawRateCommand();
+
+        if(!is_ground_vehicle_){
+            computeLateralSpeedCommand();
+        }
+
+        if(enable_sf_control_){
+            computeSFYawRateCommand();
+        } else {
+            h_sf_r_cmd_ = 0.0;
+        }
+
+        if(enable_terrain_control_){
+            computeTerrainYawRateCommand();
+        } else {
+            terrain_r_cmd_ = 0.0;
+        }
+
+        if(enable_attractor_control_){
+            computeAttractorCommand();
+        } else {
+            attractor_yaw_cmd_ = 0.0;
+        }
+
+        if(enable_unstuck_){
+            checkVehicleStatus();
+        }
+
+        publishControlCommandMsg();
+    }
 
 }
 
@@ -1501,23 +1561,6 @@ void NearnessController::towerSafetyCb(const std_msgs::Int32ConstPtr& safety_msg
 
 void NearnessController::beaconStopCb(const std_msgs::BoolConstPtr& beacon_stop_msg){
     flag_beacon_stop_ = beacon_stop_msg->data;
-}
-
-void NearnessController::octoLaserscanCb(const sensor_msgs::LaserScanConstPtr& octo_laserscan_msg){
-    std::vector<float> octo_laserscan_ranges (octo_laserscan_msg->ranges.begin(), octo_laserscan_msg->ranges.end());
-    ROS_INFO_THROTTLE(1,"Received Octo laserscan, %f", turn_around_thresh_);
-    int vec_size = octo_laserscan_ranges.size();
-    turn_around_thresh_ = .82;
-    for (int i=0; i < vec_size; i++){
-        if(octo_laserscan_ranges[i] < turn_around_thresh_){
-            //ROS_INFO_THROTTLE(1,"OCTO TOO CLOSE");
-            flag_octo_too_close_ = true;
-        } else {
-            flag_octo_too_close_ = flag_octo_too_close_ || false;
-        }
-
-        flag_octo_too_close_ = (flag_octo_too_close_ || attractor_turn_);
-    }
 }
 
 void NearnessController::generateSafetyBox(){

@@ -14,6 +14,7 @@
     <arg name="enable_cmd_lp_filter"        default="true"/>
     <arg name="enable_unstuck"              default="false"/>
     <arg name="motion_on_startup"           default="false"/>
+    <arg name="enable_octomap_control"      default="true"/>
 
     <arg name="reverse_yaw_rate_cmd"        default="false"/>
     <arg name="reverse_wf_yaw_rate_cmd"     default="false"/>
@@ -29,6 +30,16 @@
     <arg name="reverse_horiz_scan"          default="true"/>
     <arg name="num_horiz_fourier_terms"     default="5"/>
     <arg name="scan_start_location"         default="back"/>
+
+    <arg name="total_octo_scan_points"      default="920"/>
+    <arg name="num_octo_scan_points"        default="920"/>
+    <arg name="octo_scan_start_index"       default="0"/>
+    <arg name="octo_scan_limit"             default="3.1415"/>
+    <arg name="octo_sensor_min_distance"    default="0.1"/>
+    <arg name="octo_sensor_max_distance"    default="40.0"/>
+    <arg name="octo_sensor_min_noise"       default="0.1"/>
+    <arg name="reverse_octo_scan"           default="true"/>
+    <arg name="octo_scan_start_location"    default="back"/>
 
     <arg name="enable_safety_boundary"      default="true"/>
     <arg name="enable_safety_box"           default="true"/>
@@ -75,6 +86,7 @@
         <param name="enable_cmd_lp_filter" type="bool" value="$(arg enable_cmd_lp_filter)"/>
         <param name="enable_unstuck" type="bool" value="$(arg enable_unstuck)"/>
         <param name="sim_start" type="bool" value="true"/>
+        <param name="enable_octomap_control" type="bool" value="$(arg enable_octomap_control)"/>
 
         <!-- Sensor Parameters -->
         <param name="total_horiz_scan_points" type="int" value="$(arg total_horiz_scan_points)"/>
@@ -87,6 +99,16 @@
         <param name="horiz_sensor_min_noise" type="double" value="$(arg horiz_sensor_min_noise)"/>
         <param name="reverse_horiz_scan" type="bool" value="$(arg reverse_horiz_scan)"/>
         <param name="num_horiz_fourier_terms" type="int" value="$(arg num_horiz_fourier_terms)"/>
+
+        <param name="total_octo_scan_points" type="int" value="$(arg total_octo_scan_points)"/>
+        <param name="num_octo_scan_points" type="int" value="$(arg num_octo_scan_points)"/>
+        <param name="octo_scan_start_index" type="int" value="$(arg octo_scan_start_index)"/>
+        <param name="octo_scan_limit" type="double" value="$(arg octo_scan_limit)"/>
+        <param name="scan_start_location" type="string" value="$(arg scan_start_location)" /> <!-- Valid args: 'forward', 'back', 'left', 'right' -->
+        <param name="octo_sensor_min_distance" type="double" value="$(arg octo_sensor_min_distance)"/>
+        <param name="octo_sensor_max_distance" type="double" value="$(arg octo_sensor_max_distance)"/>
+        <param name="octo_sensor_min_noise" type="double" value="$(arg octo_sensor_min_noise)"/>
+        <param name="reverse_octo_scan" type="bool" value="$(arg reverse_octo_scan)"/>
 
         <param name="total_vert_scan_points" type="int" value="1081"/>
         <param name="num_vert_scan_points" type="int" value="720"/>
