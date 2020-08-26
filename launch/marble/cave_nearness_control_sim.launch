@@ -54,7 +54,7 @@
     <node pkg="nearness_control" type="nearness_controller_node" name="nearness_control_node" output="screen">
 
         <!-- SUBSCRIBED TOPICS -->
-        <remap from="nearness_controller/horiz_scan" to="planar_laser_scan0"/>
+        <remap from="nearness_controller/horiz_scan" to="planar_laser_scan"/>
         <remap from="nearness_controller/vert_scan" to="scan1"/>
         <remap from="nearness_controller/att_lookahead" to="lookahead_point"/>
         <remap from="nearness_controller/traj_lookahead" to="trajectory_follower/traj_lookahead"/>

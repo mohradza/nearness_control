@@ -334,45 +334,46 @@ void NearnessController::configCb(Config &config, uint32_t level)
 }
 
 void NearnessController::horizLaserscanCb(const sensor_msgs::LaserScanPtr h_laserscan_msg){
+    if(!enable_octomap_control_){
+        // Convert incoming scan to cv matrix and reformat
+        convertHLaserscan2CVMat(h_laserscan_msg);
 
-    // Convert incoming scan to cv matrix and reformat
-    convertHLaserscan2CVMat(h_laserscan_msg);
+        // Compute the Fourier harmonics of the signal
+        computeHorizFourierCoeffs();
 
-    // Compute the Fourier harmonics of the signal
-    computeHorizFourierCoeffs();
+        // Feed back fourier coefficients for forward speed regulation
+        computeForwardSpeedCommand();
 
-    // Feed back fourier coefficients for forward speed regulation
-    computeForwardSpeedCommand();
+        computeWFYawRateCommand();
 
-    computeWFYawRateCommand();
+        if(!is_ground_vehicle_){
+            computeLateralSpeedCommand();
+        }
 
-    if(!is_ground_vehicle_){
-        computeLateralSpeedCommand();
+        if(enable_sf_control_){
+            computeSFYawRateCommand();
+        } else {
+            h_sf_r_cmd_ = 0.0;
+        }
+
+        if(enable_terrain_control_){
+            computeTerrainYawRateCommand();
+        } else {
+            terrain_r_cmd_ = 0.0;
+        }
+
+        if(enable_attractor_control_){
+            computeAttractorCommand();
+        } else {
+            attractor_yaw_cmd_ = 0.0;
+        }
+
+        if(enable_unstuck_){
+            checkVehicleStatus();
+        }
+
+        publishControlCommandMsg();
     }
-
-    if(enable_sf_control_){
-        computeSFYawRateCommand();
-    } else {
-        h_sf_r_cmd_ = 0.0;
-    }
-
-    if(enable_terrain_control_){
-        computeTerrainYawRateCommand();
-    } else {
-        terrain_r_cmd_ = 0.0;
-    }
-
-    if(enable_attractor_control_){
-        computeAttractorCommand();
-    } else {
-        attractor_yaw_cmd_ = 0.0;
-    }
-
-    if(enable_unstuck_){
-        checkVehicleStatus();
-    }
-
-    publishControlCommandMsg();
 
 }
 
