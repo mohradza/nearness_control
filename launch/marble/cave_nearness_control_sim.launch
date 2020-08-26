@@ -14,7 +14,7 @@
     <arg name="enable_cmd_lp_filter"        default="true"/>
     <arg name="enable_unstuck"              default="false"/>
     <arg name="motion_on_startup"           default="false"/>
-    <arg name="enable_octomap_control"      default="true"/>
+    <arg name="enable_octomap_control"      default="false"/>
 
     <arg name="reverse_yaw_rate_cmd"        default="false"/>
     <arg name="reverse_wf_yaw_rate_cmd"     default="false"/>
@@ -32,16 +32,16 @@
     <arg name="scan_start_location"         default="back"/>
 
     <arg name="total_octo_scan_points"      default="920"/>
-    <arg name="num_octo_scan_points"        default="920"/>
-    <arg name="octo_scan_start_index"       default="0"/>
+    <arg name="num_octo_scan_points"        default="460"/>
+    <arg name="octo_scan_start_index"       default="230"/>
     <arg name="octo_scan_limit"             default="3.1415"/>
     <arg name="octo_sensor_min_distance"    default="0.1"/>
     <arg name="octo_sensor_max_distance"    default="40.0"/>
     <arg name="octo_sensor_min_noise"       default="0.1"/>
     <arg name="reverse_octo_scan"           default="true"/>
-    <arg name="octo_scan_start_location"    default="back"/>
+    <arg name="octo_scan_start_location"    default="forward"/>
 
-    <arg name="enable_safety_boundary"      default="true"/>
+    <arg name="enable_safety_boundary"      default="false"/>
     <arg name="enable_safety_box"           default="true"/>
     <arg name="front_safety_distance"       default="0.25"/>
     <arg name="side_safety_distance"        default="0.35"/>
@@ -54,7 +54,7 @@
     <node pkg="nearness_control" type="nearness_controller_node" name="nearness_control_node" output="screen">
 
         <!-- SUBSCRIBED TOPICS -->
-        <remap from="nearness_controller/horiz_scan" to="planar_laser_scan"/>
+        <remap from="nearness_controller/horiz_scan" to="planar_laser_scan0"/>
         <remap from="nearness_controller/vert_scan" to="scan1"/>
         <remap from="nearness_controller/att_lookahead" to="lookahead_point"/>
         <remap from="nearness_controller/traj_lookahead" to="trajectory_follower/traj_lookahead"/>

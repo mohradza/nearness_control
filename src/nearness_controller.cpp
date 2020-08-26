@@ -1258,7 +1258,7 @@ void NearnessController::publishControlCommandMsg(){
         control_command_.twist.linear.x = -1*control_command_.twist.linear.x;
     }
 
-    if(flag_too_close_front_ || (flag_terrain_too_close_front_ && enable_terrain_control_)){
+    if((flag_too_close_front_ || (flag_terrain_too_close_front_ && enable_terrain_control_)) && !enable_octomap_control_){
       ROS_INFO_THROTTLE(1,"Too close in the front! Lidar: %s, Terrain: %s", (flag_too_close_front_ ? "true" : "false"), (flag_terrain_too_close_front_ ? "true" : "false"));
       control_command_.twist.linear.x = 0.0;
     }
@@ -1380,7 +1380,7 @@ void NearnessController::attLookaheadCb(const geometry_msgs::PointStampedConstPt
 }
 
 void NearnessController::goalPoseCb(const geometry_msgs::PoseStampedConstPtr& next_goal_msg){
-    ROS_INFO("Goal pose cb");
+    //ROS_INFO("Goal pose cb");
     if((next_goal_msg->pose.position.x > 1.0) && !run_start_){
         run_start_ = true;
         ROS_INFO("RUN START");
