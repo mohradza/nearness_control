@@ -123,6 +123,7 @@ class NearnessController3D {
 
     pcl::PointCloud<pcl::PointXYZ> cloud_out_;
     pcl::PointCloud<pcl::PointXYZ> mu_cloud_out_;
+    pcl::PointCloud<pcl::PointXYZ> d_cloud_out_;
     std::vector<float> mu_sphere_;
     int pcl_width_;
     int pcl_height_;

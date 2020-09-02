@@ -51,7 +51,7 @@
     <arg name="vehicle_roll_angle_limit"    default="15.0"/>
     <arg name="vehicle_pitch_angle_limit"   default="15.0"/>
 
-    <node pkg="nearness_control" type="nearness_controller_node" name="nearness_control_node" output="screen">
+    <node pkg="nearness_control" type="nearness_controller_node" name="nearness_control_node">
 
         <!-- SUBSCRIBED TOPICS -->
         <remap from="nearness_controller/horiz_scan" to="planar_laser_scan"/>

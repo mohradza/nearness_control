@@ -40,17 +40,32 @@ void NearnessController3D::init() {
     frame_id_ = "world";
 
     enable_debug_ = true;
-    phi_start_ = -3.1459;
-    dphi_ = 2.0*abs(phi_start_)/float(pcl_width_);
-
+    phi_start_ = 3.14159;
+    dphi_ = abs(2*phi_start_)/float(pcl_width_);
+    float phi_val = 0.0;
     for(int i=0; i < pcl_width_; i++){
-        phi_view_vec_.push_back(phi_start_ + float(i)*dphi_);
+        phi_val = phi_start_ - float(i)*dphi_;
+        if(phi_val < 0.0){
+            phi_view_vec_.push_back(phi_val + 2*3.14159);
+        } else {
+        phi_view_vec_.push_back(phi_val);
+      }
     }
 
-    theta_start_ = -1.5706;
-    dtheta_ = 2.0*abs(theta_start_)/float(pcl_height_);
+    // for(int i=0; i < pcl_width_; i++){
+    //     phi_view_vec_.push_back(float(i)*dphi_);
+    // }
+
+    theta_start_ = 3.14159;
+    dtheta_ = abs(theta_start_)/float(pcl_height_);
+    float theta_val = 0.0;
     for(int i=1; i <= pcl_height_; i++){
-        theta_view_vec_.push_back(theta_start_ + float(i)*dtheta_);
+        theta_val = theta_start_ - float(i)*dtheta_;
+        // if(theta_val < 0.0){
+        //     theta_view_vec_.push_back(theta_val + 2*3.1459);
+        // } else {
+            theta_view_vec_.push_back(theta_val);
+        // }
     }
 
     generateProjectionShapes();
@@ -91,16 +106,21 @@ void NearnessController3D::pclCb(const sensor_msgs::PointCloud2ConstPtr& pcl_msg
           //std::vector<float> p_vec = {p.x, p.y, p.z};
           float dist = sqrt(pow(p.x,2) + pow(p.y,2) + pow(p.z,2));
           float mu = 1/dist;
+          //mu = 1.0;
           // cout << sqrt(pow(p.x,2) + pow(p.y,2) + pow(p.z,2)) << endl;
-          cloud_out_.push_back(p);
+          if((i < num_rings/2.0) && (j < num_ring_points/4)){
+             cloud_out_.push_back(p);
+          }
           mu_sphere_.push_back(mu);
           if((i == test_ring) && enable_debug_){
               //ROS_INFO("dist: %f, mu: %f", dist, mu);
               dist_test_out->push_back(p);
           }
           if(enable_debug_){
-              pcl::PointXYZ mu_p (mu*cos(theta_view_vec_[i])*cos(phi_view_vec_[j]), mu*cos(theta_view_vec_[i])*sin(phi_view_vec_[j]), mu*sin(theta_view_vec_[i]) );
+              pcl::PointXYZ mu_p (mu*sin(theta_view_vec_[i])*cos(phi_view_vec_[j]), mu*sin(theta_view_vec_[i])*sin(phi_view_vec_[j]), mu*cos(theta_view_vec_[i]) );
+              // if(i < num_rings /2.0){
               mu_cloud_out_.push_back(mu_p);
+            // }
           }
       }
   }
