@@ -486,7 +486,6 @@ void NearnessController::convertHLaserscan2CVMat(const sensor_msgs::LaserScanPtr
             h_depth_vector_reformat.push_back(h_depth_vector[i]);
         }
     } else if (h_scan_start_loc_.data == "back"){
-        ROS_INFO("back");
         for (int i = total_h_scan_points_/2; i < total_h_scan_points_; i++) {
             h_depth_vector_reformat.push_back(h_depth_vector[i]);
         }
