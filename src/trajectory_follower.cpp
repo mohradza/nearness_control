@@ -23,7 +23,8 @@ void trajectoryFollower::init() {
     pub_lookahead_ = nh_.advertise<geometry_msgs::PointStamped>("traj_lookahead", 10);
 
     std::string vehicle_name;
-    nh_.param<std::string>("H01", vehicle_name, "default_value");
+    pnh_.param<std::string>("vehicle_name", vehicle_name, "H01");
+    ROS_INFO("%s",vehicle_name.c_str());
 
     last_lookahead_index_ = 0;
     lookahead_dist_short_ = 1.25;

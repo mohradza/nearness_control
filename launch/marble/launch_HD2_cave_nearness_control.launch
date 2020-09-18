@@ -55,8 +55,8 @@
 
   <node pkg="topic_tools" name="cmd_vel_relay" type="relay" args="nearness_controller/control_commands nav_vel" />
 
-  <include file="$(find nearness_contol)/launch/marble/trajectory_follower.launch">
+  <!-- <include file="$(find nearness_contol)/launch/marble/trajectory_follower.launch">
       <arg name="vehicle_name" value="$(arg vehicle)"/>
-  </include>
+  </include> -->
 
 </launch>
