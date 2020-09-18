@@ -2,6 +2,8 @@
   <!-- <arg name="vehicle" default="MARBLE_HUSKY"/> -->
   <!-- <group ns="$(arg vehicle)"> -->
   <arg name="motion_on_startup" default="0"/>
+  <arg name="vehicle" default="H01"/>
+
 
   <include file="$(find nearness_control)/launch/marble/cave_nearness_control.launch">
 
@@ -54,5 +56,8 @@
 
   <node pkg="topic_tools" name="cmd_vel_relay" type="relay" args="nearness_controller/control_commands nav_vel" />
 
+  <include file="$(find nearness_contol)/launch/marble/trajectory_follower.launch">
+      <arg name="vehicle_name" value="$(arg vehicle)"/>
+  </include>
 
 </launch>

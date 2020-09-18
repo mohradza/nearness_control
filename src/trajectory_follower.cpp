@@ -17,17 +17,20 @@ void trajectoryFollower::init() {
 
     sub_odom_ = nh_.subscribe("odometry_map", 1, &trajectoryFollower::odomCb, this);
     sub_traj_ = nh_.subscribe("trajectory", 1, &trajectoryFollower::trajCb, this);
-    sub_task_ = nh_.subscribe("task", 1, &trajectoryFollower::taskCb, this);
+    //sub_task_ = nh_.subscribe("task", 1, &trajectoryFollower::taskCb, this);
     sub_follow_traj_ = nh_.subscribe("follow_traj", 1, &trajectoryFollower::followTrajCb, this);
 
     pub_lookahead_ = nh_.advertise<geometry_msgs::PointStamped>("traj_lookahead", 10);
+
+    std::string vehicle_name;
+    nh_.param<std::string>("H01", vehicle_name, "default_value");
 
     last_lookahead_index_ = 0;
     lookahead_dist_short_ = 1.25;
     lookahead_dist_long_ = 1.5;
     enable_lookahead_lookup_ = false;
     have_current_traj_home_ = false;
-    lookahead_point_.header.frame_id = "X1/map";
+    lookahead_point_.header.frame_id = vehicle_name;
 }
 
 void trajectoryFollower::odomCb(const nav_msgs::OdometryConstPtr& odom_msg)
@@ -98,23 +101,23 @@ void trajectoryFollower::publishLookahead(){
     pub_lookahead_.publish(lookahead_point_);
 }
 
-void trajectoryFollower::taskCb(const std_msgs::String task_msg)
-{
-    // Check if we are unable to plan
-    //ROS_INFO("%s",task_msg.data.c_str());
-    std::string unable_to_plan_home_str("Unable to plan home");
-    std::string unable_to_plan_str("Unable to plan");
-    //if((task_msg.data.c_str() == "Unable to plan home") || (task_msg.data.c_str() == "Unable to plan")){
-    if((unable_to_plan_home_str.compare(task_msg.data.c_str()) == 0)||(unable_to_plan_str.compare(task_msg.data.c_str())== 0)){
-        enable_lookahead_lookup_ = true;
-        //ROS_INFO("Unable to plan home!!!!!");
-    } else {
-        enable_lookahead_lookup_ = false;
-        last_lookahead_index_ = 0;
-        have_current_traj_home_ = false;
-    }
-
-}
+// void trajectoryFollower::taskCb(const std_msgs::String task_msg)
+// {
+//     // Check if we are unable to plan
+//     //ROS_INFO("%s",task_msg.data.c_str());
+//     std::string unable_to_plan_home_str("Unable to plan home");
+//     std::string unable_to_plan_str("Unable to plan");
+//     //if((task_msg.data.c_str() == "Unable to plan home") || (task_msg.data.c_str() == "Unable to plan")){
+//     if((unable_to_plan_home_str.compare(task_msg.data.c_str()) == 0)||(unable_to_plan_str.compare(task_msg.data.c_str())== 0)){
+//         enable_lookahead_lookup_ = true;
+//         //ROS_INFO("Unable to plan home!!!!!");
+//     } else {
+//         enable_lookahead_lookup_ = false;
+//         last_lookahead_index_ = 0;
+//         have_current_traj_home_ = false;
+//     }
+//
+// }
 
 void trajectoryFollower::followTrajCb(const std_msgs::BoolConstPtr& follow_traj_msg){
     ROS_INFO("Follow traj cb");
