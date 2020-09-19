@@ -1375,7 +1375,7 @@ void NearnessController::attLookaheadCb(const geometry_msgs::PointStampedConstPt
         next_waypoint_pos_ = next_waypoint_msg->point;
         attractor_d_ = sqrt(pow((current_pos_.x - next_waypoint_pos_.x), 2) + pow((current_pos_.y - next_waypoint_pos_.y), 2));
         relative_attractor_heading_ = atan2((next_waypoint_pos_.y - current_pos_.y),(next_waypoint_pos_.x - current_pos_.x));
-        ROS_INFO_THROTTLE(1,"attactor cb");
+        //ROS_INFO_THROTTLE(1,"attactor cb");
      }
 }
 
@@ -1393,9 +1393,10 @@ void NearnessController::trajLookaheadCb(const geometry_msgs::PointStampedConstP
     if(enable_traj_lookahead_){
         last_wp_msg_time_ = ros::Time::now();
         next_waypoint_pos_ = traj_lookahead_msg->point;
+        //ROS_INFO_THROTTLE(1,"Robot x: %f, y: %f     Traj  x: %f, y: %f", next_waypoint_pos_.x, next_waypoint_pos_.y, current_map_pos_.x, current_map_pos_.y);
         attractor_d_ = sqrt(pow((current_map_pos_.x - next_waypoint_pos_.x), 2) + pow((current_map_pos_.y - next_waypoint_pos_.y), 2));
         relative_attractor_heading_ = atan2((next_waypoint_pos_.y - current_map_pos_.y),(next_waypoint_pos_.x - current_map_pos_.x));
-        ROS_INFO_THROTTLE(1,"traj cb");
+        //ROS_INFO_THROTTLE(1,"traj cb, heading: %f, d: %f", relative_attractor_heading_, attractor_d_);
     }
 
     //ROS_INFO("%f", relative_attractor_heading_);

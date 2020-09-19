@@ -50,6 +50,7 @@
         <remap from="nearness_controller/follow_traj" to="follow_traj_fake"/>
         <remap from="nearness_controller/task" to="fake_task"/>
         <remap from="nearness_controller/odometry" to="odometry"/>
+        <remap from="nearness_controller/odometry_map" to="odometry_map"/>
         <remap from="nearness_controller/imu" to="imu_raw"/>
         <remap from="nearness_controller/joy" to="joy"/>
         <remap from="nearness_controller/estop_cmd" to="estop_cmd"/>
