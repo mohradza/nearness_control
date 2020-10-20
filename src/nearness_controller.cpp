@@ -994,6 +994,9 @@ void NearnessController::computeAttractorCommand(){
     //float angle_error_backup = wrapAngle(relative_attractor_heading_ - wrapAngle(current_heading_ - M_PI));
     //backup_attractor_yaw_cmd_ = r_k_att_0_*angle_error_backup*exp(-r_k_att_d_*attractor_d_);
     //ROS_INFO_THROTTLE(1,"backup yaw cmd: %f", backup_attractor_yaw_cmd_);
+    if(!at_gate_ && (attractor_d_ > 1.0)){
+      attractor_d_ = 1.0;
+    }
     if(!lost_attractor_) {
         if(abs(att_angle_error_) < 1.0){
             attractor_yaw_cmd_ = r_k_att_0_*att_angle_error_*exp(-r_k_att_d_*attractor_d_);

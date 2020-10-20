@@ -1,0 +1,22 @@
+<launch>
+
+    <!-- <arg name="enable_debug" /> -->
+    <arg name="enable_debug"                default="false"/>
+    <arg name="is_ground_vehicle"           default="true"/>
+
+    <node pkg="nearness_control" type="nearness_controller_3d_node" name="nearness_control_3d_node" output="screen">
+
+        <!-- SUBSCRIBED TOPICS -->
+        <remap from="nearness_controller_3d/points" to="ouster_points"/>
+
+
+        <!-- Enable switches -->
+        <param name="enable_debug" type="bool" value="$(arg enable_debug)"/>
+
+        <!-- Sensor Parameters -->
+        <param name="total_horiz_scan_points" type="int" value="$(arg total_horiz_scan_points)"/>
+
+
+    </node>
+
+</launch>
