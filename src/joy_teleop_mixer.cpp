@@ -35,13 +35,13 @@ void joyTeleopMixer::init() {
 
 void joyTeleopMixer::joyconCb(const sensor_msgs::JoyConstPtr& joy_msg)
 {
-    ROS_INFO_THROTTLE(1,"joy cb");
+    //ROS_INFO_THROTTLE(1,"joy cb");
     last_joy_msg_time_ = ros::Time::now();
     joy_ = *joy_msg;
 
     if(joy_.buttons[5] == 1){
         flag_alt_hold_ = true;
-        ROS_INFO("ALT HOLD");
+        ROS_INFO_THROTTLE(2,"ALT HOLD");
     }
 
     geometry_msgs::Twist cmd_out;

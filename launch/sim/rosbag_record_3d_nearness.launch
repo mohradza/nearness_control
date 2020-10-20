@@ -1,0 +1,41 @@
+<launch>
+
+  <arg name="ns" default="OHRAD_X3"/>
+
+  <arg name="folder_name" default="thesis_data/hallway_3dnearness/lateral_only"/>
+  <arg name="record_sensors" default="1"/>
+  <arg name="record_outputs" default="0"/>
+
+  <!-- Recording Split Parameters -->
+  <arg name="split_time" default="20m"/>
+  <arg name="split_number" default="5"/>
+
+  <group if="$(arg record_sensors)">
+    <node pkg="rosbag" type="record" name="rosbag_3dnearness_sensors" output="screen"
+      args=" --split --duration=$(arg split_time) --max-splits $(arg split_number) --buffsize 0 --output-prefix /home/marble/$(arg folder_name)/sensors
+      /tf
+      /tf_static
+      $(arg ns)/ouster_points
+      $(arg ns)/odometry/ground_truth
+      $(arg ns)/cmd_vel/ground_truth
+      ">
+    </node>
+  </group>
+
+
+  <!-- Record Output Data  -->
+  <group if="$(arg record_outputs)">
+    <node pkg="rosbag" type="record" name="rosbag_niosh_outputs" output="screen"
+      args=" --split --duration=$(arg split_time) --max-splits $(arg split_number) --buffsize 0 --output-prefix /home/marble/$(arg folder_name)/outputs
+      /tf
+      /tf_static
+      $(arg ns)/nearness_controller_3d/pcl_out
+      $(arg ns)/nearness_controller_3d/mu_pcl_out
+      $(arg ns)/odometry/ground_truth
+      $(arg ns)/tf2odom/cmd_vel
+      $(arg ns)/cmd_vel/ground_truth
+      ">
+    </node>
+  </group>
+
+</launch>

@@ -108,7 +108,7 @@ void NearnessController3D::pclCb(const sensor_msgs::PointCloud2ConstPtr& pcl_msg
           float mu = 1/dist;
           //mu = 1.0;
           // cout << sqrt(pow(p.x,2) + pow(p.y,2) + pow(p.z,2)) << endl;
-          if((i < num_rings/2.0) && (j < num_ring_points/4)){
+          if((i < num_rings) && (j < num_ring_points)){
              cloud_out_.push_back(p);
           }
           mu_sphere_.push_back(mu);
