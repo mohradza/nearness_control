@@ -28,6 +28,9 @@ void NearnessController3D::init() {
     pub_Yn1p1_ = nh_.advertise<sensor_msgs::PointCloud2>("Yn1p1",1);
     pub_Y0p2_ = nh_.advertise<sensor_msgs::PointCloud2>("Y0p2",1);
     pub_Yp1p2_ = nh_.advertise<sensor_msgs::PointCloud2>("Yp1p2",1);
+    pub_Yn1p2_ = nh_.advertise<sensor_msgs::PointCloud2>("Yn1p2",1);
+    pub_Yp2p2_ = nh_.advertise<sensor_msgs::PointCloud2>("Yp2p2",1);
+    pub_Yn2p2_ = nh_.advertise<sensor_msgs::PointCloud2>("Yn2p2",1);
     //pub_control_commands_ = nh_.advertise<geometry_msgs::Twist>("control_commands", 10);
 
     // Import parameters
@@ -37,7 +40,7 @@ void NearnessController3D::init() {
     pnh_.param("ring", test_ring_, 1.0);
     // pnh_.param("pcl_", pcl_height_, 64);
 
-    frame_id_ = "world";
+    frame_id_ = "OHRAD_X3";
 
     enable_debug_ = true;
     phi_start_ = 3.14159;
@@ -100,37 +103,23 @@ void NearnessController3D::pclCb(const sensor_msgs::PointCloud2ConstPtr& pcl_msg
   std::vector<float> mu_sphere;
   cloud_out_.clear();
   mu_cloud_out_.clear();
-  for(int i = 0; i < num_rings; i++){
+
+  for(int i = 1; i <= num_rings-1; i++){
       for(int j = 0; j < num_ring_points; j++){
-          pcl::PointXYZ p = cloud_in->points[(i*num_ring_points+(num_ring_points-1)) - j];
-          //std::vector<float> p_vec = {p.x, p.y, p.z};
+          //pcl::PointXYZ p = cloud_in->points[(i*num_ring_points+(num_ring_points-1)) - j];
+          pcl::PointXYZ p = cloud_in->points[i*num_ring_points + j];
+          cloud_out_.push_back(p);
           float dist = sqrt(pow(p.x,2) + pow(p.y,2) + pow(p.z,2));
           float mu = 1/dist;
-          //mu = 1.0;
-          // cout << sqrt(pow(p.x,2) + pow(p.y,2) + pow(p.z,2)) << endl;
-          if((i < num_rings) && (j < num_ring_points)){
-             cloud_out_.push_back(p);
-          }
           mu_sphere_.push_back(mu);
-          if((i == test_ring) && enable_debug_){
-              //ROS_INFO("dist: %f, mu: %f", dist, mu);
-              dist_test_out->push_back(p);
-          }
+
+          // Convert back to cartesian for viewing
           if(enable_debug_){
               pcl::PointXYZ mu_p (mu*sin(theta_view_vec_[i])*cos(phi_view_vec_[j]), mu*sin(theta_view_vec_[i])*sin(phi_view_vec_[j]), mu*cos(theta_view_vec_[i]) );
-              // if(i < num_rings /2.0){
               mu_cloud_out_.push_back(mu_p);
-            // }
           }
       }
   }
-  // ROS_INFO("NEWLINE");
-  pcl::PointCloud<pcl::PointXYZ>::Ptr mu_test_out (new pcl::PointCloud<pcl::PointXYZ>);
-
-  for(int i = 0; i < num_ring_points; i++){
-     mu_test_out->push_back(mu_cloud_out_.points[test_ring*num_ring_points+i]);
-  }
-
 
   if(enable_debug_){
       sensor_msgs::PointCloud2 pcl_out_msg;
@@ -143,15 +132,6 @@ void NearnessController3D::pclCb(const sensor_msgs::PointCloud2ConstPtr& pcl_msg
       mu_out_msg.header = pcl_msg->header;
       pub_mu_pcl_.publish(mu_out_msg);
 
-      sensor_msgs::PointCloud2 mu_test_out_msg;
-      pcl::toROSMsg(*mu_test_out, mu_test_out_msg);
-      mu_test_out_msg.header = pcl_msg->header;
-      pub_mu_pcl2_.publish(mu_test_out_msg);
-
-      sensor_msgs::PointCloud2 dist_test_out_msg;
-      pcl::toROSMsg(*dist_test_out, dist_test_out_msg);
-      dist_test_out_msg.header = pcl_msg->header;
-      pub_dist_pcl_.publish(dist_test_out_msg);
   }
 
 }
@@ -160,138 +140,225 @@ void NearnessController3D::generateProjectionShapes(){
     int num_rings = 64;
     int num_ring_points = 360;
 
+    // Inclination angle
     float theta_start = 0;
     float theta_end = M_PI;
-    float dtheta = theta_end/float(num_rings);
+    float dtheta = (theta_end - theta_start)/float(num_rings);
     std::vector<float> theta_view_vec;
+    for(int i = 0; i <= num_rings; i++){
+        theta_view_vec.push_back(theta_end - float(i)*dtheta);
+    }
+
+    //float phi_start = 0;
+    //float phi_end = 2*M_PI;
+    float phi_start = M_PI;
+    float phi_end = -M_PI;
+    float dphi = (phi_start - phi_end)/float(num_ring_points);
     std::vector<float> phi_view_vec;
-
-    for(int i=0; i < num_rings; i++){
-        theta_view_vec.push_back(float(i)*dtheta);
+    for(int i = 0; i < num_ring_points; i++){
+      //phi_view_vec.push_back(float(i)*dphi);
+      phi_view_vec.push_back(phi_start - float(i)*dphi);
     }
 
-    float phi_start = 0.0;
-    float dphi = 2*M_PI/float(num_ring_points+1);
-    for(int i=0; i <= num_ring_points; i++){
-        phi_view_vec.push_back(float(i)*dphi);
-    }
+    // int m_lim = 2;
+    // int l_lim = 2;
+    // float d_mat[2*m_lim + 1][l_lim];
+    // float lP[m_lim + 1][l_lim];
+    // float Knorm[m_lim + 1][l_lim];
+    // const std::complex<double> i(0, 1);
+    // for(int m = 0; m <= m_lim; m++){
+    //   for(int l = 0; l < 2; l++){
+    //       Knorm[m][l] = sqrt(((2*l)/(4*M_PI))*(fact(l-m)/fact(l+m)));
+    //       lP[m][l] = 0.0;
+    //   }
+    // }
 
-    for(int i = 0; i < num_rings; i++){
-        for(int j = 0; j < num_ring_points; j++){
 
-            float phi = phi_view_vec[j];
-            float theta = theta_view_vec[i];
-            float intensity_val = 0.0;
-            float max_intensity = .6;
-            float min_intensity = -1.0;
+    for(int i = 1; i <= num_rings-1; i++){
+      for(int j = 0; j < num_ring_points; j++){
+
+        float phi = phi_view_vec[j];
+        float theta = theta_view_vec[i];
+        float intensity_val = 0.0;
+        float max_intensity = -1.0;
+        float min_intensity = .6;
+
+
+
+        // for(int m = -m_lim; m <= m_lim; m++){
+        //   for(int l = 0; l < 2; l++){
+        //     if(m >= 0){
+        //       d_mat[m+m_lim][l] = lP[m][l]*cos(theta)*cos(m*phi);
+        //     } else {
+        //       d_mat[m+m_lim][l] = lP[abs(m)][l]*cos(theta)*sin(abs(m)*phi);
+        //     }
+        //   }
+        // }
+
+        // if(sgn(d) > 0){
+        //   intensity_val = max_intensity;
+        // } else {
+        //   intensity_val = min_intensity;
+        // }
+        // float d_abs = abs(d);
+        // pcl::PointXYZ Y00_pcl (d_abs*sin(theta)*cos(phi), d_abs*sin(theta)*sin(phi), d_abs*cos(theta) );
+        // pcl::PointXYZI Y00_pcli;
+        // Y00_pcli.x = Y00_pcl.x; Y00_pcli.y = Y00_pcl.y; Y00_pcli.z = Y00_pcl.z;
+        // Y00_pcli.intensity = intensity_val;
+        // Y00_.push_back(Y00_pcli);
+
 
             // Y00 -- Good
-            float d = .5*sqrt(1/M_PI);
-            if(sgn(d) > 0){
-              intensity_val = min_intensity;
-            } else {
-              intensity_val = max_intensity;
-            }
+            float d = sqrt(1/(4*M_PI));
             float d_abs = abs(d);
+            Y00_vec_.push_back(d);
             pcl::PointXYZ Y00_pcl (d_abs*sin(theta)*cos(phi), d_abs*sin(theta)*sin(phi), d_abs*cos(theta) );
             pcl::PointXYZI Y00_pcli;
             Y00_pcli.x = Y00_pcl.x; Y00_pcli.y = Y00_pcl.y; Y00_pcli.z = Y00_pcl.z;
+            if(d >= 0){
+              intensity_val = max_intensity;
+            } else {
+              intensity_val = min_intensity;
+            }
             Y00_pcli.intensity = intensity_val;
             Y00_.push_back(Y00_pcli);
 
-            //Y0p1 -- Signs are wrong?
-            float l=1.0;
-            float scaling_factor = -.5*sqrt(3.0/M_PI);
-            //d = (-1.0/(pow(2,l)*fact(l)))*((2*l+1)/(4*M_PI))*cos(phi);
-            d = scaling_factor*cos(theta);
+
+            //Y0p1 -- Good
+            d = sqrt(3.0/(4.0*M_PI))*cos(theta);
             d_abs = abs(d);
+            Y0p1_vec_.push_back(d);
             pcl::PointXYZ Y0p1_pcl (d_abs*sin(theta)*cos(phi), d_abs*sin(theta)*sin(phi), d_abs*cos(theta) );
             pcl::PointXYZI Y0p1_pcli;
             Y0p1_pcli.x = Y0p1_pcl.x; Y0p1_pcli.y = Y0p1_pcl.y; Y0p1_pcli.z = Y0p1_pcl.z;
-            if(sgn(d) > 0){
-              intensity_val = min_intensity;
-            } else {
+            if(d >= 0){
               intensity_val = max_intensity;
+            } else {
+              intensity_val = min_intensity;
             }
             Y0p1_pcli.intensity = intensity_val;
             Y0p1_.push_back(Y0p1_pcli);
 
             //Yp1p1 -- Good
-            l = 1.0;
-            scaling_factor = -.5*sqrt(3.0/(2.0*M_PI));
-            //d = (-1.0/12.0)*(sqrt(6.0/(4.0*M_PI)))*sin(phi)*exp(my_i.imag()*theta);
-            //float Pp1p1 = -sqrt((1.0-pow(cos(theta),2)));
-            float Pp1p1 = sin(theta);
-            //d = -1.0/(pow(2,l)*fact(l)))*((2*l+1)/(4*M_PI))*Pp1p1*cos(l*phi);
-            d = scaling_factor*Pp1p1*cos(l*phi);
+            d = sqrt(3.0/(4.0*M_PI))*cos(phi)*sin(theta);
             d_abs = abs(d);
+            Yp1p1_vec_.push_back(d);
             pcl::PointXYZ Yp1p1_pcl (d_abs*sin(theta)*cos(phi), d_abs*sin(theta)*sin(phi), d_abs*cos(theta) );
             pcl::PointXYZI Yp1p1_pcli;
             Yp1p1_pcli.x = Yp1p1_pcl.x; Yp1p1_pcli.y = Yp1p1_pcl.y; Yp1p1_pcli.z = Yp1p1_pcl.z;
-            if(sgn(d) > 0){
-              intensity_val = min_intensity;
-            } else {
+            if(d >= 0){
               intensity_val = max_intensity;
+            } else {
+              intensity_val = min_intensity;
             }
             Yp1p1_pcli.intensity = intensity_val;
             Yp1p1_.push_back(Yp1p1_pcli);
 
             //Yn1p1 -- Good
-            l = -1.0;
-            float Pn1p1 = -.5*Pp1p1;
-            scaling_factor = sqrt(3/(2*M_PI));
-            //d = (1.0/(pow(2,l)*fact(l)))*((2*l+1)/(4*M_PI))*Pn1p1*sin(abs(l)*phi);
-            d = scaling_factor*Pn1p1*sin(abs(l)*phi);
+            d = sqrt(3.0/(4.0*M_PI))*sin(phi)*sin(theta);
             d_abs = abs(d);
+            Yn1p1_vec_.push_back(d);
             pcl::PointXYZ Yn1p1_pcl (d_abs*sin(theta)*cos(phi), d_abs*sin(theta)*sin(phi), d_abs*cos(theta) );
             pcl::PointXYZI Yn1p1_pcli;
             Yn1p1_pcli.x = Yn1p1_pcl.x; Yn1p1_pcli.y = Yn1p1_pcl.y; Yn1p1_pcli.z = Yn1p1_pcl.z;
             if(sgn(d) > 0){
-              intensity_val = min_intensity;
-            } else {
               intensity_val = max_intensity;
+            } else {
+              intensity_val = min_intensity;
             }
             Yn1p1_pcli.intensity = intensity_val;
             Yn1p1_.push_back(Yn1p1_pcli);
 
             //Y0p2 -- Good
-            l = 2.0;
-            float P0p2 = (3.0*pow(cos(theta),2)-1);
-            scaling_factor = .25*sqrt(5.0/M_PI);
-            //d = (1.0/(pow(2,l)*fact(l)))*((2*l+1)/(4*M_PI))*P0p2*sin(abs(l)*phi);
-            d = scaling_factor*P0p2;
+            d = sqrt(5.0/(16.0*M_PI))*(3.0*pow(cos(theta),2)-1);
             d_abs = abs(d);
+            Y0p2_vec_.push_back(d);
             pcl::PointXYZ Y0p2_pcl (d_abs*sin(theta)*cos(phi), d_abs*sin(theta)*sin(phi), d_abs*cos(theta) );
             pcl::PointXYZI Y0p2_pcli;
             Y0p2_pcli.x = Y0p2_pcl.x; Y0p2_pcli.y = Y0p2_pcl.y; Y0p2_pcli.z = Y0p2_pcl.z;
-            if(sgn(d) > 0){
-              intensity_val = min_intensity;
-            } else {
+            if(d >= 0){
               intensity_val = max_intensity;
+            } else {
+              intensity_val = min_intensity;
             }
             Y0p2_pcli.intensity = intensity_val;
             Y0p2_.push_back(Y0p2_pcli);
 
-            //Yp1p2 -- Wrong signs
-            l = 2.0;
-            //float Pp1p2 = -3.0*cos(theta)*sqrt(1.0-pow(cos(theta),2));
-            float Pp1p2 = cos(theta)*sin(theta);
-            scaling_factor = .5*sqrt(15.0/(2.0*M_PI));
-            //d = (1.0/(pow(2,l)*fact(l)))*((2*l+1)/(4*M_PI))*Pp1p2*sin(abs(l)*phi);
-            d = scaling_factor*Pp1p2*cos(phi);
+            //Yp1p2 -- Good
+            d = sqrt(15.0/(4.0*M_PI))*cos(phi)*sin(theta)*cos(theta);
             d_abs = abs(d);
+            Yp1p2_vec_.push_back(d);
             pcl::PointXYZ Yp1p2_pcl (d_abs*sin(theta)*cos(phi), d_abs*sin(theta)*sin(phi), d_abs*cos(theta) );
             pcl::PointXYZI Yp1p2_pcli;
             Yp1p2_pcli.x = Yp1p2_pcl.x; Yp1p2_pcli.y = Yp1p2_pcl.y; Yp1p2_pcli.z = Yp1p2_pcl.z;
-            if(sgn(d) > 0){
-              intensity_val = min_intensity;
-            } else {
+            if(d >= 0){
               intensity_val = max_intensity;
+            } else {
+              intensity_val = min_intensity;
             }
             Yp1p2_pcli.intensity = intensity_val;
             Yp1p2_.push_back(Yp1p2_pcli);
 
+            //Yn1p2 -- Good
+            d = sqrt(15.0/(4.0*M_PI))*sin(phi)*sin(theta)*cos(theta);
+            d_abs = abs(d);
+            Yn1p2_vec_.push_back(d);
+            pcl::PointXYZ Yn1p2_pcl (d_abs*sin(theta)*cos(phi), d_abs*sin(theta)*sin(phi), d_abs*cos(theta) );
+            pcl::PointXYZI Yn1p2_pcli;
+            Yn1p2_pcli.x = Yn1p2_pcl.x; Yn1p2_pcli.y = Yn1p2_pcl.y; Yn1p2_pcli.z = Yn1p2_pcl.z;
+            if(d >= 0){
+              intensity_val = max_intensity;
+            } else {
+              intensity_val = min_intensity;
+            }
+            Yn1p2_pcli.intensity = intensity_val;
+            Yn1p2_.push_back(Yn1p2_pcli);
+
+            //Yp2p2 -- Good
+            d = sqrt(15.0/(16.0*M_PI))*(pow(cos(phi),2)-pow(sin(phi),2))*pow(sin(theta),2);
+            d_abs = abs(d);
+            Yp2p2_vec_.push_back(d);
+            pcl::PointXYZ Yp2p2_pcl (d_abs*sin(theta)*cos(phi), d_abs*sin(theta)*sin(phi), d_abs*cos(theta) );
+            pcl::PointXYZI Yp2p2_pcli;
+            Yp2p2_pcli.x = Yp2p2_pcl.x; Yp2p2_pcli.y = Yp2p2_pcl.y; Yp2p2_pcli.z = Yp2p2_pcl.z;
+            if(d >= 0){
+              intensity_val = max_intensity;
+            } else {
+              intensity_val = min_intensity;
+            }
+            Yp2p2_pcli.intensity = intensity_val;
+            Yp2p2_.push_back(Yp2p2_pcli);
+
+            //Yn2p2 -- Good
+            d = sqrt(15.0/(4.0*M_PI))*sin(phi)*cos(phi)*pow(sin(theta),2);
+            d_abs = abs(d);
+            Yn2p2_vec_.push_back(d);
+            pcl::PointXYZ Yn2p2_pcl (d_abs*sin(theta)*cos(phi), d_abs*sin(theta)*sin(phi), d_abs*cos(theta) );
+            pcl::PointXYZI Yn2p2_pcli;
+            Yn2p2_pcli.x = Yn2p2_pcl.x; Yn2p2_pcli.y = Yn2p2_pcl.y; Yn2p2_pcli.z = Yn2p2_pcl.z;
+            if(d >= 0){
+              intensity_val = max_intensity;
+            } else {
+              intensity_val = min_intensity;
+            }
+            Yn2p2_pcli.intensity = intensity_val;
+            Yn2p2_.push_back(Yn2p2_pcli);
         }
+
+        // Create array of projection shape arrays
+        // Indexing is i*ring_num + j
+        vector<vector<float>> shape_mat;
+        shape_mat.push_back(Y00_vec_);
+        shape_mat.push_back(Y0p1_vec_);
+        shape_mat.push_back(Yp1p1_vec_);
+        shape_mat.push_back(Yn1p1_vec_);
+        shape_mat.push_back(Y0p2_vec_);
+        shape_mat.push_back(Yp1p2_vec_);
+        shape_mat.push_back(Yn1p2_vec_);
+        shape_mat.push_back(Yp2p2_vec_);
+        shape_mat.push_back(Yn2p2_vec_);
+
+        // This is stricly for making rviz look nice
         pcl::PointXYZI Yp_pcli;
         Yp_pcli.x = 0.0; Yp_pcli.y = 0.0; Yp_pcli.z = 0.0;
         Yp_pcli.intensity = 1.0;
@@ -301,6 +368,9 @@ void NearnessController3D::generateProjectionShapes(){
         Yn1p1_.push_back(Yp_pcli);
         Y0p2_.push_back(Yp_pcli);
         Yp1p2_.push_back(Yp_pcli);
+        Yn1p2_.push_back(Yp_pcli);
+        Yp2p2_.push_back(Yp_pcli);
+        Yn2p2_.push_back(Yp_pcli);
         pcl::PointXYZI Yn_pcli;
         Yn_pcli.x = 0.0; Yn_pcli.y = 0.0; Yn_pcli.z = 0.0;
         Yn_pcli.intensity = -1.0;
@@ -310,6 +380,9 @@ void NearnessController3D::generateProjectionShapes(){
         Yn1p1_.push_back(Yn_pcli);
         Y0p2_.push_back(Yn_pcli);
         Yp1p2_.push_back(Yn_pcli);
+        Yn1p2_.push_back(Yn_pcli);
+        Yp2p2_.push_back(Yn_pcli);
+        Yn2p2_.push_back(Yn_pcli);
     }
 
 }
@@ -350,6 +423,30 @@ void NearnessController3D::publishProjectionShapes(){
     Yp1p2_msg.header.stamp = ros::Time::now();
     Yp1p2_msg.header.frame_id = frame_id_;
     pub_Yp1p2_.publish(Yp1p2_msg);
+
+    sensor_msgs::PointCloud2 Yn1p2_msg;
+    pcl::toROSMsg(Yn1p2_, Yn1p2_msg);
+    Yn1p2_msg.header.stamp = ros::Time::now();
+    Yn1p2_msg.header.frame_id = frame_id_;
+    pub_Yn1p2_.publish(Yn1p2_msg);
+
+    sensor_msgs::PointCloud2 Yp2p2_msg;
+    pcl::toROSMsg(Yp2p2_, Yp2p2_msg);
+    Yp2p2_msg.header.stamp = ros::Time::now();
+    Yp2p2_msg.header.frame_id = frame_id_;
+    pub_Yp2p2_.publish(Yp2p2_msg);
+
+    sensor_msgs::PointCloud2 Yn2p2_msg;
+    pcl::toROSMsg(Yn2p2_, Yn2p2_msg);
+    Yn2p2_msg.header.stamp = ros::Time::now();
+    Yn2p2_msg.header.frame_id = frame_id_;
+    pub_Yn2p2_.publish(Yn2p2_msg);
+}
+
+void NearnessController3D::projectNearness(){
+  // Project measured nearness onto different shapes
+
+
 }
 
 bool NearnessController3D::newPcl(){

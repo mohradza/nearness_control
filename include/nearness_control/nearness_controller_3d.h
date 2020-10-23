@@ -67,6 +67,7 @@ class NearnessController3D {
     bool newPcl();
     void generateProjectionShapes();
     void publishProjectionShapes();
+    void projectNearness();
 
 
  private:
@@ -89,6 +90,9 @@ class NearnessController3D {
     ros::Publisher pub_Yn1p1_;
     ros::Publisher pub_Y0p2_;
     ros::Publisher pub_Yp1p2_;
+    ros::Publisher pub_Yn1p2_;
+    ros::Publisher pub_Yp2p2_;
+    ros::Publisher pub_Yn2p2_;
 
     // DYNAMIC RECONFIGURE //
     boost::mutex connect_mutex_;
@@ -135,10 +139,19 @@ class NearnessController3D {
     pcl::PointCloud<pcl::PointXYZI> Yn1p1_;
     pcl::PointCloud<pcl::PointXYZI> Y0p2_;
     pcl::PointCloud<pcl::PointXYZI> Yp1p2_;
+    pcl::PointCloud<pcl::PointXYZI> Yn1p2_;
+    pcl::PointCloud<pcl::PointXYZI> Yp2p2_;
+    pcl::PointCloud<pcl::PointXYZI> Yn2p2_;
 
-
-
-
+    vector<float> Y00_vec_;
+    vector<float> Y0p1_vec_;
+    vector<float> Yp1p1_vec_;
+    vector<float> Yn1p1_vec_;
+    vector<float> Y0p2_vec_;
+    vector<float> Yp1p2_vec_;
+    vector<float> Yn1p2_vec_;
+    vector<float> Yp2p2_vec_;
+    vector<float> Yn2p2_vec_;
 
 }; // class SimpleNodeClass
 
