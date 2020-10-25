@@ -164,21 +164,22 @@ void NearnessController3D::generateProjectionShapes(){
     float intensity_val = 0.0;
     float max_intensity = -1.0;
     float min_intensity = .6;
+    float theta, phi, d, d_abs;
 
     // Cycle through every point in the spherical coordinate system
     // and generate the Laplace Spherical harmonic shapes. Cycle
     // from bottom to top ring, and pi to -pi along a ring.
     for(int i = 1; i <= num_rings_-1; i++){
       // Get current theta value
-      float theta = theta_view_vec_[i];
+      theta = theta_view_vec_[i];
 
       for(int j = 0; j < num_ring_points_; j++){
         // Get current phi value
-        float phi = phi_view_vec_[j];
+        phi = phi_view_vec_[j];
 
         // Y00
-        float d = sqrt(1/(4*M_PI));
-        float d_abs = abs(d);
+        d = sqrt(1/(4*M_PI));
+        d_abs = abs(d);
         Y00_vec_.push_back(d);
         pcl::PointXYZ Y00_pcl (d_abs*sin(theta)*cos(phi), d_abs*sin(theta)*sin(phi), d_abs*cos(theta) );
         pcl::PointXYZI Y00_pcli;
