@@ -1,0 +1,24 @@
+<launch>
+
+  <arg name="enable_debug"                default="true"/>
+  <arg name="number_of_rings"             default = "64"/>
+  <arg name="number_of_ring_points"       default = "360"/>
+  <!-- <arg name=""             deault = ""/> -->
+
+  <group ns="OHRAD_X3">
+    <node pkg="nearness_control" type="nearness_control_3d_node" name="nearness_control_3d_node" output="screen">
+
+        <!-- SUBSCRIBED TOPICS -->
+        <remap from="nearness_controller_3d/points" to="ouster_points"/>
+
+        <!-- Enable switches -->
+        <param name="enable_debug"          type="bool"     value="$(arg enable_debug)"/>
+
+        <!-- Sensor Parameters -->
+        <param name="num_rings"             type="int"      value="$(arg number_of_rings)"/>
+        <param name="num_ring_points"       type="int"      value="$(arg number_of_ring_points)"/>
+
+    </node>
+  </group>
+
+</launch>

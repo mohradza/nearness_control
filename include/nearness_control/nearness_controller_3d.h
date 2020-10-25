@@ -65,6 +65,7 @@ class NearnessController3D {
     // FUNCTIONS //
     void pclCb(const sensor_msgs::PointCloud2ConstPtr& pcl_msg);
     bool newPcl();
+    void generateViewingAngleVectors();
     void generateProjectionShapes();
     void publishProjectionShapes();
     void projectNearness();
@@ -125,6 +126,10 @@ class NearnessController3D {
     std::vector<float> phi_view_vec_;
     std::vector<float> theta_view_vec_;
 
+    sensor_msgs::PointCloud2 pcl_out_msg_;
+    sensor_msgs::PointCloud2 mu_out_msg_;
+
+
     pcl::PointCloud<pcl::PointXYZ> cloud_out_;
     pcl::PointCloud<pcl::PointXYZ> mu_cloud_out_;
     pcl::PointCloud<pcl::PointXYZ> d_cloud_out_;
@@ -132,6 +137,8 @@ class NearnessController3D {
     int pcl_width_;
     int pcl_height_;
     int pcl_vertical_spread_;
+    int num_ring_points_;
+    int num_rings_;
 
     pcl::PointCloud<pcl::PointXYZI> Y00_;
     pcl::PointCloud<pcl::PointXYZI> Y0p1_;
@@ -142,6 +149,18 @@ class NearnessController3D {
     pcl::PointCloud<pcl::PointXYZI> Yn1p2_;
     pcl::PointCloud<pcl::PointXYZI> Yp2p2_;
     pcl::PointCloud<pcl::PointXYZI> Yn2p2_;
+
+    sensor_msgs::PointCloud2 Y00_msg_;
+    sensor_msgs::PointCloud2 Y0p1_msg_;
+    sensor_msgs::PointCloud2 Yp1p1_msg_;
+    sensor_msgs::PointCloud2 Yn1p1_msg_;
+    sensor_msgs::PointCloud2 Y0p2_msg_;
+    sensor_msgs::PointCloud2 Yp1p2_msg_;
+    sensor_msgs::PointCloud2 Yn1p2_msg_;
+    sensor_msgs::PointCloud2 Yn2p2_msg_;
+    sensor_msgs::PointCloud2 Yp2p2_msg_;
+
+    vector<vector<float>> shape_mat_;
 
     vector<float> Y00_vec_;
     vector<float> Y0p1_vec_;
