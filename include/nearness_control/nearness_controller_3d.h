@@ -94,6 +94,7 @@ class NearnessController3D {
     ros::Publisher pub_Yn1p2_;
     ros::Publisher pub_Yp2p2_;
     ros::Publisher pub_Yn2p2_;
+    ros::Publisher pub_y_projections_;
 
     // DYNAMIC RECONFIGURE //
     boost::mutex connect_mutex_;
@@ -129,7 +130,6 @@ class NearnessController3D {
     sensor_msgs::PointCloud2 pcl_out_msg_;
     sensor_msgs::PointCloud2 mu_out_msg_;
 
-
     pcl::PointCloud<pcl::PointXYZ> cloud_out_;
     pcl::PointCloud<pcl::PointXYZ> mu_cloud_out_;
     pcl::PointCloud<pcl::PointXYZ> d_cloud_out_;
@@ -139,6 +139,10 @@ class NearnessController3D {
     int pcl_vertical_spread_;
     int num_ring_points_;
     int num_rings_;
+    int num_excluded_rings_;
+    int num_basis_shapes_;
+
+    std_msgs::Float32MultiArray y_projections_msg_;
 
     pcl::PointCloud<pcl::PointXYZI> Y00_;
     pcl::PointCloud<pcl::PointXYZI> Y0p1_;

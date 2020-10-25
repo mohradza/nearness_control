@@ -31,6 +31,7 @@ void NearnessController3D::init() {
     pub_Yn1p2_ = nh_.advertise<sensor_msgs::PointCloud2>("Yn1p2",1);
     pub_Yp2p2_ = nh_.advertise<sensor_msgs::PointCloud2>("Yp2p2",1);
     pub_Yn2p2_ = nh_.advertise<sensor_msgs::PointCloud2>("Yn2p2",1);
+    pub_y_projections_ = nh_.advertise<sensor_msgs::PointCloud2>("y_projections",1);
     //pub_control_commands_ = nh_.advertise<geometry_msgs::Twist>("control_commands", 10);
 
     // Import parameters
@@ -38,12 +39,15 @@ void NearnessController3D::init() {
 
     pnh_.param("num_rings", num_rings_, 64);
     pnh_.param("num_ring_points", num_ring_points_, 360);
+    pnh_.param("num_basis_shapes", num_basis_shapes_, 9);
 
     frame_id_ = "OHRAD_X3";
 
+    // We want to exclude the top and bottom rings
+    num_excluded_rings_ = 2;
+
     // Prepare the Laplace spherical harmonic basis set
     generateViewingAngleVectors();
-
     generateProjectionShapes();
 
 
@@ -65,48 +69,48 @@ void NearnessController3D::generateViewingAngleVectors(){
   // TODO: These should also be parameters
   float theta_start = M_PI;
   float theta_end = 0;
-  float dtheta = (theta_start - theta_end)/float(num_rings_);
+  dtheta_ = (theta_start - theta_end)/float(num_rings_);
   for(int i = 0; i <= num_rings_; i++){
-      theta_view_vec_.push_back(theta_start - float(i)*dtheta);
+      theta_view_vec_.push_back(theta_start - float(i)*dtheta_);
   }
 
   // Azimuthal angle
   // TODO: These should also be parameters
   float phi_start = M_PI;
   float phi_end = -M_PI;
-  float dphi = (phi_start - phi_end)/float(num_ring_points_);
+  dphi_ = (phi_start - phi_end)/float(num_ring_points_);
   for(int i = 0; i < num_ring_points_; i++){
-    phi_view_vec_.push_back(phi_start - float(i)*dphi);
+    phi_view_vec_.push_back(phi_start - float(i)*dphi_);
   }
 
 }
 
 void NearnessController3D::pclCb(const sensor_msgs::PointCloud2ConstPtr& pcl_msg){
-  new_pcl_ = true;
-  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_in (new pcl::PointCloud<pcl::PointXYZ>);
-  pcl::PointCloud<pcl::PointXYZ>::Ptr dist_test_out (new pcl::PointCloud<pcl::PointXYZ>);
 
+  new_pcl_ = true;
+
+  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_in (new pcl::PointCloud<pcl::PointXYZ>);
   pcl::fromROSMsg (*pcl_msg, *cloud_in);
   size_t pcl_size = cloud_in->points.size();
 
-  int test_ring = test_ring_;
-
-  // Convert from cartesian coordinates to spherical nearness
-  std::vector<float> mu_sphere;
+  mu_sphere_.clear();
   cloud_out_.clear();
   mu_cloud_out_.clear();
 
+  pcl::PointXYZ p, mu_p;
+  float dist, mu;
+
   for(int i = 1; i <= num_rings_-1; i++){
       for(int j = 0; j < num_ring_points_; j++){
-          pcl::PointXYZ p = cloud_in->points[i*num_ring_points_ + j];
+          p = cloud_in->points[i*num_ring_points_ + j];
           cloud_out_.push_back(p);
-          float dist = sqrt(pow(p.x,2) + pow(p.y,2) + pow(p.z,2));
-          float mu = 1/dist;
+          dist = sqrt(pow(p.x,2) + pow(p.y,2) + pow(p.z,2));
+          mu = 1/dist;
           mu_sphere_.push_back(mu);
 
           // Convert back to cartesian for viewing
           if(enable_debug_){
-              pcl::PointXYZ mu_p (mu*sin(theta_view_vec_[i])*cos(phi_view_vec_[j]), mu*sin(theta_view_vec_[i])*sin(phi_view_vec_[j]), mu*cos(theta_view_vec_[i]) );
+              mu_p = {mu*sin(theta_view_vec_[i])*cos(phi_view_vec_[j]), mu*sin(theta_view_vec_[i])*sin(phi_view_vec_[j]), mu*cos(theta_view_vec_[i]) };
               mu_cloud_out_.push_back(mu_p);
           }
       }
@@ -127,11 +131,19 @@ void NearnessController3D::pclCb(const sensor_msgs::PointCloud2ConstPtr& pcl_msg
 
 void NearnessController3D::projectNearness(){
   // Project measured nearness onto different shapes
-  int last_index = num_rings_;
-  // for (int i = 0; i < last_index; i++){
-  //
-  // }
+  int last_index = (num_rings_- num_excluded_rings_)*num_ring_points_;
 
+  vector<float> y_projections(num_basis_shapes_, 0.0);
+  for(int j=0; j < num_basis_shapes_; j++){
+    for (int i = 0; i < last_index; i++){
+      y_projections[j] += shape_mat_[j][i]*mu_sphere_[i]*sin(theta_view_vec_[i])*dtheta_*dphi_;
+    }
+  }
+
+  if(enable_debug_){
+    y_projections_msg_.data = y_projections;
+    pub_y_projections_.publish(y_projections_msg_);
+  }
 
 }
 

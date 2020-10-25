@@ -3,6 +3,7 @@
   <arg name="enable_debug"                default="true"/>
   <arg name="number_of_rings"             default = "64"/>
   <arg name="number_of_ring_points"       default = "360"/>
+  <arg name="number_of_basis_shapes"       default = "9"/>
   <!-- <arg name=""             deault = ""/> -->
 
   <group ns="OHRAD_X3">
@@ -17,7 +18,7 @@
         <!-- Sensor Parameters -->
         <param name="num_rings"             type="int"      value="$(arg number_of_rings)"/>
         <param name="num_ring_points"       type="int"      value="$(arg number_of_ring_points)"/>
-
+        <param name="num_basis_shapes"      type="int"      value="$(arg number_of_basis_shapes")/>
     </node>
   </group>
 
