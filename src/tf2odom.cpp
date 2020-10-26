@@ -64,53 +64,55 @@ int main(int argc, char** argv){
       //ROS_ERROR("%s",ex.what());
       ros::Duration(0.1).sleep();
     }
-    odom_msg.header.stamp = ros::Time::now();
-    dt = (odom_msg.header.stamp - last_odom_time).toSec();
-    last_odom_time = odom_msg.header.stamp;
+    if( abs(transform.getOrigin().x() - last_x_pos) > .0000001){
+      odom_msg.header.stamp = ros::Time::now();
+      dt = (odom_msg.header.stamp - last_odom_time).toSec();
+      last_odom_time = odom_msg.header.stamp;
 
-    odom_msg.pose.pose.position.x = transform.getOrigin().x();
-    odom_msg.pose.pose.position.y = transform.getOrigin().y();
-    odom_msg.pose.pose.position.z = transform.getOrigin().z();
+      odom_msg.pose.pose.position.x = transform.getOrigin().x();
+      odom_msg.pose.pose.position.y = transform.getOrigin().y();
+      odom_msg.pose.pose.position.z = transform.getOrigin().z();
 
-    odom_msg.twist.twist.linear.x = (odom_msg.pose.pose.position.x - last_x_pos)/dt;
-    odom_msg.twist.twist.linear.y = (odom_msg.pose.pose.position.y - last_y_pos)/dt;
-    odom_msg.twist.twist.linear.z = (odom_msg.pose.pose.position.z - last_z_pos)/dt;
+      odom_msg.twist.twist.linear.x = (odom_msg.pose.pose.position.x - last_x_pos)/dt;
+      odom_msg.twist.twist.linear.y = (odom_msg.pose.pose.position.y - last_y_pos)/dt;
+      odom_msg.twist.twist.linear.z = (odom_msg.pose.pose.position.z - last_z_pos)/dt;
 
-    last_x_pos = odom_msg.pose.pose.position.x;
-    last_y_pos = odom_msg.pose.pose.position.y;
-    last_z_pos = odom_msg.pose.pose.position.z;
+      last_x_pos = odom_msg.pose.pose.position.x;
+      last_y_pos = odom_msg.pose.pose.position.y;
+      last_z_pos = odom_msg.pose.pose.position.z;
 
-    tf::quaternionTFToMsg(transform.getRotation().normalize(), odom_msg.pose.pose.orientation);
-    tf::Quaternion quat(odom_msg.pose.pose.orientation.x, odom_msg.pose.pose.orientation.y, odom_msg.pose.pose.orientation.z, odom_msg.pose.pose.orientation.w);
-    tf::Matrix3x3 m(quat);
-    double roll, pitch, yaw;
-    double p, q, r;
-    double roll_dot, pitch_dot, yaw_dot;
-    m.getRPY(roll, pitch, yaw);
+      tf::quaternionTFToMsg(transform.getRotation().normalize(), odom_msg.pose.pose.orientation);
+      tf::Quaternion quat(odom_msg.pose.pose.orientation.x, odom_msg.pose.pose.orientation.y, odom_msg.pose.pose.orientation.z, odom_msg.pose.pose.orientation.w);
+      tf::Matrix3x3 m(quat);
+      double roll, pitch, yaw;
+      double p, q, r;
+      double roll_dot, pitch_dot, yaw_dot;
+      m.getRPY(roll, pitch, yaw);
 
-    if (roll > M_PI/2){
-      roll -= M_PI;
-    } else if( roll < -M_PI/2){
-      roll += M_PI;
+      if (roll > M_PI/2){
+        roll -= M_PI;
+      } else if( roll < -M_PI/2){
+        roll += M_PI;
+      }
+
+      roll_dot = (roll - last_roll)/dt;
+      pitch_dot = (pitch - last_pitch)/dt;
+      yaw_dot = (yaw - last_yaw)/dt;
+      p = roll_dot - sin(pitch)*yaw_dot;
+      q = cos(roll)*pitch_dot + sin(roll)*cos(pitch)*yaw_dot;
+      r = -sin(roll)*pitch_dot + cos(roll)*cos(pitch)*yaw_dot;
+
+      last_roll = roll;
+      last_pitch = pitch;
+      last_yaw = yaw;
+
+      odom_msg.twist.twist.angular.x = p;
+      odom_msg.twist.twist.angular.y = q;
+      odom_msg.twist.twist.angular.z = r;
+
+      robot_odom_pub.publish(odom_msg);
+      cmd_vel_pub.publish(cmd_);
     }
-
-    roll_dot = (roll - last_roll)/dt;
-    pitch_dot = (pitch - last_pitch)/dt;
-    yaw_dot = (yaw - last_yaw)/dt;
-    p = roll_dot - sin(pitch)*yaw_dot;
-    q = cos(roll)*pitch_dot + sin(roll)*cos(pitch)*yaw_dot;
-    r = -sin(roll)*pitch_dot + cos(roll)*cos(pitch)*yaw_dot;
-
-    last_roll = roll;
-    last_pitch = pitch;
-    last_yaw = yaw;
-
-    odom_msg.twist.twist.angular.x = p;
-    odom_msg.twist.twist.angular.y = q;
-    odom_msg.twist.twist.angular.z = r;
-
-    robot_odom_pub.publish(odom_msg);
-    cmd_vel_pub.publish(cmd_);
 /*
     point_msg.header.stamp = ros::Time::now();
     point_msg.point.x = odom_msg.pose.pose.position.x;
