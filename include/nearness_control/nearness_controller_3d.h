@@ -64,13 +64,15 @@ class NearnessController3D {
 
     // FUNCTIONS //
     void pclCb(const sensor_msgs::PointCloud2ConstPtr& pcl_msg);
-    bool newPcl();
+    void odomCb(const nav_msgs::OdometryConstPtr& odom_msg);
     void generateViewingAngleVectors();
     void generateProjectionShapes();
     void publishProjectionShapes();
     void projectNearness();
     void reconstructWideFieldNearness();
     void computeSmallFieldNearness();
+    void computeControlCommands();
+    bool newPcl();
 
 
  private:
@@ -82,6 +84,7 @@ class NearnessController3D {
 
     // SUBSCRIBERS //
     ros::Subscriber sub_pcl_;
+    ros::Subscriber sub_odom_;
 
     ros::Publisher pub_pcl_;
     ros::Publisher pub_mu_pcl_;
@@ -99,6 +102,7 @@ class NearnessController3D {
     ros::Publisher pub_y_projections_;
     ros::Publisher pub_recon_wf_mu_;
     ros::Publisher pub_sf_mu_;
+    ros::Publisher pub_control_commands_;
 
     // DYNAMIC RECONFIGURE //
     boost::mutex connect_mutex_;
@@ -109,7 +113,6 @@ class NearnessController3D {
     Config config_;
     void configCb(Config &config, uint32_t level);
 
-
     // FUNCTIONS //
     float sgn(double v);
     void saturateControls();
@@ -118,6 +121,7 @@ class NearnessController3D {
     int fact(int n);
 
     bool enable_debug_;
+    bool enable_altitude_hold_;
     double test_ring_;
     bool new_pcl_;
 
@@ -191,6 +195,19 @@ class NearnessController3D {
     vector<float> Yn1p2_vec_;
     vector<float> Yp2p2_vec_;
     vector<float> Yn2p2_vec_;
+
+    // Controller
+    vector<vector<float>> C_mat_;
+    vector<float> C_dy_;
+    vector<float> C_dtheta_;
+    vector<float> C_dz_;
+    vector<float> u_vec_;
+    double u_u_, u_v_, u_thetadot_, u_w_;
+    double k_v_, k_thetadot_, k_w_, k_alt_;
+    geometry_msgs::TwistStamped control_commands_;
+    geometry_msgs::Point current_pos_;
+    double current_roll_, current_pitch_, current_heading_;
+    double reference_altitude_;
 
 }; // class SimpleNodeClass
 

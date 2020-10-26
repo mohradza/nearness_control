@@ -19,6 +19,7 @@ int main(int argc, char** argv) {
             nearness_control_3d_node.projectNearness();
             nearness_control_3d_node.reconstructWideFieldNearness();
             nearness_control_3d_node.computeSmallFieldNearness();
+            nearness_control_3d_node.computeControlCommands();
         }
 
         ros::spinOnce();

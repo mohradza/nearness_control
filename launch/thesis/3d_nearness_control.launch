@@ -1,8 +1,9 @@
 <launch>
 
-  <arg name="enable_debug"                default="true"/>
-  <arg name="number_of_rings"             default = "64"/>
-  <arg name="number_of_ring_points"       default = "360"/>
+  <arg name="enable_debug"                 default="true"/>
+  <arg name="enable_altitude_hold"         default="true"/>
+  <arg name="number_of_rings"              default = "64"/>
+  <arg name="number_of_ring_points"        default = "360"/>
   <arg name="number_of_basis_shapes"       default = "9"/>
   <arg name="number_of_wf_harmonics"       default = "9"/>
   <!-- <arg name=""             deault = ""/> -->
@@ -11,16 +12,24 @@
     <node pkg="nearness_control" type="nearness_control_3d_node" name="nearness_control_3d_node" output="screen">
 
         <!-- SUBSCRIBED TOPICS -->
-        <remap from="nearness_controller_3d/points" to="ouster_points"/>
+        <remap from="nearness_controller_3d/points"   to="ouster_points"/>
+        <remap from="nearness_controller_3d/odometry" to="odometry/ground_truth"/>
 
         <!-- Enable switches -->
-        <param name="enable_debug"          type="bool"     value="$(arg enable_debug)"/>
+        <param name="enable_debug"             type="bool"       value="$(arg enable_debug)"/>
+        <param name="enable_altitude_hold"     type="bool"       value="$(arg enable_altitude_hold)"/>
 
         <!-- Sensor Parameters -->
-        <param name="num_rings"             type="int"      value="$(arg number_of_rings)"/>
-        <param name="num_ring_points"       type="int"      value="$(arg number_of_ring_points)"/>
-        <param name="num_basis_shapes"      type="int"      value="$(arg number_of_basis_shapes)"/>
-        <param name="num_wf_harmonics"      type="int"      value="$(arg number_of_wf_harmonics)"/>
+        <param name="num_rings"                type="int"        value="$(arg number_of_rings)"/>
+        <param name="num_ring_points"          type="int"        value="$(arg number_of_ring_points)"/>
+        <param name="num_basis_shapes"         type="int"        value="$(arg number_of_basis_shapes)"/>
+        <param name="num_wf_harmonics"         type="int"        value="$(arg number_of_wf_harmonics)"/>
+
+        <!-- Controller Parameters -->
+        <param name="altitude_hold_gain"       type="double"     value="-.5"/>
+        <param name="lateral_speed_gain"       type="double"     value="-.5"/>
+        <param name="turn_rate_gain"           type="double"     value="-.5"/>
+        <param name="vertical_speed_gain"      type="double"     value="-.5"/>
 
     </node>
   </group>

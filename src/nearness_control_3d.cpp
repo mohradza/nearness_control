@@ -16,6 +16,7 @@ void NearnessController3D::init() {
 
     // Set up subscribers and callbacks
     sub_pcl_ = nh_.subscribe("points", 1, &NearnessController3D::pclCb, this);
+    sub_odom_ = nh_.subscribe("odometry", 1, &NearnessController3D::odomCb, this);
 
     // Set up publishers
     pub_pcl_ = nh_.advertise<sensor_msgs::PointCloud2>("pcl_out",1);
@@ -34,16 +35,26 @@ void NearnessController3D::init() {
     pub_y_projections_ = nh_.advertise<std_msgs::Float32MultiArray>("y_projections",1);
     pub_recon_wf_mu_ = nh_.advertise<sensor_msgs::PointCloud2>("reconstructed_wf_nearness",1);
     pub_sf_mu_ = nh_.advertise<sensor_msgs::PointCloud2>("sf_nearness",1);
+    pub_control_commands_ = nh_.advertise<geometry_msgs::TwistStamped>("control_commands",1);
 
     // Import parameters
     pnh_.param("enable_debug", enable_debug_, false);
+    pnh_.param("enable_altitude_hold", enable_altitude_hold_, false);
 
     pnh_.param("num_rings", num_rings_, 64);
     pnh_.param("num_ring_points", num_ring_points_, 360);
     pnh_.param("num_basis_shapes", num_basis_shapes_, 9);
     pnh_.param("num_wf_harmonics", num_wf_harmonics_, 9);
 
+    pnh_.param("altitude_hold_gain", k_alt_, -0.1);
+    pnh_.param("lateral_speed_gain", k_v_, -0.1);
+    pnh_.param("turn_rate_gain", k_thetadot_, -0.1);
+    pnh_.param("vertical_speed_gain", k_w_, -0.1);
+    pnh_.param("forward_speed", u_u_, .5);
+
     frame_id_ = "OHRAD_X3";
+
+    control_commands_.header.frame_id = frame_id_;
 
     // We want to exclude the top and bottom rings
     num_excluded_rings_ = 2;
@@ -51,7 +62,16 @@ void NearnessController3D::init() {
 
     new_pcl_ = false;
 
-
+    // Set up the Cdagger matrix
+    // Will be referenced as C in code
+    // Might want to implement this with Eigen
+    vector<float> zeros_vec(num_basis_shapes_, 0.0);
+    C_dy_ = zeros_vec;
+    C_mat_.push_back(C_dy_);
+    C_dtheta_ = zeros_vec;
+    C_mat_.push_back(C_dtheta_);
+    C_dz_ = zeros_vec;
+    C_mat_.push_back(C_dz_);
 
     // Prepare the Laplace spherical harmonic basis set
     generateViewingAngleVectors();
@@ -68,6 +88,10 @@ void NearnessController3D::configCb(Config &config, uint32_t level)
     //u_k_hb_1_ = config_.forward_speed_k_hb_1;
     //u_k_hb_2_ = config_.forward_speed_k_hb_2;
 
+}
+
+bool NearnessController3D::newPcl(){
+  return new_pcl_;
 }
 
 void NearnessController3D::generateViewingAngleVectors(){
@@ -225,8 +249,45 @@ void NearnessController3D::computeSmallFieldNearness(){
 
 }
 
-bool NearnessController3D::newPcl(){
-    return new_pcl_;
+void NearnessController3D::computeControlCommands(){
+
+  int num_controls = C_mat_.size();
+  u_vec_.clear();
+  for (int i=0; i < num_controls; i++){
+    u_vec_.push_back(0.0);
+    for(int j=0; j < num_basis_shapes_; j++){
+      u_vec_[i] += C_mat_[i][j]*y_projections_[j];
+    }
+  }
+
+  u_v_ = k_v_*u_vec_[0];
+  u_thetadot_ = k_thetadot_*u_vec_[1];
+  u_w_ = k_w_*u_vec_[2];
+
+  if(enable_altitude_hold_){
+    u_w_ = k_alt_*(reference_altitude_ - current_pos_.z);
+  }
+
+  control_commands_.header.stamp = ros::Time::now();
+  control_commands_.twist.linear.x = u_u_;
+  control_commands_.twist.linear.y = u_v_;
+  control_commands_.twist.linear.z = u_w_;
+
+  control_commands_.twist.angular.x = 0.0;
+  control_commands_.twist.angular.y = 0.0;
+  control_commands_.twist.angular.z = u_thetadot_;
+
+  pub_control_commands_.publish(control_commands_);
+
+}
+
+void NearnessController3D::odomCb(const nav_msgs::OdometryConstPtr& odom_msg){
+    current_pos_ = odom_msg->pose.pose.position;
+    geometry_msgs::Quaternion vehicle_quat_msg = odom_msg->pose.pose.orientation;
+    tf::Quaternion vehicle_quat_tf;
+    tf::quaternionMsgToTF(vehicle_quat_msg, vehicle_quat_tf);
+    tf::Matrix3x3(vehicle_quat_tf).getRPY(current_roll_, current_pitch_, current_heading_);
+
 }
 
 void NearnessController3D::generateProjectionShapes(){
