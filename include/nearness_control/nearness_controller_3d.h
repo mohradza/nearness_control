@@ -70,6 +70,7 @@ class NearnessController3D {
     void publishProjectionShapes();
     void projectNearness();
     void reconstructWideFieldNearness();
+    void computeSmallFieldNearness();
 
 
  private:
@@ -96,7 +97,8 @@ class NearnessController3D {
     ros::Publisher pub_Yp2p2_;
     ros::Publisher pub_Yn2p2_;
     ros::Publisher pub_y_projections_;
-    ros::Publisher pub_recon_wf_;
+    ros::Publisher pub_recon_wf_mu_;
+    ros::Publisher pub_sf_mu_;
 
     // DYNAMIC RECONFIGURE //
     boost::mutex connect_mutex_;
@@ -136,7 +138,7 @@ class NearnessController3D {
     pcl::PointCloud<pcl::PointXYZ> cloud_out_;
     pcl::PointCloud<pcl::PointXYZ> mu_cloud_out_;
     pcl::PointCloud<pcl::PointXYZ> recon_wf_cloud_out_;
-    std::vector<float> mu_sphere_;
+    std::vector<float> mu_meas_;
     int pcl_width_;
     int pcl_height_;
     int pcl_vertical_spread_;
@@ -150,9 +152,13 @@ class NearnessController3D {
     vector<float> y_projections_;
     std_msgs::Float32MultiArray y_projections_msg_;
 
-    vector<float> recon_wf_vec_;
-    pcl::PointCloud<pcl::PointXYZ> recon_wf_pcl_;
-    sensor_msgs::PointCloud2 recon_wf_pcl_msg_;
+    vector<float> recon_wf_mu_vec_;
+    pcl::PointCloud<pcl::PointXYZ> recon_wf_mu_pcl_;
+    sensor_msgs::PointCloud2 recon_wf_mu_pcl_msg_;
+
+    vector<float> sf_mu_;
+    pcl::PointCloud<pcl::PointXYZ> sf_mu_pcl_;
+    sensor_msgs::PointCloud2 sf_mu_pcl_msg_;
 
     pcl::PointCloud<pcl::PointXYZI> Y00_;
     pcl::PointCloud<pcl::PointXYZI> Y0p1_;

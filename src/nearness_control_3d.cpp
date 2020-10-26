@@ -32,8 +32,8 @@ void NearnessController3D::init() {
     pub_Yp2p2_ = nh_.advertise<sensor_msgs::PointCloud2>("Yp2p2",1);
     pub_Yn2p2_ = nh_.advertise<sensor_msgs::PointCloud2>("Yn2p2",1);
     pub_y_projections_ = nh_.advertise<std_msgs::Float32MultiArray>("y_projections",1);
-    pub_recon_wf_ = nh_.advertise<sensor_msgs::PointCloud2>("reconstructed_wf_nearness",1);
-    //pub_control_commands_ = nh_.advertise<geometry_msgs::Twist>("control_commands", 10);
+    pub_recon_wf_mu_ = nh_.advertise<sensor_msgs::PointCloud2>("reconstructed_wf_nearness",1);
+    pub_sf_mu_ = nh_.advertise<sensor_msgs::PointCloud2>("sf_nearness",1);
 
     // Import parameters
     pnh_.param("enable_debug", enable_debug_, false);
@@ -108,23 +108,23 @@ void NearnessController3D::pclCb(const sensor_msgs::PointCloud2ConstPtr& pcl_msg
   pcl::fromROSMsg (*pcl_msg, *cloud_in);
   size_t pcl_size = cloud_in->points.size();
 
-  mu_sphere_.clear();
+  mu_meas_.clear();
   cloud_out_.clear();
   mu_cloud_out_.clear();
 
   pcl::PointXYZ p, mu_p;
-  float dist, mu;
+  float dist, mu_val;
   for(int i = 1; i < num_rings_-1; i++){
       for(int j = 0; j < num_ring_points_; j++){
           p = cloud_in->points[i*num_ring_points_ + j];
           cloud_out_.push_back(p);
           dist = sqrt(pow(p.x,2) + pow(p.y,2) + pow(p.z,2));
-          mu = 1/dist;
-          mu_sphere_.push_back(mu);
+          mu_val = 1/dist;
+          mu_meas_.push_back(mu_val);
 
           // Convert back to cartesian for viewing
           if(enable_debug_){
-              mu_p = {mu*sin(theta_view_vec_[i])*cos(phi_view_vec_[j]), mu*sin(theta_view_vec_[i])*sin(phi_view_vec_[j]), mu*cos(theta_view_vec_[i]) };
+              mu_p = {mu_val*sin(theta_view_vec_[i])*cos(phi_view_vec_[j]), mu_val*sin(theta_view_vec_[i])*sin(phi_view_vec_[j]), mu_val*cos(theta_view_vec_[i]) };
               mu_cloud_out_.push_back(mu_p);
           }
       }
@@ -152,7 +152,7 @@ void NearnessController3D::projectNearness(){
     for (int i = 0; i < last_index_-400; i++){
       // float num1 = shape_mat_[j][i];
       //float num2 = mu_sphere_[i];
-      y_projections_[j] += shape_mat_[j][i]*mu_sphere_[i]*sin(viewing_angle_mat_[i][0])*dtheta_*dphi_;
+      y_projections_[j] += shape_mat_[j][i]*mu_meas_[i]*sin(viewing_angle_mat_[i][0])*dtheta_*dphi_;
     }
   }
 
@@ -167,17 +167,17 @@ void NearnessController3D::projectNearness(){
 
 void NearnessController3D::reconstructWideFieldNearness(){
 
-  recon_wf_vec_.clear();
+  recon_wf_mu_vec_.clear();
   vector<float> zeros(last_index_,0.0);
-  recon_wf_vec_ = zeros;
+  recon_wf_mu_vec_ = zeros;
   for(int j = 0 ; j < num_wf_harmonics_; j++){
     for(int i = 0; i < last_index_; i++){
-      recon_wf_vec_[i] += y_projections_[j]*shape_mat_[j][i];
+      recon_wf_mu_vec_[i] += y_projections_[j]*shape_mat_[j][i];
     }
   }
 
   pcl::PointXYZ recon_mu_p;
-  recon_wf_pcl_.clear();
+  recon_wf_mu_pcl_.clear();
 
   if(enable_debug_){
     // Turn reconstructed wf back into pointcloud for viewing
@@ -185,21 +185,45 @@ void NearnessController3D::reconstructWideFieldNearness(){
     for(int i = 0; i< last_index_; i++){
       theta = viewing_angle_mat_[i][0];
       phi = viewing_angle_mat_[i][1];
-      recon_mu_p = {recon_wf_vec_[i]*sin(theta)*cos(phi), recon_wf_vec_[i]*sin(theta)*sin(phi), recon_wf_vec_[i]*cos(theta) };
-      recon_wf_pcl_.push_back(recon_mu_p);
+      recon_mu_p = {recon_wf_mu_vec_[i]*sin(theta)*cos(phi), recon_wf_mu_vec_[i]*sin(theta)*sin(phi), recon_wf_mu_vec_[i]*cos(theta) };
+      recon_wf_mu_pcl_.push_back(recon_mu_p);
     }
 
-    pcl::toROSMsg(recon_wf_pcl_, recon_wf_pcl_msg_);
-    recon_wf_pcl_msg_.header.frame_id = frame_id_;
-    recon_wf_pcl_msg_.header.stamp = ros::Time::now();
-    pub_recon_wf_.publish(recon_wf_pcl_msg_);
+    pcl::toROSMsg(recon_wf_mu_pcl_, recon_wf_mu_pcl_msg_);
+    recon_wf_mu_pcl_msg_.header.frame_id = frame_id_;
+    recon_wf_mu_pcl_msg_.header.stamp = ros::Time::now();
+    pub_recon_wf_mu_.publish(recon_wf_mu_pcl_msg_);
   }
 }
 
-// void NearnessController3D::computeSmallFieldNearness(){
-//
-//
-// }
+void NearnessController3D::computeSmallFieldNearness(){
+
+  sf_mu_.clear();
+  float diff, theta, phi;
+  pcl::PointXYZ sf_mu_p;
+  sf_mu_pcl_.clear();
+
+  for(int i = 0; i< last_index_; i++){
+    diff = mu_meas_[i] - recon_wf_mu_vec_[i];
+    sf_mu_.push_back(diff);
+
+    if(enable_debug_){
+      theta = viewing_angle_mat_[i][0];
+      phi = viewing_angle_mat_[i][1];
+      diff = abs(diff);
+      sf_mu_p = {diff*sin(theta)*cos(phi), diff*sin(theta)*sin(phi), diff*cos(theta) };
+      sf_mu_pcl_.push_back(sf_mu_p);
+    }
+  }
+
+  if(enable_debug_){
+    pcl::toROSMsg(sf_mu_pcl_, sf_mu_pcl_msg_);
+    sf_mu_pcl_msg_.header.frame_id = frame_id_;
+    sf_mu_pcl_msg_.header.stamp = ros::Time::now();
+    pub_sf_mu_.publish(sf_mu_pcl_msg_);
+  }
+
+}
 
 bool NearnessController3D::newPcl(){
     return new_pcl_;
