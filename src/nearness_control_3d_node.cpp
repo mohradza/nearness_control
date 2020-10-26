@@ -11,10 +11,13 @@ int main(int argc, char** argv) {
     ros::Rate loop_rate(100);
 
     while(ros::ok()){
+
+      nearness_control_3d_node.publishProjectionShapes();
+
         if(nearness_control_3d_node.newPcl()){
             // Process 3D nearness
-            nearness_control_3d_node.publishProjectionShapes();
-            //nearness_control_3d_node.projectNearness();
+            nearness_control_3d_node.projectNearness();
+            nearness_control_3d_node.reconstructWideFieldNearness();
         }
 
         ros::spinOnce();

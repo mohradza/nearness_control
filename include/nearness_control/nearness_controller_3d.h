@@ -69,6 +69,7 @@ class NearnessController3D {
     void generateProjectionShapes();
     void publishProjectionShapes();
     void projectNearness();
+    void reconstructWideFieldNearness();
 
 
  private:
@@ -95,6 +96,7 @@ class NearnessController3D {
     ros::Publisher pub_Yp2p2_;
     ros::Publisher pub_Yn2p2_;
     ros::Publisher pub_y_projections_;
+    ros::Publisher pub_recon_wf_;
 
     // DYNAMIC RECONFIGURE //
     boost::mutex connect_mutex_;
@@ -126,13 +128,14 @@ class NearnessController3D {
 
     std::vector<float> phi_view_vec_;
     std::vector<float> theta_view_vec_;
+    vector<vector<float>> viewing_angle_mat_;
 
     sensor_msgs::PointCloud2 pcl_out_msg_;
     sensor_msgs::PointCloud2 mu_out_msg_;
 
     pcl::PointCloud<pcl::PointXYZ> cloud_out_;
     pcl::PointCloud<pcl::PointXYZ> mu_cloud_out_;
-    pcl::PointCloud<pcl::PointXYZ> d_cloud_out_;
+    pcl::PointCloud<pcl::PointXYZ> recon_wf_cloud_out_;
     std::vector<float> mu_sphere_;
     int pcl_width_;
     int pcl_height_;
@@ -141,8 +144,15 @@ class NearnessController3D {
     int num_rings_;
     int num_excluded_rings_;
     int num_basis_shapes_;
+    int last_index_;
+    int num_wf_harmonics_;
 
+    vector<float> y_projections_;
     std_msgs::Float32MultiArray y_projections_msg_;
+
+    vector<float> recon_wf_vec_;
+    pcl::PointCloud<pcl::PointXYZ> recon_wf_pcl_;
+    sensor_msgs::PointCloud2 recon_wf_pcl_msg_;
 
     pcl::PointCloud<pcl::PointXYZI> Y00_;
     pcl::PointCloud<pcl::PointXYZI> Y0p1_;

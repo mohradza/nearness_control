@@ -31,7 +31,8 @@ void NearnessController3D::init() {
     pub_Yn1p2_ = nh_.advertise<sensor_msgs::PointCloud2>("Yn1p2",1);
     pub_Yp2p2_ = nh_.advertise<sensor_msgs::PointCloud2>("Yp2p2",1);
     pub_Yn2p2_ = nh_.advertise<sensor_msgs::PointCloud2>("Yn2p2",1);
-    pub_y_projections_ = nh_.advertise<sensor_msgs::PointCloud2>("y_projections",1);
+    pub_y_projections_ = nh_.advertise<std_msgs::Float32MultiArray>("y_projections",1);
+    pub_recon_wf_ = nh_.advertise<sensor_msgs::PointCloud2>("reconstructed_wf_nearness",1);
     //pub_control_commands_ = nh_.advertise<geometry_msgs::Twist>("control_commands", 10);
 
     // Import parameters
@@ -40,11 +41,17 @@ void NearnessController3D::init() {
     pnh_.param("num_rings", num_rings_, 64);
     pnh_.param("num_ring_points", num_ring_points_, 360);
     pnh_.param("num_basis_shapes", num_basis_shapes_, 9);
+    pnh_.param("num_wf_harmonics", num_wf_harmonics_, 9);
 
     frame_id_ = "OHRAD_X3";
 
     // We want to exclude the top and bottom rings
     num_excluded_rings_ = 2;
+    last_index_ = (num_rings_- num_excluded_rings_)*num_ring_points_;
+
+    new_pcl_ = false;
+
+
 
     // Prepare the Laplace spherical harmonic basis set
     generateViewingAngleVectors();
@@ -83,6 +90,14 @@ void NearnessController3D::generateViewingAngleVectors(){
     phi_view_vec_.push_back(phi_start - float(i)*dphi_);
   }
 
+  // Make a matrix for making generating pointclouds from
+  // vector representations of nearness
+  for(int i = 1; i < num_rings_-1; i++){
+    for(int j = 0; j < num_ring_points_; j++){
+      viewing_angle_mat_.push_back({theta_view_vec_[i], phi_view_vec_[j]});
+    }
+  }
+
 }
 
 void NearnessController3D::pclCb(const sensor_msgs::PointCloud2ConstPtr& pcl_msg){
@@ -99,8 +114,7 @@ void NearnessController3D::pclCb(const sensor_msgs::PointCloud2ConstPtr& pcl_msg
 
   pcl::PointXYZ p, mu_p;
   float dist, mu;
-
-  for(int i = 1; i <= num_rings_-1; i++){
+  for(int i = 1; i < num_rings_-1; i++){
       for(int j = 0; j < num_ring_points_; j++){
           p = cloud_in->points[i*num_ring_points_ + j];
           cloud_out_.push_back(p);
@@ -130,31 +144,65 @@ void NearnessController3D::pclCb(const sensor_msgs::PointCloud2ConstPtr& pcl_msg
 }
 
 void NearnessController3D::projectNearness(){
-  // Project measured nearness onto different shapes
-  int last_index = (num_rings_- num_excluded_rings_)*num_ring_points_;
 
-  vector<float> y_projections(num_basis_shapes_, 0.0);
-  for(int j=0; j < num_basis_shapes_; j++){
-    for (int i = 0; i < last_index; i++){
-      y_projections[j] += shape_mat_[j][i]*mu_sphere_[i]*sin(theta_view_vec_[i])*dtheta_*dphi_;
+  // Project measured nearness onto different shapes
+  y_projections_.clear();
+  for(int j = 0; j < num_basis_shapes_; j++){
+    y_projections_.push_back(0.0);
+    for (int i = 0; i < last_index_-400; i++){
+      // float num1 = shape_mat_[j][i];
+      //float num2 = mu_sphere_[i];
+      y_projections_[j] += shape_mat_[j][i]*mu_sphere_[i]*sin(viewing_angle_mat_[i][0])*dtheta_*dphi_;
     }
   }
 
   if(enable_debug_){
-    y_projections_msg_.data = y_projections;
+    y_projections_msg_.data = y_projections_;
     pub_y_projections_.publish(y_projections_msg_);
   }
 
+  new_pcl_ = false;
+
 }
 
+void NearnessController3D::reconstructWideFieldNearness(){
+
+  recon_wf_vec_.clear();
+  vector<float> zeros(last_index_,0.0);
+  recon_wf_vec_ = zeros;
+  for(int j = 0 ; j < num_wf_harmonics_; j++){
+    for(int i = 0; i < last_index_; i++){
+      recon_wf_vec_[i] += y_projections_[j]*shape_mat_[j][i];
+    }
+  }
+
+  pcl::PointXYZ recon_mu_p;
+  recon_wf_pcl_.clear();
+
+  if(enable_debug_){
+    // Turn reconstructed wf back into pointcloud for viewing
+    float theta, phi;
+    for(int i = 0; i< last_index_; i++){
+      theta = viewing_angle_mat_[i][0];
+      phi = viewing_angle_mat_[i][1];
+      recon_mu_p = {recon_wf_vec_[i]*sin(theta)*cos(phi), recon_wf_vec_[i]*sin(theta)*sin(phi), recon_wf_vec_[i]*cos(theta) };
+      recon_wf_pcl_.push_back(recon_mu_p);
+    }
+
+    pcl::toROSMsg(recon_wf_pcl_, recon_wf_pcl_msg_);
+    recon_wf_pcl_msg_.header.frame_id = frame_id_;
+    recon_wf_pcl_msg_.header.stamp = ros::Time::now();
+    pub_recon_wf_.publish(recon_wf_pcl_msg_);
+  }
+}
+
+// void NearnessController3D::computeSmallFieldNearness(){
+//
+//
+// }
+
 bool NearnessController3D::newPcl(){
-    // if(new_pcl_){
-    //     new_pcl_ = false;
-    //     return true;
-    // } else {
-    //     return false;
-    // }
-    return true;
+    return new_pcl_;
 }
 
 void NearnessController3D::generateProjectionShapes(){
@@ -169,7 +217,7 @@ void NearnessController3D::generateProjectionShapes(){
     // Cycle through every point in the spherical coordinate system
     // and generate the Laplace Spherical harmonic shapes. Cycle
     // from bottom to top ring, and pi to -pi along a ring.
-    for(int i = 1; i <= num_rings_-1; i++){
+    for(int i = 1; i < num_rings_-1; i++){
       // Get current theta value
       theta = theta_view_vec_[i];
 
