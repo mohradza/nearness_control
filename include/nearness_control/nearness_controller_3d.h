@@ -25,6 +25,7 @@
 #include <sensor_msgs/LaserScan.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <nav_msgs/Odometry.h>
+#include <nearness_control_msgs/ProjectionWithOdomMsg.h>
 
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/point_cloud.h>
@@ -65,6 +66,7 @@ class NearnessController3D {
     // FUNCTIONS //
     void pclCb(const sensor_msgs::PointCloud2ConstPtr& pcl_msg);
     void odomCb(const nav_msgs::OdometryConstPtr& odom_msg);
+    void joyconCb(const sensor_msgs::JoyConstPtr& joy_msg);
     void generateViewingAngleVectors();
     void generateProjectionShapes();
     void publishProjectionShapes();
@@ -85,6 +87,7 @@ class NearnessController3D {
     // SUBSCRIBERS //
     ros::Subscriber sub_pcl_;
     ros::Subscriber sub_odom_;
+    ros::Subscriber sub_joy_;
 
     ros::Publisher pub_pcl_;
     ros::Publisher pub_mu_pcl_;
@@ -100,6 +103,7 @@ class NearnessController3D {
     ros::Publisher pub_Yp2p2_;
     ros::Publisher pub_Yn2p2_;
     ros::Publisher pub_y_projections_;
+    ros::Publisher pub_y_projections_with_odom_;
     ros::Publisher pub_recon_wf_mu_;
     ros::Publisher pub_sf_mu_;
     ros::Publisher pub_control_commands_;
@@ -153,8 +157,11 @@ class NearnessController3D {
     int last_index_;
     int num_wf_harmonics_;
 
+    nav_msgs::Odometry current_odom_;
+
     vector<float> y_projections_;
     std_msgs::Float32MultiArray y_projections_msg_;
+    nearness_control_msgs::ProjectionWithOdomMsg y_projections_with_odom_msg_;
 
     vector<float> recon_wf_mu_vec_;
     pcl::PointCloud<pcl::PointXYZ> recon_wf_mu_pcl_;
@@ -204,10 +211,17 @@ class NearnessController3D {
     vector<float> u_vec_;
     double u_u_, u_v_, u_thetadot_, u_w_;
     double k_v_, k_thetadot_, k_w_, k_alt_;
-    geometry_msgs::TwistStamped control_commands_;
+    geometry_msgs::Twist control_commands_;
     geometry_msgs::Point current_pos_;
     double current_roll_, current_pitch_, current_heading_;
     double reference_altitude_;
+    double max_forward_speed_, max_lateral_speed_;
+    double max_vertical_speed_, max_yaw_rate_;
+
+    // Joystick
+    geometry_msgs::Twist joy_cmd_;
+    bool sim_control_;
+
 
 }; // class SimpleNodeClass
 

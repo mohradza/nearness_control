@@ -6,8 +6,10 @@
 #include <geometry_msgs/PointStamped.h>
 #include <geometry_msgs/TransformStamped.h>
 
+bool new_cmd_;
 geometry_msgs::Twist cmd_;
 void cmdCallback(const geometry_msgs::TwistConstPtr& cmd_msg){
+     new_cmd_ = true;
      cmd_ = *cmd_msg;
 }
 
@@ -33,6 +35,7 @@ int main(int argc, char** argv){
   std::string frame_name;
   nh.param<std::string>("OHRAD_X3", frame_name, "default_value");
   odom_msg.header.frame_id = "world";
+  new_cmd_ = false;
 
   //geometry_msgs::Twist cmd;
 
@@ -50,10 +53,11 @@ int main(int argc, char** argv){
   float last_yaw = 0.0;
 
   float dt = 0.0;
+  float diff = 0.0;
 
   ros::Time last_odom_time = ros::Time::now();
 
-  ros::Rate rate(20);
+  ros::Rate rate(50);
   while (node.ok()){
     tf::StampedTransform transform;
     try{
@@ -64,7 +68,9 @@ int main(int argc, char** argv){
       //ROS_ERROR("%s",ex.what());
       ros::Duration(0.1).sleep();
     }
-    if( abs(transform.getOrigin().x() - last_x_pos) > .0000001){
+    diff = abs(last_x_pos - transform.getOrigin().x());
+
+    if( diff > .00001){
       odom_msg.header.stamp = ros::Time::now();
       dt = (odom_msg.header.stamp - last_odom_time).toSec();
       last_odom_time = odom_msg.header.stamp;

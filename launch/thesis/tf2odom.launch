@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+
+<launch>
+    <node name="tf2odom" type="tf2odom" pkg="nearness_control" output="screen">
+    </node>
+</launch>

@@ -30,13 +30,18 @@
         <param name="num_wf_harmonics"         type="int"        value="$(arg number_of_wf_harmonics)"/>
 
         <!-- Controller Parameters -->
-        <param name="altitude_hold_gain"       type="double"     value=".5"/>
+        <param name="altitude_hold_gain"       type="double"     value="0.5"/>
         <param name="lateral_speed_gain"       type="double"     value="-.5"/>
         <param name="turn_rate_gain"           type="double"     value="-.5"/>
         <param name="vertical_speed_gain"      type="double"     value="-.5"/>
-        <param name="referrence_altitude"      type="double"     value=".5"/>
+        <param name="reference_altitude"      type="double"     value="1.5"/>
 
     </node>
+
+    <include file="$(find nearness_control)/launch/thesis/tf2odom.launch"/>
+
+    <include file="$(find nearness_control)/launch/sim/sim_teleop.launch" if="$(arg enable_teleop)"/>
+
   </group>
 
 </launch>

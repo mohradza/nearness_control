@@ -17,6 +17,7 @@ void NearnessController3D::init() {
     // Set up subscribers and callbacks
     sub_pcl_ = nh_.subscribe("points", 1, &NearnessController3D::pclCb, this);
     sub_odom_ = nh_.subscribe("odometry", 1, &NearnessController3D::odomCb, this);
+    sub_joy_ = nh_.subscribe("joy", 1, &NearnessController3D::joyconCb, this);
 
     // Set up publishers
     pub_pcl_ = nh_.advertise<sensor_msgs::PointCloud2>("pcl_out",1);
@@ -33,9 +34,10 @@ void NearnessController3D::init() {
     pub_Yp2p2_ = nh_.advertise<sensor_msgs::PointCloud2>("Yp2p2",1);
     pub_Yn2p2_ = nh_.advertise<sensor_msgs::PointCloud2>("Yn2p2",1);
     pub_y_projections_ = nh_.advertise<std_msgs::Float32MultiArray>("y_projections",1);
+    pub_y_projections_with_odom_ = nh_.advertise<nearness_control_msgs::ProjectionWithOdomMsg>("y_projections_with_odom",1);
     pub_recon_wf_mu_ = nh_.advertise<sensor_msgs::PointCloud2>("reconstructed_wf_nearness",1);
     pub_sf_mu_ = nh_.advertise<sensor_msgs::PointCloud2>("sf_nearness",1);
-    pub_control_commands_ = nh_.advertise<geometry_msgs::TwistStamped>("control_commands",1);
+    pub_control_commands_ = nh_.advertise<geometry_msgs::Twist>("control_commands",1);
 
     // Import parameters
     pnh_.param("enable_debug", enable_debug_, false);
@@ -51,16 +53,21 @@ void NearnessController3D::init() {
     pnh_.param("turn_rate_gain", k_thetadot_, -0.1);
     pnh_.param("vertical_speed_gain", k_w_, -0.1);
     pnh_.param("forward_speed", u_u_, .5);
+    pnh_.param("reference_altitude", reference_altitude_, .5);
+
+    max_forward_speed_ = 1.0;
+    max_lateral_speed_ = 1.0;
+    max_vertical_speed_ = 1.0;
+    max_yaw_rate_ = 1.0;
 
     frame_id_ = "OHRAD_X3";
-
-    control_commands_.header.frame_id = frame_id_;
 
     // We want to exclude the top and bottom rings
     num_excluded_rings_ = 2;
     last_index_ = (num_rings_- num_excluded_rings_)*num_ring_points_;
 
     new_pcl_ = false;
+    y_projections_with_odom_msg_.num_projections = num_basis_shapes_;
 
     // Set up the Cdagger matrix
     // Will be referenced as C in code
@@ -183,6 +190,11 @@ void NearnessController3D::projectNearness(){
   if(enable_debug_){
     y_projections_msg_.data = y_projections_;
     pub_y_projections_.publish(y_projections_msg_);
+
+    y_projections_with_odom_msg_.header.stamp = ros::Time::now();
+    y_projections_with_odom_msg_.projections = y_projections_;
+    y_projections_with_odom_msg_.odometry = current_odom_;
+    pub_y_projections_with_odom_.publish(y_projections_with_odom_msg_);
   }
 
   new_pcl_ = false;
@@ -265,28 +277,63 @@ void NearnessController3D::computeControlCommands(){
   u_w_ = k_w_*u_vec_[2];
 
   if(enable_altitude_hold_){
+    ROS_INFO("%f", current_pos_.z);
     u_w_ = k_alt_*(reference_altitude_ - current_pos_.z);
   }
 
-  control_commands_.header.stamp = ros::Time::now();
-  control_commands_.twist.linear.x = u_u_;
-  control_commands_.twist.linear.y = u_v_;
-  control_commands_.twist.linear.z = u_w_;
+  control_commands_.linear.x = u_u_;
+  control_commands_.linear.y = u_v_;
+  control_commands_.linear.z = u_w_;
 
-  control_commands_.twist.angular.x = 0.0;
-  control_commands_.twist.angular.y = 0.0;
-  control_commands_.twist.angular.z = u_thetadot_;
+  control_commands_.angular.x = 0.0;
+  control_commands_.angular.y = 0.0;
+  control_commands_.angular.z = u_thetadot_;
+
+  if(sim_control_){
+    control_commands_.linear.x = joy_cmd_.linear.x;
+    control_commands_.linear.y = joy_cmd_.linear.y;
+    if(!enable_altitude_hold_){
+    control_commands_.linear.z = joy_cmd_.linear.z;
+    }
+    control_commands_.angular.z = joy_cmd_.angular.z;
+  }
 
   pub_control_commands_.publish(control_commands_);
 
 }
 
 void NearnessController3D::odomCb(const nav_msgs::OdometryConstPtr& odom_msg){
-    current_pos_ = odom_msg->pose.pose.position;
-    geometry_msgs::Quaternion vehicle_quat_msg = odom_msg->pose.pose.orientation;
+    current_odom_ = *odom_msg;
+    current_pos_ = current_odom_.pose.pose.position;
+    geometry_msgs::Quaternion vehicle_quat_msg = current_odom_.pose.pose.orientation;
     tf::Quaternion vehicle_quat_tf;
     tf::quaternionMsgToTF(vehicle_quat_msg, vehicle_quat_tf);
     tf::Matrix3x3(vehicle_quat_tf).getRPY(current_roll_, current_pitch_, current_heading_);
+}
+
+void NearnessController3D::joyconCb(const sensor_msgs::JoyConstPtr& joy_msg)
+{
+
+    if(joy_msg->buttons[5] == 1){
+      enable_altitude_hold_ = true;
+      ROS_INFO_THROTTLE(2,"ALT HOLD ENABLED");
+    }
+    if(joy_msg->buttons[1] == 1){
+      enable_altitude_hold_ = false;
+      ROS_INFO_THROTTLE(2,"ALT HOLD DISABLED");
+    }
+
+    if(joy_msg->buttons[4] == 1){
+      joy_cmd_.linear.x = joy_msg->axes[4]*max_forward_speed_;
+      joy_cmd_.linear.y = joy_msg->axes[3]*max_lateral_speed_;
+      joy_cmd_.linear.z = joy_msg->axes[1]*max_vertical_speed_;
+      joy_cmd_.angular.z = joy_msg->axes[0]*max_yaw_rate_;
+    } else {
+      joy_cmd_.linear.x = 0.0;
+      joy_cmd_.linear.y = 0.0;
+      joy_cmd_.linear.z = 0.0;
+      joy_cmd_.angular.z = 0.0;
+    }
 
 }
 

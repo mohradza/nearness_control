@@ -41,7 +41,11 @@ void joyTeleopMixer::joyconCb(const sensor_msgs::JoyConstPtr& joy_msg)
 
     if(joy_.buttons[5] == 1){
         flag_alt_hold_ = true;
-        ROS_INFO_THROTTLE(2,"ALT HOLD");
+        ROS_INFO_THROTTLE(2,"ALT HOLD ENABLED");
+    }
+    if(joy_.buttons[1] == 1){
+        flag_alt_hold_ = false;
+        ROS_INFO_THROTTLE(2,"ALT HOLD DISABLED");
     }
 
     geometry_msgs::Twist cmd_out;
