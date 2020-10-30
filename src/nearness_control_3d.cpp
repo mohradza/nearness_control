@@ -43,6 +43,7 @@ void NearnessController3D::init() {
 
     // Import parameters
     pnh_.param("enable_debug", enable_debug_, false);
+    pnh_.param("sim_control", sim_control_, false);
     pnh_.param("enable_altitude_hold", enable_altitude_hold_, false);
 
     pnh_.param("num_rings", num_rings_, 64);

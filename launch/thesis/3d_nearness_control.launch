@@ -1,6 +1,7 @@
 <launch>
 
   <arg name="enable_debug"                 default="true"/>
+  <arg name="sim_control"                  default="false"/>
   <arg name="enable_altitude_hold"         default="true"/>
   <arg name="number_of_rings"              default = "64"/>
   <arg name="number_of_ring_points"        default = "360"/>
@@ -21,6 +22,7 @@
 
         <!-- Enable switches -->
         <param name="enable_debug"             type="bool"       value="$(arg enable_debug)"/>
+        <param name="sim_control"              type="bool"       value="$(arg sim_control)"/>
         <param name="enable_altitude_hold"     type="bool"       value="$(arg enable_altitude_hold)"/>
 
         <!-- Sensor Parameters -->
