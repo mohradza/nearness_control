@@ -33,6 +33,8 @@ void NearnessController3D::init() {
     pub_Yn1p2_ = nh_.advertise<sensor_msgs::PointCloud2>("Yn1p2",1);
     pub_Yp2p2_ = nh_.advertise<sensor_msgs::PointCloud2>("Yp2p2",1);
     pub_Yn2p2_ = nh_.advertise<sensor_msgs::PointCloud2>("Yn2p2",1);
+    pub_y_projection_shape_ = nh_.advertise<sensor_msgs::PointCloud2>("y_projection_shape",1);
+    pub_theta_projection_shape_ = nh_.advertise<sensor_msgs::PointCloud2>("theta_projection_shape",1);
     pub_y_projections_ = nh_.advertise<std_msgs::Float32MultiArray>("y_projections",1);
     pub_y_projections_with_odom_ = nh_.advertise<nearness_control_msgs::ProjectionWithOdomMsg>("y_projections_with_odom",1);
     pub_recon_wf_mu_ = nh_.advertise<sensor_msgs::PointCloud2>("reconstructed_wf_nearness",1);
@@ -61,6 +63,7 @@ void NearnessController3D::init() {
     max_yaw_rate_ = 1.0;
 
     frame_id_ = "OHRAD_X3";
+    sim_control_ = false;
 
     // We want to exclude the top and bottom rings
     num_excluded_rings_ = 2;
@@ -73,12 +76,14 @@ void NearnessController3D::init() {
     // Will be referenced as C in code
     // Might want to implement this with Eigen
     vector<float> zeros_vec(num_basis_shapes_, 0.0);
-    C_dy_ = zeros_vec;
+    //C_dy_ = zeros_vec;
+    C_dy_ = {0.0137, -0.2525, 0.1475, -3.7765, 0.0200, -0.2169, -1.1179, 0.3504, -.0037};
     C_mat_.push_back(C_dy_);
-    C_dtheta_ = zeros_vec;
+    //C_dtheta_ = zeros_vec;
+    C_dtheta_ = {-0.0408, 0.0168, -0.1982, -0.0513, 0.1610, -0.0519, 0.0344, 0.0596, -2.6322};
     C_mat_.push_back(C_dtheta_);
-    C_dz_ = zeros_vec;
-    C_mat_.push_back(C_dz_);
+    // C_dz_ = zeros_vec;
+    // C_mat_.push_back(C_dz_);
 
     // Prepare the Laplace spherical harmonic basis set
     generateViewingAngleVectors();
@@ -180,7 +185,7 @@ void NearnessController3D::projectNearness(){
   y_projections_.clear();
   for(int j = 0; j < num_basis_shapes_; j++){
     y_projections_.push_back(0.0);
-    for (int i = 0; i < last_index_-400; i++){
+    for (int i = 0; i < last_index_; i++){
       // float num1 = shape_mat_[j][i];
       //float num2 = mu_sphere_[i];
       y_projections_[j] += shape_mat_[j][i]*mu_meas_[i]*sin(viewing_angle_mat_[i][0])*dtheta_*dphi_;
@@ -277,7 +282,7 @@ void NearnessController3D::computeControlCommands(){
   u_w_ = k_w_*u_vec_[2];
 
   if(enable_altitude_hold_){
-    ROS_INFO("%f", current_pos_.z);
+    //ROS_INFO("%f", current_pos_.z);
     u_w_ = k_alt_*(reference_altitude_ - current_pos_.z);
   }
 
@@ -491,7 +496,8 @@ void NearnessController3D::generateProjectionShapes(){
         }
         Yn2p2_pcli.intensity = intensity_val;
         Yn2p2_.push_back(Yn2p2_pcli);
-        }
+
+      }
 
     }
 
@@ -508,6 +514,47 @@ void NearnessController3D::generateProjectionShapes(){
     shape_mat_.push_back(Yp2p2_vec_);
     shape_mat_.push_back(Yn2p2_vec_);
 
+    // Generate state projection shapes
+    // y-state projection shape
+    float d_y ,d_theta, d_abs_y, d_abs_theta;
+    for(int i = 0; i < last_index_; i++){
+      d_y = 0.0;
+      d_theta = 0.0;
+      for (int k = 0; k < num_basis_shapes_; k++){
+        d_y += C_mat_[0][k]*shape_mat_[k][i];
+        d_theta += C_mat_[1][k]*shape_mat_[k][i];
+      }
+      y_projection_shape_vec_.push_back(d_y);
+      theta_projection_shape_vec_.push_back(d_theta);
+
+      theta = viewing_angle_mat_[i][0];
+      phi = viewing_angle_mat_[i][1];
+      d_abs_y = abs(d_y);
+      pcl::PointXYZ y_pcl (d_abs_y*sin(theta)*cos(phi), d_abs_y*sin(theta)*sin(phi), d_abs_y*cos(theta) );
+      pcl::PointXYZI y_pcli;
+      y_pcli.x = y_pcl.x; y_pcli.y = y_pcl.y; y_pcli.z = y_pcl.z;
+      if(d_y >= 0){
+        intensity_val = max_intensity;
+      } else {
+        intensity_val = min_intensity;
+      }
+      y_pcli.intensity = intensity_val;
+      y_projection_shape_.push_back(y_pcli);
+
+      d_abs_theta = abs(d_theta);
+      pcl::PointXYZ theta_pcl (d_abs_theta*sin(theta)*cos(phi), d_abs_theta*sin(theta)*sin(phi), d_abs_theta*cos(theta) );
+      pcl::PointXYZI theta_pcli;
+      theta_pcli.x = theta_pcl.x; theta_pcli.y = theta_pcl.y; theta_pcli.z = theta_pcl.z;
+      if(d_theta >= 0){
+        intensity_val = max_intensity;
+      } else {
+        intensity_val = min_intensity;
+      }
+      theta_pcli.intensity = intensity_val;
+      theta_projection_shape_.push_back(theta_pcli);
+
+    }
+
     // This is strictly for making rviz look nice
     // Makes positive values red and negative values blue
     pcl::PointXYZI Yp_pcli;
@@ -522,6 +569,8 @@ void NearnessController3D::generateProjectionShapes(){
     Yn1p2_.push_back(Yp_pcli);
     Yp2p2_.push_back(Yp_pcli);
     Yn2p2_.push_back(Yp_pcli);
+    y_projection_shape_.push_back(Yp_pcli);
+    theta_projection_shape_.push_back(Yp_pcli);
     pcl::PointXYZI Yn_pcli;
     Yn_pcli.x = 0.0; Yn_pcli.y = 0.0; Yn_pcli.z = 0.0;
     Yn_pcli.intensity = -1.0;
@@ -534,7 +583,8 @@ void NearnessController3D::generateProjectionShapes(){
     Yn1p2_.push_back(Yn_pcli);
     Yp2p2_.push_back(Yn_pcli);
     Yn2p2_.push_back(Yn_pcli);
-
+    y_projection_shape_.push_back(Yn_pcli);
+    theta_projection_shape_.push_back(Yn_pcli);
 
     pcl::toROSMsg(Y00_, Y00_msg_);
     Y00_msg_.header.frame_id = frame_id_;
@@ -551,7 +601,6 @@ void NearnessController3D::generateProjectionShapes(){
     pcl::toROSMsg(Y0p2_, Y0p2_msg_);
     Y0p2_msg_.header.frame_id = frame_id_;
 
-
     pcl::toROSMsg(Yp1p2_, Yp1p2_msg_);
     Yp1p2_msg_.header.frame_id = frame_id_;
 
@@ -563,6 +612,12 @@ void NearnessController3D::generateProjectionShapes(){
 
     pcl::toROSMsg(Yn2p2_, Yn2p2_msg_);
     Yn2p2_msg_.header.frame_id = frame_id_;
+
+    pcl::toROSMsg(y_projection_shape_, y_projection_shape_msg_);
+    y_projection_shape_msg_.header.frame_id = frame_id_;
+
+    pcl::toROSMsg(theta_projection_shape_, theta_projection_shape_msg_);
+    theta_projection_shape_msg_.header.frame_id = frame_id_;
 
 }
 
@@ -596,6 +651,12 @@ void NearnessController3D::publishProjectionShapes(){
 
     Yn2p2_msg_.header.stamp = time_now;
     pub_Yn2p2_.publish(Yn2p2_msg_);
+
+    y_projection_shape_msg_.header.stamp = time_now;
+    pub_y_projection_shape_.publish(y_projection_shape_msg_);
+
+    theta_projection_shape_msg_.header.stamp = time_now;
+    pub_theta_projection_shape_.publish(theta_projection_shape_msg_);
 
 }
 
