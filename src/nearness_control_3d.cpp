@@ -152,7 +152,9 @@ void NearnessController3D::pclCb(const sensor_msgs::PointCloud2ConstPtr& pcl_msg
   float dist, mu_val;
   for(int i = 1; i < num_rings_-1; i++){
       for(int j = 0; j < num_ring_points_; j++){
-          p = cloud_in->points[i*num_ring_points_ + j];
+          // Rings are positive counterclockwise from sensor
+          // Need to reverse
+          p = cloud_in->points[i*num_ring_points_ + (num_ring_points_-1-j)];
           cloud_out_.push_back(p);
           dist = sqrt(pow(p.x,2) + pow(p.y,2) + pow(p.z,2));
           mu_val = 1/dist;
