@@ -64,8 +64,7 @@ void NearnessController3D::init() {
     max_yaw_rate_ = 1.0;
 
     frame_id_ = "OHRAD_X3";
-    sim_control_ = false;
-
+    
     // We want to exclude the top and bottom rings
     num_excluded_rings_ = 2;
     last_index_ = (num_rings_- num_excluded_rings_)*num_ring_points_;
