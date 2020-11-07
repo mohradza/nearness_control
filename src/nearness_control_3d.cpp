@@ -55,7 +55,7 @@ void NearnessController3D::init() {
     pnh_.param("lateral_speed_gain", k_v_, -0.1);
     pnh_.param("turn_rate_gain", k_thetadot_, -0.1);
     pnh_.param("vertical_speed_gain", k_w_, -0.1);
-    pnh_.param("forward_speed", u_u_, .5);
+    pnh_.param("forward_speed", forward_speed_, .5);
     pnh_.param("reference_altitude", reference_altitude_, .5);
 
     max_forward_speed_ = 1.0;
@@ -63,8 +63,10 @@ void NearnessController3D::init() {
     max_vertical_speed_ = 1.0;
     max_yaw_rate_ = 1.0;
 
+    enable_control_ = false;
+
     frame_id_ = "OHRAD_X3";
-    
+
     // We want to exclude the top and bottom rings
     num_excluded_rings_ = 2;
     last_index_ = (num_rings_- num_excluded_rings_)*num_ring_points_;
@@ -270,6 +272,15 @@ void NearnessController3D::computeSmallFieldNearness(){
 
 void NearnessController3D::computeControlCommands(){
 
+  control_commands_.linear.x = 0.0;
+  control_commands_.linear.y = 0.0;
+  control_commands_.linear.z = 0.0;
+
+  control_commands_.angular.x = 0.0;
+  control_commands_.angular.y = 0.0;
+  control_commands_.angular.z = 0.0;
+
+  // Compute control commands
   int num_controls = C_mat_.size();
   u_vec_.clear();
   for (int i=0; i < num_controls; i++){
@@ -279,22 +290,25 @@ void NearnessController3D::computeControlCommands(){
     }
   }
 
-  u_v_ = k_v_*u_vec_[0];
-  u_thetadot_ = k_thetadot_*u_vec_[1];
-  u_w_ = k_w_*u_vec_[2];
+  if(enable_control_){
+    u_v_ = k_v_*u_vec_[0];
+    u_thetadot_ = k_thetadot_*u_vec_[1];
+    u_u_ = forward_speed_;
+
+    control_commands_.linear.x = u_u_;
+    control_commands_.linear.y = u_v_;
+    control_commands_.angular.z = u_thetadot_;
+
+    //u_w_ = k_w_*u_vec_[2];
+  }
 
   if(enable_altitude_hold_){
     //ROS_INFO("%f", current_pos_.z);
     u_w_ = k_alt_*(reference_altitude_ - current_pos_.z);
+    control_commands_.linear.z = u_w_;
   }
 
-  control_commands_.linear.x = u_u_;
-  control_commands_.linear.y = u_v_;
-  control_commands_.linear.z = u_w_;
 
-  control_commands_.angular.x = 0.0;
-  control_commands_.angular.y = 0.0;
-  control_commands_.angular.z = u_thetadot_;
 
   if(sim_control_){
     control_commands_.linear.x = joy_cmd_.linear.x;
@@ -321,6 +335,7 @@ void NearnessController3D::odomCb(const nav_msgs::OdometryConstPtr& odom_msg){
 void NearnessController3D::joyconCb(const sensor_msgs::JoyConstPtr& joy_msg)
 {
 
+    // Enable / Disable Altitude Hold
     if(joy_msg->buttons[5] == 1){
       enable_altitude_hold_ = true;
       ROS_INFO_THROTTLE(2,"ALT HOLD ENABLED");
@@ -328,6 +343,16 @@ void NearnessController3D::joyconCb(const sensor_msgs::JoyConstPtr& joy_msg)
     if(joy_msg->buttons[1] == 1){
       enable_altitude_hold_ = false;
       ROS_INFO_THROTTLE(2,"ALT HOLD DISABLED");
+    }
+
+    // Enable / Disable Nearness Control
+    if(joy_msg->buttons[7] == 1){
+      enable_control_ = true;
+      ROS_INFO_THROTTLE(2,"NEARNESS CONTROL ENABLED");
+    }
+    if(joy_msg->buttons[8] == 1){
+      enable_control_ = false;
+      ROS_INFO_THROTTLE(2,"NEARNESS CONTROL DISABLED");
     }
 
     if(joy_msg->buttons[4] == 1){

@@ -128,6 +128,7 @@ class NearnessController3D {
 
     bool enable_debug_;
     bool enable_altitude_hold_;
+    bool enable_control_;
     double test_ring_;
     bool new_pcl_;
 
@@ -160,6 +161,7 @@ class NearnessController3D {
     int num_wf_harmonics_;
 
     nav_msgs::Odometry current_odom_;
+    float current_height_agl_;
 
     vector<float> y_projections_;
     std_msgs::Float32MultiArray y_projections_msg_;
@@ -226,6 +228,7 @@ class NearnessController3D {
     double reference_altitude_;
     double max_forward_speed_, max_lateral_speed_;
     double max_vertical_speed_, max_yaw_rate_;
+    double forward_speed_;
 
     // Joystick
     geometry_msgs::Twist joy_cmd_;
