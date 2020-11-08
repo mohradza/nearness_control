@@ -2,6 +2,8 @@
 
   <arg name="enable_debug"                 default="true"/>
   <arg name="enable_altitude_hold"         default="true"/>
+  <arg name="enable_speed_regulation"      default="true"/>
+
   <arg name="number_of_rings"              default = "64"/>
   <arg name="number_of_ring_points"        default = "360"/>
   <arg name="number_of_basis_shapes"       default = "9"/>
@@ -22,6 +24,7 @@
         <!-- Enable switches -->
         <param name="enable_debug"             type="bool"       value="$(arg enable_debug)"/>
         <param name="enable_altitude_hold"     type="bool"       value="$(arg enable_altitude_hold)"/>
+        <param name="enable_speed_regulation"  type="bool"       value="$(arg enable_speed_regulation)"/>
 
         <!-- Sensor Parameters -->
         <param name="num_rings"                type="int"        value="$(arg number_of_rings)"/>
@@ -36,6 +39,8 @@
         <param name="vertical_speed_gain"      type="double"     value=".5"/>
         <param name="reference_altitude"       type="double"     value="1.5"/>
         <param name="forward_speed"            type="double"     value="1.0"/>
+        <param name="forward_speed_thetadot_gain"    type="double"     value="0.5"/>
+        <param name="forward_speed_lateral_gain"     type="double"     value="0.5"/>
 
     </node>
 

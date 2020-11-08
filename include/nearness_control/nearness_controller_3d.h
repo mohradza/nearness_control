@@ -129,6 +129,7 @@ class NearnessController3D {
     bool enable_debug_;
     bool enable_altitude_hold_;
     bool enable_control_;
+    bool enable_speed_regulation_;
     double test_ring_;
     bool new_pcl_;
 
@@ -225,6 +226,7 @@ class NearnessController3D {
     vector<float> u_vec_;
     double u_u_, u_v_, u_thetadot_, u_w_;
     double k_v_, k_thetadot_, k_w_, k_alt_;
+    double k_u_v_, k_u_thetadot_;
     geometry_msgs::Twist control_commands_;
     geometry_msgs::Point current_pos_;
     double current_roll_, current_pitch_, current_heading_;

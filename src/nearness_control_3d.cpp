@@ -43,8 +43,8 @@ void NearnessController3D::init() {
 
     // Import parameters
     pnh_.param("enable_debug", enable_debug_, false);
-    pnh_.param("sim_control", sim_control_, false);
     pnh_.param("enable_altitude_hold", enable_altitude_hold_, false);
+    pnh_.param("enable_speed_regulation", enable_speed_regulation_, false);
 
     pnh_.param("num_rings", num_rings_, 64);
     pnh_.param("num_ring_points", num_ring_points_, 360);
@@ -57,6 +57,8 @@ void NearnessController3D::init() {
     pnh_.param("vertical_speed_gain", k_w_, -0.1);
     pnh_.param("forward_speed", forward_speed_, .5);
     pnh_.param("reference_altitude", reference_altitude_, .5);
+    pnh_.param("forward_speed_lateral_gain", k_u_v_, .1);
+    pnh_.param("forward_speed_thetadot_gain", k_u_thetadot_, .1);
 
     max_forward_speed_ = 1.0;
     max_lateral_speed_ = 1.0;
@@ -308,10 +310,15 @@ void NearnessController3D::computeControlCommands(){
 
   if(enable_control_){
 
-    u_u_ = forward_speed_;
     u_v_ = k_v_*u_vec_[0];
     u_w_ = k_w_*u_vec_[2];
     u_thetadot_ = k_thetadot_*u_vec_[1];
+
+    if(enable_speed_regulation_){
+      u_u_ = max_forward_speed_*(1 - k_u_v_*abs(u_v_) - k_u_thetadot_*abs(u_thetadot_));
+    } else {
+      u_u_ = forward_speed_;
+    }
 
     control_commands_.linear.x = u_u_;
     control_commands_.linear.y = u_v_;
