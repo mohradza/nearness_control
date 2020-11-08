@@ -196,12 +196,20 @@ void NearnessController3D::projectNearness(){
 
   // Project measured nearness onto different shapes
   y_projections_.clear();
+  y_projections_half_.clear();
+
   for(int j = 0; j < num_basis_shapes_; j++){
     y_projections_.push_back(0.0);
+    y_projections_half_.push_back(0.0);
     for (int i = 0; i < last_index_; i++){
       // float num1 = shape_mat_[j][i];
       //float num2 = mu_sphere_[i];
       y_projections_[j] += shape_mat_[j][i]*mu_meas_[i]*sin(viewing_angle_mat_[i][0])*dtheta_*dphi_;
+      
+      // Also do bottom half for ground following
+      if( i < last_index_ / 2; i++){
+        y_projections_half_[j] += y_projections_[j];
+      }
     }
   }
 
@@ -211,6 +219,7 @@ void NearnessController3D::projectNearness(){
 
     y_projections_with_odom_msg_.header.stamp = ros::Time::now();
     y_projections_with_odom_msg_.projections = y_projections_;
+    y_projections_with_odom_msg_.half_projections = y_projections_half_;
     y_projections_with_odom_msg_.odometry = current_odom_;
     pub_y_projections_with_odom_.publish(y_projections_with_odom_msg_);
   }
