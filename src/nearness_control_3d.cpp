@@ -35,6 +35,7 @@ void NearnessController3D::init() {
     pub_Yn2p2_ = nh_.advertise<sensor_msgs::PointCloud2>("Yn2p2",1);
     pub_y_projection_shape_ = nh_.advertise<sensor_msgs::PointCloud2>("y_projection_shape",1);
     pub_theta_projection_shape_ = nh_.advertise<sensor_msgs::PointCloud2>("theta_projection_shape",1);
+    pub_z_projection_shape_ = nh_.advertise<sensor_msgs::PointCloud2>("z_projection_shape",1);
     pub_y_projections_with_odom_ = nh_.advertise<nearness_control_msgs::ProjectionWithOdomMsg>("y_projections_with_odom",1);
     pub_recon_wf_mu_ = nh_.advertise<sensor_msgs::PointCloud2>("reconstructed_wf_nearness",1);
     pub_sf_mu_ = nh_.advertise<sensor_msgs::PointCloud2>("sf_nearness",1);
@@ -220,6 +221,7 @@ void NearnessController3D::projectNearness(){
     pub_y_projections_with_odom_.publish(y_projections_with_odom_msg_);
   }
 
+  // We are done processing the current pointcloud
   new_pcl_ = false;
 
 }
@@ -564,18 +566,23 @@ void NearnessController3D::generateProjectionShapes(){
     // Generate state projection shapes
     // y-state projection shape
     float d_y ,d_theta, d_abs_y, d_abs_theta;
+    float d_z, d_abs_z;
     for(int i = 0; i < last_index_; i++){
       d_y = 0.0;
       d_theta = 0.0;
+      d_z = 0.0;
       for (int k = 0; k < num_basis_shapes_; k++){
         d_y += C_mat_[0][k]*shape_mat_[k][i];
         d_theta += C_mat_[1][k]*shape_mat_[k][i];
+        d_z += C_mat_[2][k]*shape_mat_[k][i];
       }
       y_projection_shape_vec_.push_back(d_y);
       theta_projection_shape_vec_.push_back(d_theta);
+      z_projection_shape_vec_.push_back(d_z);
 
       theta = viewing_angle_mat_[i][0];
       phi = viewing_angle_mat_[i][1];
+
       d_abs_y = abs(d_y);
       pcl::PointXYZ y_pcl (d_abs_y*sin(theta)*cos(phi), d_abs_y*sin(theta)*sin(phi), d_abs_y*cos(theta) );
       pcl::PointXYZI y_pcli;
@@ -600,6 +607,18 @@ void NearnessController3D::generateProjectionShapes(){
       theta_pcli.intensity = intensity_val;
       theta_projection_shape_.push_back(theta_pcli);
 
+      d_abs_z = abs(d_z);
+      pcl::PointXYZ z_pcl (d_abs_z*sin(theta)*cos(phi), d_abs_z*sin(theta)*sin(phi), d_abs_z*cos(theta) );
+      pcl::PointXYZI z_pcli;
+      z_pcli.x = z_pcl.x; z_pcli.y = z_pcl.y; z_pcli.z = z_pcl.z;
+      if(d_z >= 0){
+        intensity_val = max_intensity;
+      } else {
+        intensity_val = min_intensity;
+      }
+      z_pcli.intensity = intensity_val;
+      z_projection_shape_.push_back(z_pcli);
+
     }
 
     // This is strictly for making rviz look nice
@@ -618,6 +637,7 @@ void NearnessController3D::generateProjectionShapes(){
     Yn2p2_.push_back(Yp_pcli);
     y_projection_shape_.push_back(Yp_pcli);
     theta_projection_shape_.push_back(Yp_pcli);
+    z_projection_shape_.push_back(Yp_pcli);
     pcl::PointXYZI Yn_pcli;
     Yn_pcli.x = 0.0; Yn_pcli.y = 0.0; Yn_pcli.z = 0.0;
     Yn_pcli.intensity = -1.0;
@@ -632,6 +652,7 @@ void NearnessController3D::generateProjectionShapes(){
     Yn2p2_.push_back(Yn_pcli);
     y_projection_shape_.push_back(Yn_pcli);
     theta_projection_shape_.push_back(Yn_pcli);
+    z_projection_shape_.push_back(Yn_pcli);
 
     pcl::toROSMsg(Y00_, Y00_msg_);
     Y00_msg_.header.frame_id = frame_id_;
@@ -665,6 +686,9 @@ void NearnessController3D::generateProjectionShapes(){
 
     pcl::toROSMsg(theta_projection_shape_, theta_projection_shape_msg_);
     theta_projection_shape_msg_.header.frame_id = frame_id_;
+
+    pcl::toROSMsg(z_projection_shape_, z_projection_shape_msg_);
+    z_projection_shape_msg_.header.frame_id = frame_id_;
 
 }
 
@@ -704,6 +728,9 @@ void NearnessController3D::publishProjectionShapes(){
 
     theta_projection_shape_msg_.header.stamp = time_now;
     pub_theta_projection_shape_.publish(theta_projection_shape_msg_);
+
+    z_projection_shape_msg_.header.stamp = time_now;
+    pub_z_projection_shape_.publish(z_projection_shape_msg_);
 
 }
 

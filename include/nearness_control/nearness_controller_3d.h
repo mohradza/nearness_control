@@ -104,6 +104,7 @@ class NearnessController3D {
     ros::Publisher pub_Yn2p2_;
     ros::Publisher pub_y_projection_shape_;
     ros::Publisher pub_theta_projection_shape_;
+    ros::Publisher pub_z_projection_shape_;
     ros::Publisher pub_y_projections_with_odom_;
     ros::Publisher pub_recon_wf_mu_;
     ros::Publisher pub_sf_mu_;
@@ -208,10 +209,13 @@ class NearnessController3D {
 
     vector<float> y_projection_shape_vec_;
     vector<float> theta_projection_shape_vec_;
+    vector<float> z_projection_shape_vec_;
     pcl::PointCloud<pcl::PointXYZI> y_projection_shape_;
     pcl::PointCloud<pcl::PointXYZI> theta_projection_shape_;
+    pcl::PointCloud<pcl::PointXYZI> z_projection_shape_;
     sensor_msgs::PointCloud2 y_projection_shape_msg_;
     sensor_msgs::PointCloud2 theta_projection_shape_msg_;
+    sensor_msgs::PointCloud2 z_projection_shape_msg_;
 
     // Controller
     vector<vector<float>> C_mat_;
