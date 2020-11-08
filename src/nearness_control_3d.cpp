@@ -79,13 +79,17 @@ void NearnessController3D::init() {
     // Might want to implement this with Eigen
     vector<float> zeros_vec(num_basis_shapes_, 0.0);
     //C_dy_ = zeros_vec;
-    C_dy_ = {0.0137, -0.2525, 0.1475, -3.7765, 0.0200, -0.2169, -1.1179, 0.3504, -.0037};
+    //C_dy_ = {0.0137, -0.2525, 0.1475, -3.7765, 0.0200, -0.2169, -1.1179, 0.3504, -.0037};
+    C_dy_ = {-0.4665, 0.0037, 0.2523, 3.3906, 1.6712, 0.0114, 1.8488, 0.0045, -0.0378};
     C_mat_.push_back(C_dy_);
     //C_dtheta_ = zeros_vec;
-    C_dtheta_ = {-0.0408, 0.0168, -0.1982, -0.0513, 0.1610, -0.0519, 0.0344, 0.0596, -2.6322};
+    //C_dtheta_ = {-0.0408, 0.0168, -0.1982, -0.0513, 0.1610, -0.0519, 0.0344, 0.0596, -2.6322};
+    C_dtheta_ = {0.0820, -0.1909, -0.6301, 0.0640, -0.3424, -0.0814, -0.1268, 0.0088, 2.6603};
     C_mat_.push_back(C_dtheta_);
-    // C_dz_ = zeros_vec;
-    // C_mat_.push_back(C_dz_);
+
+    C_dz_ = zeros_vec;
+    C_dz_ = {0.1425, -1.2913, -1.6798, 2.6784, 0.1223, -0.0236, -6.7826, 2.0289, -2.9310};
+    C_mat_.push_back(C_dz_);
 
     // Prepare the Laplace spherical harmonic basis set
     generateViewingAngleVectors();
@@ -169,6 +173,11 @@ void NearnessController3D::pclCb(const sensor_msgs::PointCloud2ConstPtr& pcl_msg
           }
       }
   }
+
+  // Treat the first point as a rangefinder for alt hold
+  p = cloud_in->points[0];
+  dist = sqrt(pow(p.x,2) + pow(p.y,2) + pow(p.z,2));
+  current_height_agl_ = dist*cos(current_roll_)*cos(current_pitch_);
 
   if(enable_debug_){
       pcl::toROSMsg(cloud_out_, pcl_out_msg_);
@@ -291,20 +300,22 @@ void NearnessController3D::computeControlCommands(){
   }
 
   if(enable_control_){
-    u_v_ = k_v_*u_vec_[0];
-    u_thetadot_ = k_thetadot_*u_vec_[1];
+
     u_u_ = forward_speed_;
+    u_v_ = k_v_*u_vec_[0];
+    u_w_ = k_w_*u_vec_[2];
+    u_thetadot_ = k_thetadot_*u_vec_[1];
 
     control_commands_.linear.x = u_u_;
     control_commands_.linear.y = u_v_;
+    control_commands_.linear.z = u_w_;
     control_commands_.angular.z = u_thetadot_;
 
-    //u_w_ = k_w_*u_vec_[2];
   }
 
   if(enable_altitude_hold_){
     //ROS_INFO("%f", current_pos_.z);
-    u_w_ = k_alt_*(reference_altitude_ - current_pos_.z);
+    u_w_ = k_alt_*(reference_altitude_ - current_height_agl_);
     control_commands_.linear.z = u_w_;
   }
 
@@ -313,6 +324,7 @@ void NearnessController3D::computeControlCommands(){
   if(sim_control_){
     control_commands_.linear.x = joy_cmd_.linear.x;
     control_commands_.linear.y = joy_cmd_.linear.y;
+
     if(!enable_altitude_hold_){
     control_commands_.linear.z = joy_cmd_.linear.z;
     }
@@ -326,6 +338,7 @@ void NearnessController3D::computeControlCommands(){
 void NearnessController3D::odomCb(const nav_msgs::OdometryConstPtr& odom_msg){
     current_odom_ = *odom_msg;
     current_pos_ = current_odom_.pose.pose.position;
+    current_odom_.pose.pose.position.z = current_height_agl_;
     geometry_msgs::Quaternion vehicle_quat_msg = current_odom_.pose.pose.orientation;
     tf::Quaternion vehicle_quat_tf;
     tf::quaternionMsgToTF(vehicle_quat_msg, vehicle_quat_tf);
@@ -340,27 +353,29 @@ void NearnessController3D::joyconCb(const sensor_msgs::JoyConstPtr& joy_msg)
       enable_altitude_hold_ = true;
       ROS_INFO_THROTTLE(2,"ALT HOLD ENABLED");
     }
-    if(joy_msg->buttons[1] == 1){
+    if(joy_msg->buttons[3] == 1){
       enable_altitude_hold_ = false;
       ROS_INFO_THROTTLE(2,"ALT HOLD DISABLED");
     }
 
     // Enable / Disable Nearness Control
-    if(joy_msg->buttons[7] == 1){
+    if(joy_msg->buttons[0] == 1){
       enable_control_ = true;
       ROS_INFO_THROTTLE(2,"NEARNESS CONTROL ENABLED");
     }
-    if(joy_msg->buttons[8] == 1){
+    if(joy_msg->buttons[1] == 1){
       enable_control_ = false;
       ROS_INFO_THROTTLE(2,"NEARNESS CONTROL DISABLED");
     }
 
     if(joy_msg->buttons[4] == 1){
+      sim_control_ = true;
       joy_cmd_.linear.x = joy_msg->axes[4]*max_forward_speed_;
       joy_cmd_.linear.y = joy_msg->axes[3]*max_lateral_speed_;
       joy_cmd_.linear.z = joy_msg->axes[1]*max_vertical_speed_;
       joy_cmd_.angular.z = joy_msg->axes[0]*max_yaw_rate_;
     } else {
+      sim_control_ =false;
       joy_cmd_.linear.x = 0.0;
       joy_cmd_.linear.y = 0.0;
       joy_cmd_.linear.z = 0.0;

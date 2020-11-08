@@ -36,7 +36,8 @@
         <param name="lateral_speed_gain"       type="double"     value="-.5"/>
         <param name="turn_rate_gain"           type="double"     value="-.5"/>
         <param name="vertical_speed_gain"      type="double"     value="-.5"/>
-        <param name="referrence_altitude"      type="double"     value=".5"/>
+        <param name="reference_altitude"       type="double"     value=".5"/>
+        <param name="forward_speed"            type="double"     value=".5"/>
 
     </node>
   </group>

@@ -2,9 +2,9 @@
 
   <arg name="ns" default="OHRAD_X3"/>
 
-  <arg name="folder_name" default="thesis_datasets/hallway_3dnearness/lateral_only_fixed_odom"/>
+  <arg name="folder_name" default="thesis_datasets/hallway_3dnearness/height_agl"/>
   <arg name="user" default="marble"/>
-  <arg name="record_sensors" default="0"/>
+  <arg name="record_sensors" default="1"/>
   <arg name="record_outputs" default="1"/>
 
   <!-- Recording Split Parameters -->

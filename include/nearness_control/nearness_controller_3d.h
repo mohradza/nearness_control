@@ -161,7 +161,6 @@ class NearnessController3D {
     int num_wf_harmonics_;
 
     nav_msgs::Odometry current_odom_;
-    float current_height_agl_;
 
     vector<float> y_projections_;
     std_msgs::Float32MultiArray y_projections_msg_;
@@ -225,6 +224,7 @@ class NearnessController3D {
     geometry_msgs::Twist control_commands_;
     geometry_msgs::Point current_pos_;
     double current_roll_, current_pitch_, current_heading_;
+    double current_height_agl_;
     double reference_altitude_;
     double max_forward_speed_, max_lateral_speed_;
     double max_vertical_speed_, max_yaw_rate_;
