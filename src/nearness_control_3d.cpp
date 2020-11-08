@@ -51,7 +51,6 @@ void NearnessController3D::init() {
     pnh_.param("num_basis_shapes", num_basis_shapes_, 9);
     pnh_.param("num_wf_harmonics", num_wf_harmonics_, 9);
 
-    pnh_.param("altitude_hold_gain", k_alt_, -0.1);
     pnh_.param("lateral_speed_gain", k_v_, -0.1);
     pnh_.param("turn_rate_gain", k_thetadot_, -0.1);
     pnh_.param("vertical_speed_gain", k_w_, -0.1);
@@ -89,9 +88,12 @@ void NearnessController3D::init() {
     C_dtheta_ = {0.0820, -0.1909, -0.6301, 0.0640, -0.3424, -0.0814, -0.1268, 0.0088, 2.6603};
     C_mat_.push_back(C_dtheta_);
 
-    C_dz_ = zeros_vec;
-    C_dz_ = {0.1425, -1.2913, -1.6798, 2.6784, 0.1223, -0.0236, -6.7826, 2.0289, -2.9310};
-    C_mat_.push_back(C_dz_);
+    //C_dz_ = zeros_vec;
+    // Full Sphere
+    //C_dz_ = {0.1425, -1.2913, -1.6798, 2.6784, 0.1223, -0.0236, -6.7826, 2.0289, -2.9310};
+    // Half Sphere
+    C_dz_ = {0.0006589,  -0.0002733, -0.0005839, 0.00004139, -0.001567, -0.0001882, 0.0009429, -0.0009308, 0.002691};
+    //C_mat_.push_back(C_dz_);
 
     // Prepare the Laplace spherical harmonic basis set
     generateViewingAngleVectors();
@@ -307,11 +309,15 @@ void NearnessController3D::computeControlCommands(){
       u_vec_[i] += C_mat_[i][j]*y_projections_[j];
     }
   }
+  u_vec_.push_back(0.0);
+  for(int j = 0; j < num_basis_shapes_; j++){
+    u_vec_[2] += C_dz_[j]*y_projections_half_[j];
+  }
 
   if(enable_control_){
 
     u_v_ = k_v_*u_vec_[0];
-    u_w_ = k_w_*u_vec_[2];
+    u_w_ = k_w_*(reference_altitude_ - u_vec_[2]);
     u_thetadot_ = k_thetadot_*u_vec_[1];
 
     if(enable_speed_regulation_){
@@ -329,7 +335,7 @@ void NearnessController3D::computeControlCommands(){
 
   if(enable_altitude_hold_){
     //ROS_INFO("%f", current_pos_.z);
-    u_w_ = k_alt_*(reference_altitude_ - current_height_agl_);
+    u_w_ = k_w_*(reference_altitude_ - current_height_agl_);
     control_commands_.linear.z = u_w_;
   }
 
@@ -340,8 +346,9 @@ void NearnessController3D::computeControlCommands(){
     control_commands_.linear.y = joy_cmd_.linear.y;
 
     if(!enable_altitude_hold_){
-    control_commands_.linear.z = joy_cmd_.linear.z;
+      control_commands_.linear.z = joy_cmd_.linear.z;
     }
+
     control_commands_.angular.z = joy_cmd_.angular.z;
   }
 
@@ -581,7 +588,9 @@ void NearnessController3D::generateProjectionShapes(){
       for (int k = 0; k < num_basis_shapes_; k++){
         d_y += C_mat_[0][k]*shape_mat_[k][i];
         d_theta += C_mat_[1][k]*shape_mat_[k][i];
-        d_z += C_mat_[2][k]*shape_mat_[k][i];
+        if(k < last_index_ / 2){
+          d_z += C_dz_[k]*shape_mat_[k][i];
+        }
       }
       y_projection_shape_vec_.push_back(d_y);
       theta_projection_shape_vec_.push_back(d_theta);

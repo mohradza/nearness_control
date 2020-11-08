@@ -24,7 +24,7 @@ int main(int argc, char** argv){
   ros::Publisher cmd_vel_pub =
     node.advertise<geometry_msgs::Twist>("cmd_vel/ground_truth", 10);
 
-  ros::Subscriber cmd_sub = nh.subscribe("cmd_vel", 10, cmdCallback);
+  ros::Subscriber cmd_sub = nh.subscribe("/OHRAD_X3/cmd_vel", 10, cmdCallback);
 
   tf::TransformListener listener;
   nav_msgs::Odometry odom_msg;
