@@ -35,7 +35,6 @@ void NearnessController3D::init() {
     pub_Yn2p2_ = nh_.advertise<sensor_msgs::PointCloud2>("Yn2p2",1);
     pub_y_projection_shape_ = nh_.advertise<sensor_msgs::PointCloud2>("y_projection_shape",1);
     pub_theta_projection_shape_ = nh_.advertise<sensor_msgs::PointCloud2>("theta_projection_shape",1);
-    pub_y_projections_ = nh_.advertise<std_msgs::Float32MultiArray>("y_projections",1);
     pub_y_projections_with_odom_ = nh_.advertise<nearness_control_msgs::ProjectionWithOdomMsg>("y_projections_with_odom",1);
     pub_recon_wf_mu_ = nh_.advertise<sensor_msgs::PointCloud2>("reconstructed_wf_nearness",1);
     pub_sf_mu_ = nh_.advertise<sensor_msgs::PointCloud2>("sf_nearness",1);
@@ -205,7 +204,7 @@ void NearnessController3D::projectNearness(){
       // float num1 = shape_mat_[j][i];
       //float num2 = mu_sphere_[i];
       y_projections_[j] += shape_mat_[j][i]*mu_meas_[i]*sin(viewing_angle_mat_[i][0])*dtheta_*dphi_;
-      
+
       // Also do bottom half for ground following
       if( i < last_index_ / 2; i++){
         y_projections_half_[j] += y_projections_[j];
@@ -214,9 +213,6 @@ void NearnessController3D::projectNearness(){
   }
 
   if(enable_debug_){
-    y_projections_msg_.data = y_projections_;
-    pub_y_projections_.publish(y_projections_msg_);
-
     y_projections_with_odom_msg_.header.stamp = ros::Time::now();
     y_projections_with_odom_msg_.projections = y_projections_;
     y_projections_with_odom_msg_.half_projections = y_projections_half_;

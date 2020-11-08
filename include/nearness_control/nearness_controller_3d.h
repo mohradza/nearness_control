@@ -104,7 +104,6 @@ class NearnessController3D {
     ros::Publisher pub_Yn2p2_;
     ros::Publisher pub_y_projection_shape_;
     ros::Publisher pub_theta_projection_shape_;
-    ros::Publisher pub_y_projections_;
     ros::Publisher pub_y_projections_with_odom_;
     ros::Publisher pub_recon_wf_mu_;
     ros::Publisher pub_sf_mu_;
@@ -163,6 +162,7 @@ class NearnessController3D {
     nav_msgs::Odometry current_odom_;
 
     vector<float> y_projections_;
+    vector<float> y_projections_half_;
     std_msgs::Float32MultiArray y_projections_msg_;
     nearness_control_msgs::ProjectionWithOdomMsg y_projections_with_odom_msg_;
 
