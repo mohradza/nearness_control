@@ -33,8 +33,8 @@
         <param name="num_wf_harmonics"         type="int"        value="$(arg number_of_wf_harmonics)"/>
 
         <!-- Controller Parameters -->
-        <param name="lateral_speed_gain"       type="double"     value="-2.0"/>
-        <param name="turn_rate_gain"           type="double"     value="-1.5"/>
+        <param name="lateral_speed_gain"       type="double"     value="-2.5"/>
+        <param name="turn_rate_gain"           type="double"     value="-2.0"/>
         <param name="vertical_speed_gain"      type="double"     value=".5"/>
         <param name="reference_altitude"       type="double"     value="1.5"/>
         <param name="forward_speed"            type="double"     value="1.0"/>

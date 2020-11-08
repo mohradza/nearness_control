@@ -2,7 +2,7 @@
 
   <arg name="ns" default="OHRAD_X3"/>
 
-  <arg name="folder_name" default="thesis_datasets/hallway_3dnearness/height_agl_half"/>
+  <arg name="folder_name" default="thesis_datasets/cave_tests/big_rock"/>
   <arg name="user" default="marble"/>
   <arg name="record_sensors" default="0"/>
   <arg name="record_outputs" default="1"/>

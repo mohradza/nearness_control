@@ -64,6 +64,8 @@ void NearnessController3D::init() {
     max_vertical_speed_ = 1.0;
     max_yaw_rate_ = 1.0;
 
+    ROS_INFO("%f", k_thetadot_);
+
     enable_control_ = false;
 
     frame_id_ = "OHRAD_X3";
@@ -90,9 +92,9 @@ void NearnessController3D::init() {
 
     //C_dz_ = zeros_vec;
     // Full Sphere
-    //C_dz_ = {0.1425, -1.2913, -1.6798, 2.6784, 0.1223, -0.0236, -6.7826, 2.0289, -2.9310};
+    C_dz_ = {0.1425, -1.2913, -1.6798, 2.6784, 0.1223, -0.0236, -6.7826, 2.0289, -2.9310};
     // Half Sphere
-    C_dz_ = {0.0006589,  -0.0002733, -0.0005839, 0.00004139, -0.001567, -0.0001882, 0.0009429, -0.0009308, 0.002691};
+    //C_z_ = {0.0006589,  -0.0002733, -0.0005839, 0.00004139, -0.001567, -0.0001882, 0.0009429, -0.0009308, 0.002691};
     //C_mat_.push_back(C_dz_);
 
     // Prepare the Laplace spherical harmonic basis set
@@ -309,15 +311,16 @@ void NearnessController3D::computeControlCommands(){
       u_vec_[i] += C_mat_[i][j]*y_projections_[j];
     }
   }
-  u_vec_.push_back(0.0);
-  for(int j = 0; j < num_basis_shapes_; j++){
-    u_vec_[2] += C_dz_[j]*y_projections_half_[j];
-  }
+  // u_vec_.push_back(0.0);
+  // for(int j = 0; j < num_basis_shapes_; j++){
+  //   u_vec_[2] += C_z_[j]*y_projections_half_[j];
+  // }
 
   if(enable_control_){
 
     u_v_ = k_v_*u_vec_[0];
-    u_w_ = k_w_*(reference_altitude_ - u_vec_[2]);
+    //u_w_ = k_w_*(reference_altitude_ - u_vec_[2]);
+    u_w_ = k_w_*u_vec_[2];
     u_thetadot_ = k_thetadot_*u_vec_[1];
 
     if(enable_speed_regulation_){
