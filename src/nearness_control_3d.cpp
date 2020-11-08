@@ -67,11 +67,16 @@ void NearnessController3D::init() {
     ROS_INFO("%f", k_thetadot_);
 
     enable_control_ = false;
+    half_projections_ = true;
+
 
     frame_id_ = "OHRAD_X3";
 
     // We want to exclude the top and bottom rings
     num_excluded_rings_ = 2;
+    if(half_projections_){
+      num_ring_points_ = num_ring_points_/2;
+    }
     last_index_ = (num_rings_- num_excluded_rings_)*num_ring_points_;
 
     new_pcl_ = false;
@@ -160,12 +165,21 @@ void NearnessController3D::pclCb(const sensor_msgs::PointCloud2ConstPtr& pcl_msg
   cloud_out_.clear();
   mu_cloud_out_.clear();
 
+  int ring_start_index = 0;
+  int ring_end_index = num_ring_points_;
+
+  if(half_projections_){
+    ring_start_index = num_ring_points_/4;
+    ring_end_index = ring_end_index - ring_start_index;
+  }
+
+  // Convert the pcl to nearness
   pcl::PointXYZ p, mu_p;
   float dist, mu_val;
   for(int i = 1; i < num_rings_-1; i++){
-      for(int j = 0; j < num_ring_points_; j++){
+      for(int j = ring_start_index; j < ring_end_index; j++){
           // Rings are positive counterclockwise from sensor
-          // Need to reverse
+          // So they are reversed on lookup
           p = cloud_in->points[i*num_ring_points_ + (num_ring_points_-1-j)];
           cloud_out_.push_back(p);
           dist = sqrt(pow(p.x,2) + pow(p.y,2) + pow(p.z,2));
@@ -193,7 +207,6 @@ void NearnessController3D::pclCb(const sensor_msgs::PointCloud2ConstPtr& pcl_msg
       pcl::toROSMsg(mu_cloud_out_, mu_out_msg_);
       mu_out_msg_.header = pcl_msg->header;
       pub_mu_pcl_.publish(mu_out_msg_);
-
   }
 
 }

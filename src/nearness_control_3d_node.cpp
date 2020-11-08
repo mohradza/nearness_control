@@ -17,9 +17,9 @@ int main(int argc, char** argv) {
         if(nearness_control_3d_node.newPcl()){
             // Process 3D nearness
             nearness_control_3d_node.projectNearness();
-            nearness_control_3d_node.reconstructWideFieldNearness();
-            nearness_control_3d_node.computeSmallFieldNearness();
-            nearness_control_3d_node.computeControlCommands();
+            //nearness_control_3d_node.reconstructWideFieldNearness();
+            //nearness_control_3d_node.computeSmallFieldNearness();
+            //nearness_control_3d_node.computeControlCommands();
         }
 
         ros::spinOnce();

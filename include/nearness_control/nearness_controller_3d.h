@@ -132,6 +132,7 @@ class NearnessController3D {
     bool enable_speed_regulation_;
     double test_ring_;
     bool new_pcl_;
+    bool half_projections_;
 
     // GLOBAL VARIABLES //
     float phi_start_;
