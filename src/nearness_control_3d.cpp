@@ -41,8 +41,6 @@ void NearnessController3D::init() {
     pub_sf_mu_ = nh_.advertise<sensor_msgs::PointCloud2>("sf_nearness",1);
     pub_control_commands_ = nh_.advertise<geometry_msgs::Twist>("control_commands",1);
 
-    pub_cmd_markers_ = nh_.advertise<visualization_msgs::MarkerArray>("cmd_markers",1);
-
     // Import parameters
     pnh_.param("enable_debug", enable_debug_, false);
     pnh_.param("enable_altitude_hold", enable_altitude_hold_, false);
@@ -109,43 +107,6 @@ void NearnessController3D::init() {
     generateViewingAngleVectors();
     generateProjectionShapes();
 
-    geometry_msgs::Point origin_point;
-    origin_point.x = 0.0;
-    origin_point.y = 0.0;
-    origin_point.z = 0.0;
-
-    geometry_msgs::Quaternion origin_quat;
-    origin_quat.x = 0.0;
-    origin_quat.y = 0.0;
-    origin_quat.z = 0.0;
-    origin_quat.w = 1.0;
-
-    u_cmd_marker_.type = 0;
-    u_cmd_marker_.id = 0;
-    u_cmd_marker_.color.a = 1.0;
-    u_cmd_marker_.color.r = 1.0;
-    u_cmd_marker_.color.g = 0.0;
-    u_cmd_marker_.color.b = 0.0;
-    u_cmd_marker_.header.frame_id = "OHRAD_X3";
-    u_cmd_marker_.points.push_back(origin_point);
-    u_cmd_marker_.points.push_back(origin_point);
-    u_cmd_marker_.scale.x = .05;
-    u_cmd_marker_.scale.y = .075;
-    u_cmd_marker_.pose.orientation = origin_quat;
-    cmd_markers_.markers.push_back(u_cmd_marker_);
-
-    v_cmd_marker_ = u_cmd_marker_;
-    v_cmd_marker_.id = 1;
-    v_cmd_marker_.color.r = 0.0;
-    v_cmd_marker_.color.g = 1.0;
-    v_cmd_marker_.color.b = 0.0;
-    cmd_markers_.markers.push_back(v_cmd_marker_);
-
-    w_cmd_marker_ = u_cmd_marker_;
-    w_cmd_marker_.id = 2;
-    w_cmd_marker_.color.r = 0.0;
-    w_cmd_marker_.color.b = 1.0;
-    cmd_markers_.markers.push_back(w_cmd_marker_);
 
 } // End of init
 
@@ -250,7 +211,7 @@ void NearnessController3D::projectNearness(){
   y_front_half_.clear();
   y_bottom_half_.clear();
 
-  float phi;
+  float phi, increment;
   for(int j = 0; j < num_basis_shapes_; j++){
     y_full_.push_back(0.0);
     y_front_half_.push_back(0.0);
@@ -260,16 +221,17 @@ void NearnessController3D::projectNearness(){
       phi = viewing_angle_mat_[i][1];
 
       // Full projections for centering
-      y_full_[j] += shape_mat_[j][i]*mu_meas_[i]*sin(viewing_angle_mat_[i][0])*dtheta_*dphi_;
+      increment = shape_mat_[j][i]*mu_meas_[i]*sin(viewing_angle_mat_[i][0])*dtheta_*dphi_;
+      y_full_[j] += increment;
 
       // Front half for steering
       if( phi < M_PI/2 && phi > -M_PI/2){
-          y_front_half_[j] += y_full_[j];
+          y_front_half_[j] += increment;
       }
 
       // Also do bottom half for ground following
       if( i < last_index_ / 2; i++){
-        y_bottom_half_[j] += y_full_[j];
+        y_bottom_half_[j] += increment;
       }
 
     }
@@ -371,6 +333,7 @@ void NearnessController3D::computeControlCommands(){
   //     u_vec_[i] += C_mat_[i][j]*y_projections_[j];
   //   }
   // }
+  u_vec_.clear();
   u_vec_ = {0.0, 0.0, 0.0};
   for(int j=0; j < num_basis_shapes_; j++){
     u_vec_[0] += C_dy_[j]*y_full_[j];
@@ -389,9 +352,10 @@ void NearnessController3D::computeControlCommands(){
     //u_w_ = k_w_*(reference_altitude_ - u_vec_[2]);
     u_w_ = k_w_*u_vec_[2];
     u_thetadot_ = k_thetadot_*u_vec_[1];
+    //u_thetadot_ = 0.0;
 
     if(enable_speed_regulation_){
-      u_u_ = max_forward_speed_*(1 - k_u_v_*abs(u_v_) - k_u_thetadot_*abs(u_thetadot_));
+      u_u_ =  max_forward_speed_*(1 - k_u_v_*abs(u_v_) - k_u_thetadot_*abs(u_thetadot_));
     } else {
       u_u_ = forward_speed_;
     }
@@ -423,31 +387,6 @@ void NearnessController3D::computeControlCommands(){
   }
 
   pub_control_commands_.publish(control_commands_);
-
-  if(enable_debug_){
-
-    //ROS_INFO_THROTTLE(1,"U: %f, V: %f, W: %f, YR: %f", u_u_, u_v_, u_w_, u_thetadot_);
-
-    // Forward speed marker
-    u_cmd_marker_.header.stamp = ros::Time::now();
-    u_cmd_marker_.points[1].x = u_u_;
-    cmd_markers_.markers[0] = u_cmd_marker_;
-    //pub_u_cmd_marker_.publish(u_cmd_marker_);
-
-    // Lateral speed marker
-    v_cmd_marker_.header.stamp = ros::Time::now();
-    v_cmd_marker_.points[1].y = u_v_;
-    cmd_markers_.markers[1] = v_cmd_marker_;
-    //pub_v_cmd_marker_.publish(v_cmd_marker_);
-
-    // Forward speed marker
-    w_cmd_marker_.header.stamp = ros::Time::now();
-    w_cmd_marker_.points[1].z = u_w_;
-    cmd_markers_.markers[2] = w_cmd_marker_;
-    //pub_w_cmd_marker_.publish(w_cmd_marker_);
-    pub_cmd_markers_.publish(cmd_markers_);
-
-  }
 
 }
 
