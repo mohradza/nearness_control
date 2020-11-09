@@ -68,7 +68,7 @@ void NearnessController3D::init() {
 
     ROS_INFO("%f", k_thetadot_);
 
-    enable_control_ = true;
+    enable_control_ = false;
 
     frame_id_ = "OHRAD_X3";
 
@@ -129,14 +129,14 @@ void NearnessController3D::init() {
     cmd_markers_.markers.push_back(u_cmd_marker_);
 
     v_cmd_marker_ = u_cmd_marker_;
-    u_cmd_marker_.id = 1;
+    v_cmd_marker_.id = 1;
     v_cmd_marker_.color.r = 0.0;
     v_cmd_marker_.color.g = 1.0;
     v_cmd_marker_.color.b = 0.0;
     cmd_markers_.markers.push_back(v_cmd_marker_);
 
     w_cmd_marker_ = u_cmd_marker_;
-    u_cmd_marker_.id = 2;
+    w_cmd_marker_.id = 2;
     w_cmd_marker_.color.r = 0.0;
     w_cmd_marker_.color.b = 1.0;
     cmd_markers_.markers.push_back(w_cmd_marker_);

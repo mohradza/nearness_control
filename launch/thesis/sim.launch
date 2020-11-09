@@ -9,7 +9,7 @@
   <arg name="number_of_basis_shapes"       default = "9"/>
   <arg name="number_of_wf_harmonics"       default = "9"/>
 
-  <arg name="enable_teleop"                default = "0"/>
+  <arg name="enable_teleop"                default = "1"/>
   <!-- <arg name=""             deault = ""/> -->
 
   <group ns="OHRAD_X3">
@@ -18,7 +18,7 @@
         <!-- SUBSCRIBED TOPICS -->
         <remap from="nearness_controller_3d/points"   to="ouster_points"/>
         <remap from="nearness_controller_3d/odometry" to="odometry/ground_truth"/>
-        <!-- <remap from="nearness_controller_3d/control_commands" to="cmd_vel"/> -->
+        <remap from="nearness_controller_3d/control_commands" to="cmd_vel"/>
         <remap from="nearness_controller_3d/joy" to="joy"/>
 
         <!-- Enable switches -->
@@ -33,13 +33,13 @@
         <param name="num_wf_harmonics"         type="int"        value="$(arg number_of_wf_harmonics)"/>
 
         <!-- Controller Parameters -->
-        <param name="lateral_speed_gain"       type="double"     value="-2.5"/>
+        <param name="lateral_speed_gain"       type="double"     value="-1.0"/>
         <param name="turn_rate_gain"           type="double"     value="-2.0"/>
         <param name="vertical_speed_gain"      type="double"     value=".5"/>
         <param name="reference_altitude"       type="double"     value="1.5"/>
         <param name="forward_speed"            type="double"     value="1.0"/>
-        <param name="forward_speed_thetadot_gain"    type="double"     value="1.0"/>
-        <param name="forward_speed_lateral_gain"     type="double"     value="1.0"/>
+        <param name="forward_speed_thetadot_gain"    type="double"     value="0.5"/>
+        <param name="forward_speed_lateral_gain"     type="double"     value="0.5"/>
 
     </node>
 
