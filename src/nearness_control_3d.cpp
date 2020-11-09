@@ -74,9 +74,9 @@ void NearnessController3D::init() {
 
     // We want to exclude the top and bottom rings
     num_excluded_rings_ = 2;
-    if(half_projections_){
-      num_ring_points_ = num_ring_points_/2;
-    }
+    // if(half_projections_){
+    //   num_ring_points_ = num_ring_points_/2;
+    // }
     last_index_ = (num_rings_- num_excluded_rings_)*num_ring_points_;
 
     new_pcl_ = false;
@@ -165,19 +165,11 @@ void NearnessController3D::pclCb(const sensor_msgs::PointCloud2ConstPtr& pcl_msg
   cloud_out_.clear();
   mu_cloud_out_.clear();
 
-  int ring_start_index = 0;
-  int ring_end_index = num_ring_points_;
-
-  if(half_projections_){
-    ring_start_index = num_ring_points_/4;
-    ring_end_index = ring_end_index - ring_start_index;
-  }
-
   // Convert the pcl to nearness
   pcl::PointXYZ p, mu_p;
   float dist, mu_val;
   for(int i = 1; i < num_rings_-1; i++){
-      for(int j = ring_start_index; j < ring_end_index; j++){
+      for(int j = 0; j < num_ring_points_; j++){
           // Rings are positive counterclockwise from sensor
           // So they are reversed on lookup
           p = cloud_in->points[i*num_ring_points_ + (num_ring_points_-1-j)];
@@ -217,14 +209,19 @@ void NearnessController3D::projectNearness(){
   y_projections_.clear();
   y_projections_half_.clear();
 
+  float phi;
   for(int j = 0; j < num_basis_shapes_; j++){
     y_projections_.push_back(0.0);
     y_projections_half_.push_back(0.0);
     for (int i = 0; i < last_index_; i++){
-      // float num1 = shape_mat_[j][i];
-      //float num2 = mu_sphere_[i];
-      y_projections_[j] += shape_mat_[j][i]*mu_meas_[i]*sin(viewing_angle_mat_[i][0])*dtheta_*dphi_;
-
+      phi = viewing_angle_mat_[i][1];
+      if(half_projections_){
+        if( phi < M_PI/2 && phi > -M_PI/2){
+          y_projections_[j] += shape_mat_[j][i]*mu_meas_[i]*sin(viewing_angle_mat_[i][0])*dtheta_*dphi_;
+        }
+      } else {
+        y_projections_[j] += shape_mat_[j][i]*mu_meas_[i]*sin(viewing_angle_mat_[i][0])*dtheta_*dphi_;
+      }
       // Also do bottom half for ground following
       if( i < last_index_ / 2; i++){
         y_projections_half_[j] += y_projections_[j];
@@ -262,11 +259,18 @@ void NearnessController3D::reconstructWideFieldNearness(){
   if(enable_debug_){
     // Turn reconstructed wf back into pointcloud for viewing
     float theta, phi;
-    for(int i = 0; i< last_index_; i++){
+    for(int i = 0; i < last_index_; i++){
       theta = viewing_angle_mat_[i][0];
       phi = viewing_angle_mat_[i][1];
-      recon_mu_p = {recon_wf_mu_vec_[i]*sin(theta)*cos(phi), recon_wf_mu_vec_[i]*sin(theta)*sin(phi), recon_wf_mu_vec_[i]*cos(theta) };
-      recon_wf_mu_pcl_.push_back(recon_mu_p);
+      if(half_projections_){
+        if((phi < M_PI/2) && (phi > -M_PI/2)){
+          recon_mu_p = {recon_wf_mu_vec_[i]*sin(theta)*cos(phi), recon_wf_mu_vec_[i]*sin(theta)*sin(phi), recon_wf_mu_vec_[i]*cos(theta) };
+          recon_wf_mu_pcl_.push_back(recon_mu_p);
+        }
+      } else {
+        recon_mu_p = {recon_wf_mu_vec_[i]*sin(theta)*cos(phi), recon_wf_mu_vec_[i]*sin(theta)*sin(phi), recon_wf_mu_vec_[i]*cos(theta) };
+        recon_wf_mu_pcl_.push_back(recon_mu_p);
+      }
     }
 
     pcl::toROSMsg(recon_wf_mu_pcl_, recon_wf_mu_pcl_msg_);
