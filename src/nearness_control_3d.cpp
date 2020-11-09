@@ -107,6 +107,44 @@ void NearnessController3D::init() {
     generateViewingAngleVectors();
     generateProjectionShapes();
 
+    geometry_msgs::Point origin_point;
+    origin_point.x = 0.0;
+    origin_point.y = 0.0;
+    origin_point.z = 0.0;
+
+    geometry_msgs::Quaternion origin_quat;
+    origin_quat.x = 0.0;
+    origin_quat.y = 0.0;
+    origin_quat.z = 0.0;
+    origin_quat.w = 1.0;
+
+    u_cmd_marker_.type = 0;
+    u_cmd_marker_.id = 0;
+    u_cmd_marker_.color.a = 1.0;
+    u_cmd_marker_.color.r = 1.0;
+    u_cmd_marker_.color.g = 0.0;
+    u_cmd_marker_.color.b = 0.0;
+    u_cmd_marker_.header.frame_id = "OHRAD_X3";
+    u_cmd_marker_.points.push_back(origin_point);
+    u_cmd_marker_.points.push_back(origin_point);
+    u_cmd_marker_.scale.x = .05;
+    u_cmd_marker_.scale.y = .075;
+    u_cmd_marker_.pose.orientation = origin_quat;
+    cmd_markers_.markers.push_back(u_cmd_marker_);
+
+    v_cmd_marker_ = u_cmd_marker_;
+    v_cmd_marker_.id = 1;
+    v_cmd_marker_.color.r = 0.0;
+    v_cmd_marker_.color.g = 1.0;
+    v_cmd_marker_.color.b = 0.0;
+    cmd_markers_.markers.push_back(v_cmd_marker_);
+
+    w_cmd_marker_ = u_cmd_marker_;
+    w_cmd_marker_.id = 2;
+    w_cmd_marker_.color.r = 0.0;
+    w_cmd_marker_.color.b = 1.0;
+    cmd_markers_.markers.push_back(w_cmd_marker_);
+
 
 } // End of init
 
@@ -387,6 +425,31 @@ void NearnessController3D::computeControlCommands(){
   }
 
   pub_control_commands_.publish(control_commands_);
+
+    if(enable_debug_){
+
+    //ROS_INFO_THROTTLE(1,"U: %f, V: %f, W: %f, YR: %f", u_u_, u_v_, u_w_, u_thetadot_);
+
+    // Forward speed marker
+    u_cmd_marker_.header.stamp = ros::Time::now();
+    u_cmd_marker_.points[1].x = u_u_;
+    cmd_markers_.markers[0] = u_cmd_marker_;
+    //pub_u_cmd_marker_.publish(u_cmd_marker_);
+
+    // Lateral speed marker
+    v_cmd_marker_.header.stamp = ros::Time::now();
+    v_cmd_marker_.points[1].y = u_v_;
+    cmd_markers_.markers[1] = v_cmd_marker_;
+    //pub_v_cmd_marker_.publish(v_cmd_marker_);
+
+    // Forward speed marker
+    w_cmd_marker_.header.stamp = ros::Time::now();
+    w_cmd_marker_.points[1].z = u_w_;
+    cmd_markers_.markers[2] = w_cmd_marker_;
+    //pub_w_cmd_marker_.publish(w_cmd_marker_);
+    pub_cmd_markers_.publish(cmd_markers_);
+
+  }
 
 }
 
