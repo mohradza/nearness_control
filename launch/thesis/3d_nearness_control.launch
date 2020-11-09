@@ -17,7 +17,7 @@
         <!-- SUBSCRIBED TOPICS -->
         <remap from="nearness_controller_3d/points"   to="ouster_points"/>
         <remap from="nearness_controller_3d/odometry" to="odometry/ground_truth"/>
-        <remap from="nearness_controller_3d/control_commands" to="cmd_vel"/>
+        <!-- <remap from="nearness_controller_3d/control_commands" to="cmd_vel"/> -->
         <remap from="nearness_controller_3d/joy" to="joy"/>
 
         <!-- Enable switches -->

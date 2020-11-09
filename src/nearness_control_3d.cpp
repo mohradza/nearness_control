@@ -41,6 +41,10 @@ void NearnessController3D::init() {
     pub_sf_mu_ = nh_.advertise<sensor_msgs::PointCloud2>("sf_nearness",1);
     pub_control_commands_ = nh_.advertise<geometry_msgs::Twist>("control_commands",1);
 
+    pub_u_cmd_marker_ = nh_.advertise<visualization_msgs::Marker>("u_cmd_marker",1);
+    pub_v_cmd_marker_ = nh_.advertise<visualization_msgs::Marker>("v_cmd_marker",1);
+    pub_w_cmd_marker_ = nh_.advertise<visualization_msgs::Marker>("w_cmd_marker",1);
+
     // Import parameters
     pnh_.param("enable_debug", enable_debug_, false);
     pnh_.param("enable_altitude_hold", enable_altitude_hold_, false);
@@ -66,7 +70,7 @@ void NearnessController3D::init() {
 
     ROS_INFO("%f", k_thetadot_);
 
-    enable_control_ = false;
+    enable_control_ = true;
 
     frame_id_ = "OHRAD_X3";
 
@@ -101,6 +105,37 @@ void NearnessController3D::init() {
     generateViewingAngleVectors();
     generateProjectionShapes();
 
+    geometry_msgs::Point origin_point;
+    origin_point.x = 0.0;
+    origin_point.y = 0.0;
+    origin_point.z = 0.0;
+
+    geometry_msgs::Quaternion origin_quat;
+    origin_quat.x = 0.0;
+    origin_quat.y = 0.0;
+    origin_quat.z = 0.0;
+    origin_quat.w = 1.0;
+
+    u_cmd_marker_.type = 0;
+    u_cmd_marker_.color.a = 1.0;
+    u_cmd_marker_.color.r = 1.0;
+    u_cmd_marker_.color.g = 0.0;
+    u_cmd_marker_.color.b = 0.0;
+    u_cmd_marker_.header.frame_id = "OHRAD_X3";
+    u_cmd_marker_.points.push_back(origin_point);
+    u_cmd_marker_.points.push_back(origin_point);
+    u_cmd_marker_.scale.x = .05;
+    u_cmd_marker_.scale.y = .075;
+    u_cmd_marker_.pose.orientation = origin_quat;
+
+    v_cmd_marker_ = u_cmd_marker_;
+    v_cmd_marker_.color.r = 0.0;
+    v_cmd_marker_.color.g = 1.0;
+    v_cmd_marker_.color.b = 0.0;
+
+    w_cmd_marker_ = u_cmd_marker_;
+    w_cmd_marker_.color.r = 0.0;
+    w_cmd_marker_.color.b = 1.0;
 
 } // End of init
 
@@ -356,6 +391,27 @@ void NearnessController3D::computeControlCommands(){
   }
 
   pub_control_commands_.publish(control_commands_);
+
+  if(enable_debug_){
+
+    ROS_INFO_THROTTLE(1,"U: %f, V: %f, W: %f, YR: %f", u_u_, u_v_, u_w_, u_thetadot_);
+
+    // Forward speed marker
+    u_cmd_marker_.header.stamp = ros::Time::now();
+    u_cmd_marker_.points[1].x = u_u_;
+    pub_u_cmd_marker_.publish(u_cmd_marker_);
+
+    // Lateral speed marker
+    v_cmd_marker_.header.stamp = ros::Time::now();
+    v_cmd_marker_.points[1].y = u_v_;
+    pub_v_cmd_marker_.publish(v_cmd_marker_);
+
+    // Forward speed marker
+    w_cmd_marker_.header.stamp = ros::Time::now();
+    w_cmd_marker_.points[1].z = u_w_;
+    pub_w_cmd_marker_.publish(w_cmd_marker_);
+
+  }
 
 }
 

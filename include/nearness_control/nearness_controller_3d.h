@@ -26,7 +26,7 @@
 #include <sensor_msgs/PointCloud2.h>
 #include <nav_msgs/Odometry.h>
 #include <nearness_control_msgs/ProjectionWithOdomMsg.h>
-
+#include <visualization_msgs/Marker.h>
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
@@ -109,6 +109,10 @@ class NearnessController3D {
     ros::Publisher pub_recon_wf_mu_;
     ros::Publisher pub_sf_mu_;
     ros::Publisher pub_control_commands_;
+
+    ros::Publisher pub_u_cmd_marker_;
+    ros::Publisher pub_v_cmd_marker_;
+    ros::Publisher pub_w_cmd_marker_;
 
     // DYNAMIC RECONFIGURE //
     boost::mutex connect_mutex_;
@@ -236,6 +240,10 @@ class NearnessController3D {
     double max_forward_speed_, max_lateral_speed_;
     double max_vertical_speed_, max_yaw_rate_;
     double forward_speed_;
+
+    visualization_msgs::Marker u_cmd_marker_;
+    visualization_msgs::Marker v_cmd_marker_;
+    visualization_msgs::Marker w_cmd_marker_;
 
     // Joystick
     geometry_msgs::Twist joy_cmd_;

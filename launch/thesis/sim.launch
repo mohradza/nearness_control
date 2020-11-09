@@ -9,7 +9,7 @@
   <arg name="number_of_basis_shapes"       default = "9"/>
   <arg name="number_of_wf_harmonics"       default = "9"/>
 
-  <arg name="enable_teleop"                default = "1"/>
+  <arg name="enable_teleop"                default = "0"/>
   <!-- <arg name=""             deault = ""/> -->
 
   <group ns="OHRAD_X3">
@@ -18,7 +18,7 @@
         <!-- SUBSCRIBED TOPICS -->
         <remap from="nearness_controller_3d/points"   to="ouster_points"/>
         <remap from="nearness_controller_3d/odometry" to="odometry/ground_truth"/>
-        <remap from="nearness_controller_3d/control_commands" to="cmd_vel"/>
+        <!-- <remap from="nearness_controller_3d/control_commands" to="cmd_vel"/> -->
         <remap from="nearness_controller_3d/joy" to="joy"/>
 
         <!-- Enable switches -->

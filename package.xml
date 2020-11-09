@@ -29,6 +29,8 @@
   <build_depend>pcl_conversions</build_depend>
   <build_depend>nearness_control_msgs</build_depend>
   <build_depend>lcd_pkg</build_depend>
+  <build_depend>geometry_msgs</build_depend>
+  <build_depend>visualization_msgs</build_depend>
 
   <build_export_depend>dynamic_reconfigure</build_export_depend>
   <build_export_depend>roscpp</build_export_depend>
@@ -47,6 +49,8 @@
   <exec_depend>pcl_ros</exec_depend>
   <exec_depend>pcl_conversions</exec_depend>
   <exec_depend>nearness_control_msgs</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>visualization_msgs</exec_depend>
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>

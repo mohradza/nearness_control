@@ -20,6 +20,8 @@ find_package(catkin REQUIRED COMPONENTS
   pcl_ros
   nearness_control_msgs
   lcd_pkg
+  visualization_msgs
+  geometry_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -54,7 +56,7 @@ generate_dynamic_reconfigure_options(
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES nearness_control
-  CATKIN_DEPENDS roscpp sensor_msgs std_msgs cv_bridge message_runtime tf2_ros pcl_ros
+  CATKIN_DEPENDS roscpp sensor_msgs std_msgs cv_bridge message_runtime tf2_ros pcl_ros geometry_msgs visualization_msgs
   DEPENDS OpenCV
 )
 
