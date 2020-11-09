@@ -244,6 +244,7 @@ class NearnessController3D {
     visualization_msgs::Marker u_cmd_marker_;
     visualization_msgs::Marker v_cmd_marker_;
     visualization_msgs::Marker w_cmd_marker_;
+    visualization_msgs::Marker thetadot_cmd_marker_;
     visualization_msgs::MarkerArray cmd_markers_;
 
     // Joystick

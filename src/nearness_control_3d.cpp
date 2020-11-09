@@ -40,6 +40,7 @@ void NearnessController3D::init() {
     pub_recon_wf_mu_ = nh_.advertise<sensor_msgs::PointCloud2>("reconstructed_wf_nearness",1);
     pub_sf_mu_ = nh_.advertise<sensor_msgs::PointCloud2>("sf_nearness",1);
     pub_control_commands_ = nh_.advertise<geometry_msgs::Twist>("control_commands",1);
+    pub_cmd_markers_ = nh_.advertise<visualization_msgs::MarkerArray>("cmd_markers",1);
 
     // Import parameters
     pnh_.param("enable_debug", enable_debug_, false);
@@ -144,6 +145,13 @@ void NearnessController3D::init() {
     w_cmd_marker_.color.r = 0.0;
     w_cmd_marker_.color.b = 1.0;
     cmd_markers_.markers.push_back(w_cmd_marker_);
+
+    thetadot_cmd_marker_ = u_cmd_marker_;
+    thetadot_cmd_marker_.id = 3;
+    thetadot_cmd_marker_.color.b = 1.0;
+    thetadot_cmd_marker_.points[0].x = .5;
+    thetadot_cmd_marker_.points[1].x = .5;
+    cmd_markers_.markers.push_back(thetadot_cmd_marker_);
 
 
 } // End of init
@@ -431,22 +439,28 @@ void NearnessController3D::computeControlCommands(){
     //ROS_INFO_THROTTLE(1,"U: %f, V: %f, W: %f, YR: %f", u_u_, u_v_, u_w_, u_thetadot_);
 
     // Forward speed marker
-    u_cmd_marker_.header.stamp = ros::Time::now();
+    ros::Time time_now = ros::Time::now();
+    u_cmd_marker_.header.stamp = time_now;
     u_cmd_marker_.points[1].x = u_u_;
     cmd_markers_.markers[0] = u_cmd_marker_;
     //pub_u_cmd_marker_.publish(u_cmd_marker_);
 
     // Lateral speed marker
-    v_cmd_marker_.header.stamp = ros::Time::now();
+    v_cmd_marker_.header.stamp = time_now;
     v_cmd_marker_.points[1].y = u_v_;
     cmd_markers_.markers[1] = v_cmd_marker_;
     //pub_v_cmd_marker_.publish(v_cmd_marker_);
 
     // Forward speed marker
-    w_cmd_marker_.header.stamp = ros::Time::now();
+    w_cmd_marker_.header.stamp = time_now;
     w_cmd_marker_.points[1].z = u_w_;
     cmd_markers_.markers[2] = w_cmd_marker_;
     //pub_w_cmd_marker_.publish(w_cmd_marker_);
+
+    // Turn rate marker
+    thetadot_cmd_marker_.header.stamp = time_now;
+    thetadot_cmd_marker_.points[1].y = u_thetadot_;
+    cmd_markers_.markers[3] = thetadot_cmd_marker_;
     pub_cmd_markers_.publish(cmd_markers_);
 
   }
