@@ -67,8 +67,6 @@ void NearnessController3D::init() {
     ROS_INFO("%f", k_thetadot_);
 
     enable_control_ = false;
-    half_projections_ = true;
-
 
     frame_id_ = "OHRAD_X3";
 
@@ -89,11 +87,14 @@ void NearnessController3D::init() {
     //C_dy_ = zeros_vec;
     //C_dy_ = {0.0137, -0.2525, 0.1475, -3.7765, 0.0200, -0.2169, -1.1179, 0.3504, -.0037};
     C_dy_ = {-0.4665, 0.0037, 0.2523, 3.3906, 1.6712, 0.0114, 1.8488, 0.0045, -0.0378};
-    C_mat_.push_back(C_dy_);
+    //C_mat_.push_back(C_dy_);
     //C_dtheta_ = zeros_vec;
     //C_dtheta_ = {-0.0408, 0.0168, -0.1982, -0.0513, 0.1610, -0.0519, 0.0344, 0.0596, -2.6322};
-    C_dtheta_ = {0.0820, -0.1909, -0.6301, 0.0640, -0.3424, -0.0814, -0.1268, 0.0088, 2.6603};
-    C_mat_.push_back(C_dtheta_);
+    //C_dtheta_ = {0.0820, -0.1909, -0.6301, 0.0640, -0.3424, -0.0814, -0.1268, 0.0088, 2.6603};
+    // Half Front sphere
+    C_dtheta_ = {-0.2357, -0.0990, 0.2396, 0.0491, 0.7532, -0.0251, -0.2976, -0.1963, 5.3746};
+
+  //  C_mat_.push_back(C_dtheta_);
 
     //C_dz_ = zeros_vec;
     // Full Sphere
@@ -206,33 +207,41 @@ void NearnessController3D::pclCb(const sensor_msgs::PointCloud2ConstPtr& pcl_msg
 void NearnessController3D::projectNearness(){
 
   // Project measured nearness onto different shapes
-  y_projections_.clear();
-  y_projections_half_.clear();
+  y_full_.clear();
+  y_front_half_.clear();
+  y_bottom_half_.clear();
 
   float phi;
   for(int j = 0; j < num_basis_shapes_; j++){
-    y_projections_.push_back(0.0);
-    y_projections_half_.push_back(0.0);
+    y_full_.push_back(0.0);
+    y_front_half_.push_back(0.0);
+    y_bottom_half_.push_back(0.0);
     for (int i = 0; i < last_index_; i++){
+
       phi = viewing_angle_mat_[i][1];
-      if(half_projections_){
-        if( phi < M_PI/2 && phi > -M_PI/2){
-          y_projections_[j] += shape_mat_[j][i]*mu_meas_[i]*sin(viewing_angle_mat_[i][0])*dtheta_*dphi_;
-        }
-      } else {
-        y_projections_[j] += shape_mat_[j][i]*mu_meas_[i]*sin(viewing_angle_mat_[i][0])*dtheta_*dphi_;
+
+      // Full projections for centering
+      y_full_[j] += shape_mat_[j][i]*mu_meas_[i]*sin(viewing_angle_mat_[i][0])*dtheta_*dphi_;
+
+      // Front half for steering
+      if( phi < M_PI/2 && phi > -M_PI/2){
+          y_front_half_[j] += y_full_[j];
       }
+
       // Also do bottom half for ground following
       if( i < last_index_ / 2; i++){
-        y_projections_half_[j] += y_projections_[j];
+        y_bottom_half_[j] += y_full_[j];
       }
+
     }
+
   }
 
   if(enable_debug_){
     y_projections_with_odom_msg_.header.stamp = ros::Time::now();
-    y_projections_with_odom_msg_.projections = y_projections_;
-    y_projections_with_odom_msg_.half_projections = y_projections_half_;
+    y_projections_with_odom_msg_.full_projections = y_full_;
+    y_projections_with_odom_msg_.front_half_projections = y_front_half_;
+    y_projections_with_odom_msg_.bottom_half_projections = y_bottom_half_;
     y_projections_with_odom_msg_.odometry = current_odom_;
     pub_y_projections_with_odom_.publish(y_projections_with_odom_msg_);
   }
@@ -249,7 +258,7 @@ void NearnessController3D::reconstructWideFieldNearness(){
   recon_wf_mu_vec_ = zeros;
   for(int j = 0 ; j < num_wf_harmonics_; j++){
     for(int i = 0; i < last_index_; i++){
-      recon_wf_mu_vec_[i] += y_projections_[j]*shape_mat_[j][i];
+      recon_wf_mu_vec_[i] += y_full_[j]*shape_mat_[j][i];
     }
   }
 
@@ -262,15 +271,10 @@ void NearnessController3D::reconstructWideFieldNearness(){
     for(int i = 0; i < last_index_; i++){
       theta = viewing_angle_mat_[i][0];
       phi = viewing_angle_mat_[i][1];
-      if(half_projections_){
-        if((phi < M_PI/2) && (phi > -M_PI/2)){
-          recon_mu_p = {recon_wf_mu_vec_[i]*sin(theta)*cos(phi), recon_wf_mu_vec_[i]*sin(theta)*sin(phi), recon_wf_mu_vec_[i]*cos(theta) };
-          recon_wf_mu_pcl_.push_back(recon_mu_p);
-        }
-      } else {
-        recon_mu_p = {recon_wf_mu_vec_[i]*sin(theta)*cos(phi), recon_wf_mu_vec_[i]*sin(theta)*sin(phi), recon_wf_mu_vec_[i]*cos(theta) };
-        recon_wf_mu_pcl_.push_back(recon_mu_p);
-      }
+
+      recon_mu_p = {recon_wf_mu_vec_[i]*sin(theta)*cos(phi), recon_wf_mu_vec_[i]*sin(theta)*sin(phi), recon_wf_mu_vec_[i]*cos(theta) };
+      recon_wf_mu_pcl_.push_back(recon_mu_p);
+
     }
 
     pcl::toROSMsg(recon_wf_mu_pcl_, recon_wf_mu_pcl_msg_);
@@ -320,14 +324,21 @@ void NearnessController3D::computeControlCommands(){
   control_commands_.angular.z = 0.0;
 
   // Compute control commands
-  int num_controls = C_mat_.size();
-  u_vec_.clear();
-  for (int i=0; i < num_controls; i++){
-    u_vec_.push_back(0.0);
-    for(int j=0; j < num_basis_shapes_; j++){
-      u_vec_[i] += C_mat_[i][j]*y_projections_[j];
-    }
+  //int num_controls = C_mat_.size();
+  //u_vec_.clear();
+  // for (int i=0; i < num_controls; i++){
+  //   u_vec_.push_back(0.0);
+  //   for(int j=0; j < num_basis_shapes_; j++){
+  //     u_vec_[i] += C_mat_[i][j]*y_projections_[j];
+  //   }
+  // }
+  u_vec_ = {0.0, 0.0, 0.0};
+  for(int j=0; j < num_basis_shapes_; j++){
+    u_vec_[0] += C_dy_[j]*y_full_[j];
+    u_vec_[1] += C_dtheta_[j]*y_front_half_[j];
+    u_vec_[2] += C_dz_[j]*y_full_[j];
   }
+
   // u_vec_.push_back(0.0);
   // for(int j = 0; j < num_basis_shapes_; j++){
   //   u_vec_[2] += C_z_[j]*y_projections_half_[j];
@@ -606,8 +617,8 @@ void NearnessController3D::generateProjectionShapes(){
       d_theta = 0.0;
       d_z = 0.0;
       for (int k = 0; k < num_basis_shapes_; k++){
-        d_y += C_mat_[0][k]*shape_mat_[k][i];
-        d_theta += C_mat_[1][k]*shape_mat_[k][i];
+        d_y += C_dy_[k]*shape_mat_[k][i];
+        d_theta += C_dtheta_[k]*shape_mat_[k][i];
         if(k < last_index_ / 2){
           d_z += C_dz_[k]*shape_mat_[k][i];
         }

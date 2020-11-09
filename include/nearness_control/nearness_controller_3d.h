@@ -164,8 +164,9 @@ class NearnessController3D {
 
     nav_msgs::Odometry current_odom_;
 
-    vector<float> y_projections_;
-    vector<float> y_projections_half_;
+    vector<float> y_full_;
+    vector<float> y_front_half_;
+    vector<float> y_bottom_half_;
     std_msgs::Float32MultiArray y_projections_msg_;
     nearness_control_msgs::ProjectionWithOdomMsg y_projections_with_odom_msg_;
 

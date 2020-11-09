@@ -9,7 +9,7 @@
   <arg name="number_of_basis_shapes"       default = "9"/>
   <arg name="number_of_wf_harmonics"       default = "9"/>
 
-  <arg name="enable_teleop"                default = "0"/>
+  <arg name="enable_teleop"                default = "1"/>
   <!-- <arg name=""             deault = ""/> -->
 
   <group ns="OHRAD_X3">
