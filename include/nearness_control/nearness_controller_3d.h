@@ -132,6 +132,7 @@ class NearnessController3D {
     bool enable_altitude_hold_;
     bool enable_control_;
     bool enable_speed_regulation_;
+    bool enable_cmd_scaling_;
     double test_ring_;
     bool new_pcl_;
     bool half_projections_;
@@ -240,6 +241,7 @@ class NearnessController3D {
     double max_forward_speed_, max_lateral_speed_;
     double max_vertical_speed_, max_yaw_rate_;
     double forward_speed_;
+    double front_mu_ave_;
 
     visualization_msgs::Marker u_cmd_marker_;
     visualization_msgs::Marker v_cmd_marker_;

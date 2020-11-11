@@ -68,6 +68,7 @@ void NearnessController3D::init() {
     ROS_INFO("%f", k_thetadot_);
 
     enable_control_ = false;
+    enable_cmd_scaling_ = true;
 
     frame_id_ = "OHRAD_X3";
 
@@ -212,6 +213,11 @@ void NearnessController3D::pclCb(const sensor_msgs::PointCloud2ConstPtr& pcl_msg
   cloud_out_.clear();
   mu_cloud_out_.clear();
 
+  int count = 0;
+  int ring_win_size = 10;
+  int scan_win_size = 2;
+  front_mu_ave_ = 0.0;
+
   // Convert the pcl to nearness
   pcl::PointXYZ p, mu_p;
   float dist, mu_val;
@@ -225,6 +231,13 @@ void NearnessController3D::pclCb(const sensor_msgs::PointCloud2ConstPtr& pcl_msg
           mu_val = 1/dist;
           mu_meas_.push_back(mu_val);
 
+          // Get an estimate of how close things are in front of the vehicle
+          // to use for speed regulation. Look at a window of nearness.
+          if((j < (num_ring_points_/2 + ring_win_size)) && (j > (num_ring_points_/2 - ring_win_size)) && (i < (num_rings_/2 + scan_win_size)) && (i > (num_rings_/2 - scan_win_size))){
+            front_mu_ave_ += mu_val;
+            count++;
+          }
+
           // Convert back to cartesian for viewing
           if(enable_debug_){
               mu_p = {mu_val*sin(theta_view_vec_[i])*cos(phi_view_vec_[j]), mu_val*sin(theta_view_vec_[i])*sin(phi_view_vec_[j]), mu_val*cos(theta_view_vec_[i]) };
@@ -232,6 +245,8 @@ void NearnessController3D::pclCb(const sensor_msgs::PointCloud2ConstPtr& pcl_msg
           }
       }
   }
+
+  front_mu_ave_ /= count;
 
   // Treat the first point as a rangefinder for alt hold
   p = cloud_in->points[0];
@@ -257,7 +272,7 @@ void NearnessController3D::projectNearness(){
   y_front_half_.clear();
   y_bottom_half_.clear();
 
-  float phi, increment;
+  float phi, theta, increment;
   for(int j = 0; j < num_basis_shapes_; j++){
     y_full_.push_back(0.0);
     y_front_half_.push_back(0.0);
@@ -265,14 +280,15 @@ void NearnessController3D::projectNearness(){
     for (int i = 0; i < last_index_; i++){
 
       phi = viewing_angle_mat_[i][1];
+      theta = viewing_angle_mat_[i][0];
 
       // Full projections for centering
-      increment = shape_mat_[j][i]*mu_meas_[i]*sin(viewing_angle_mat_[i][0])*dtheta_*dphi_;
+      increment = shape_mat_[j][i]*mu_meas_[i]*sin(theta)*dtheta_*dphi_;
       y_full_[j] += increment;
 
       // Front half for steering
       if( phi < M_PI/2 && phi > -M_PI/2){
-          y_front_half_[j] += increment;
+        y_front_half_[j] += increment;
       }
 
       // Also do bottom half for ground following
@@ -401,9 +417,15 @@ void NearnessController3D::computeControlCommands(){
     //u_thetadot_ = 0.0;
 
     if(enable_speed_regulation_){
-      u_u_ =  max_forward_speed_*(1 - k_u_v_*abs(u_v_) - k_u_thetadot_*abs(u_thetadot_));
+      //u_u_ =  max_forward_speed_*(1 - k_u_v_*abs(u_v_) - k_u_thetadot_*abs(u_thetadot_));
+      //u_u_ =  max_forward_speed_*(1 - k_u_v_*abs(u_v_) - k_u_thetadot_*abs(u_thetadot_) - front_mu_ave_);
+      u_u_ =  max_forward_speed_*(1 - front_mu_ave_);
     } else {
       u_u_ = forward_speed_;
+    }
+
+    if(enable_cmd_scaling_){
+
     }
 
     control_commands_.linear.x = u_u_;
