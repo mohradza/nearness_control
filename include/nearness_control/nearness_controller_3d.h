@@ -242,6 +242,7 @@ class NearnessController3D {
     double max_vertical_speed_, max_yaw_rate_;
     double forward_speed_;
     double front_mu_ave_;
+    double max_lateral_nearness_;
 
     visualization_msgs::Marker u_cmd_marker_;
     visualization_msgs::Marker v_cmd_marker_;

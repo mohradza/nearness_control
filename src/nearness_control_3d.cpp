@@ -217,6 +217,7 @@ void NearnessController3D::pclCb(const sensor_msgs::PointCloud2ConstPtr& pcl_msg
   int ring_win_size = 10;
   int scan_win_size = 2;
   front_mu_ave_ = 0.0;
+  max_lateral_nearness_ = 0.0;
 
   // Convert the pcl to nearness
   pcl::PointXYZ p, mu_p;
@@ -233,9 +234,15 @@ void NearnessController3D::pclCb(const sensor_msgs::PointCloud2ConstPtr& pcl_msg
 
           // Get an estimate of how close things are in front of the vehicle
           // to use for speed regulation. Look at a window of nearness.
-          if((j < (num_ring_points_/2 + ring_win_size)) && (j > (num_ring_points_/2 - ring_win_size)) && (i < (num_rings_/2 + scan_win_size)) && (i > (num_rings_/2 - scan_win_size))){
-            front_mu_ave_ += mu_val;
-            count++;
+          if((i < (num_rings_/2 + scan_win_size)) && (i > (num_rings_/2 - scan_win_size))) {
+            if((j < (num_ring_points_/2 + ring_win_size)) && (j > (num_ring_points_/2 - ring_win_size))) {
+              front_mu_ave_ += mu_val;
+              count++;
+            }
+
+            if(mu_val > max_lateral_nearness_){
+              max_lateral_nearness_ = mu_val;
+            }
           }
 
           // Convert back to cartesian for viewing
@@ -425,6 +432,9 @@ void NearnessController3D::computeControlCommands(){
     }
 
     if(enable_cmd_scaling_){
+      // Scale lateral speed command by max lateral nearness
+      max_lateral_nearness_ = sat(max_lateral_nearness_, .1, 1);
+      u_v_ *= 1/max_lateral_nearness_;
 
     }
 
