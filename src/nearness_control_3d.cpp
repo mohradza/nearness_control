@@ -66,9 +66,9 @@ void NearnessController3D::init() {
     max_vertical_speed_ = 1.0;
     max_yaw_rate_ = 1.0;
 
-    ROS_INFO("%f", k_thetadot_);
-
-    enable_control_ = false;
+    enable_control_ = true;
+    enable_cmd_scaling_ = false;
+    enable_speed_regulation_ = true;
 
     frame_id_ = "OHRAD_X3";
 
@@ -427,7 +427,7 @@ void NearnessController3D::computeControlCommands(){
       u_u_ =  max_forward_speed_*(1 - k_u_v_*abs(u_v_) - k_u_thetadot_*abs(u_thetadot_));
       //u_u_ =  max_forward_speed_*(1 - k_u_v_*abs(u_v_) - k_u_thetadot_*abs(u_thetadot_) - front_mu_ave_);
       if(enable_cmd_scaling_){
-        u_u_ =  max_forward_speed_*(1 - front_mu_ave_);
+        u_u_ =  max_forward_speed_*(1.0 - 2*front_mu_ave_);
       }
     } else {
       u_u_ = forward_speed_;
@@ -455,16 +455,16 @@ void NearnessController3D::computeControlCommands(){
 
 
 
-  if(sim_control_){
-    control_commands_.linear.x = joy_cmd_.linear.x;
-    control_commands_.linear.y = joy_cmd_.linear.y;
-
-    if(!enable_altitude_hold_){
-      control_commands_.linear.z = joy_cmd_.linear.z;
-    }
-
-    control_commands_.angular.z = joy_cmd_.angular.z;
-  }
+  // if(sim_control_){
+  //   control_commands_.linear.x = joy_cmd_.linear.x;
+  //   control_commands_.linear.y = joy_cmd_.linear.y;
+  //
+  //   if(!enable_altitude_hold_){
+  //     control_commands_.linear.z = joy_cmd_.linear.z;
+  //   }
+  //
+  //   control_commands_.angular.z = joy_cmd_.angular.z;
+  // }
 
   pub_control_commands_.publish(control_commands_);
 
@@ -516,32 +516,32 @@ void NearnessController3D::joyconCb(const sensor_msgs::JoyConstPtr& joy_msg)
 
     // Enable / Disable Altitude Hold
     if(joy_msg->buttons[5] == 1){
-      enable_altitude_hold_ = true;
+      //enable_altitude_hold_ = true;
       ROS_INFO_THROTTLE(2,"ALT HOLD ENABLED");
     }
     if(joy_msg->buttons[3] == 1){
-      enable_altitude_hold_ = false;
+      //enable_altitude_hold_ = false;
       ROS_INFO_THROTTLE(2,"ALT HOLD DISABLED");
     }
 
     // Enable / Disable Nearness Control
     if(joy_msg->buttons[0] == 1){
-      enable_control_ = true;
+      //enable_control_ = true;
       ROS_INFO_THROTTLE(2,"NEARNESS CONTROL ENABLED");
     }
     if(joy_msg->buttons[1] == 1){
-      enable_control_ = false;
+      //enable_control_ = false;
       ROS_INFO_THROTTLE(2,"NEARNESS CONTROL DISABLED");
     }
 
     if(joy_msg->buttons[4] == 1){
-      sim_control_ = true;
+      //sim_control_ = true;
       joy_cmd_.linear.x = joy_msg->axes[4]*max_forward_speed_;
       joy_cmd_.linear.y = joy_msg->axes[3]*max_lateral_speed_;
       joy_cmd_.linear.z = joy_msg->axes[1]*max_vertical_speed_;
       joy_cmd_.angular.z = joy_msg->axes[0]*max_yaw_rate_;
     } else {
-      sim_control_ =false;
+      //sim_control_ =false;
       joy_cmd_.linear.x = 0.0;
       joy_cmd_.linear.y = 0.0;
       joy_cmd_.linear.z = 0.0;
