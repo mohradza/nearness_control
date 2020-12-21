@@ -424,9 +424,11 @@ void NearnessController3D::computeControlCommands(){
     //u_thetadot_ = 0.0;
 
     if(enable_speed_regulation_){
-      //u_u_ =  max_forward_speed_*(1 - k_u_v_*abs(u_v_) - k_u_thetadot_*abs(u_thetadot_));
+      u_u_ =  max_forward_speed_*(1 - k_u_v_*abs(u_v_) - k_u_thetadot_*abs(u_thetadot_));
       //u_u_ =  max_forward_speed_*(1 - k_u_v_*abs(u_v_) - k_u_thetadot_*abs(u_thetadot_) - front_mu_ave_);
-      u_u_ =  max_forward_speed_*(1 - front_mu_ave_);
+      if(enable_cmd_scaling_){
+        u_u_ =  max_forward_speed_*(1 - front_mu_ave_);
+      }
     } else {
       u_u_ = forward_speed_;
     }
