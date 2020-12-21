@@ -46,6 +46,7 @@ void NearnessController3D::init() {
     pnh_.param("enable_debug", enable_debug_, false);
     pnh_.param("enable_altitude_hold", enable_altitude_hold_, false);
     pnh_.param("enable_speed_regulation", enable_speed_regulation_, false);
+    pnh_.param("enable_command_scaling", enable_cmd_scaling_, false);
 
     pnh_.param("num_rings", num_rings_, 64);
     pnh_.param("num_ring_points", num_ring_points_, 360);
@@ -68,7 +69,6 @@ void NearnessController3D::init() {
     ROS_INFO("%f", k_thetadot_);
 
     enable_control_ = false;
-    enable_cmd_scaling_ = true;
 
     frame_id_ = "OHRAD_X3";
 
@@ -299,7 +299,7 @@ void NearnessController3D::projectNearness(){
       }
 
       // Also do bottom half for ground following
-      if( i < last_index_ / 2; i++){
+      if( i < (last_index_ / 2) ){
         y_bottom_half_[j] += increment;
       }
 
