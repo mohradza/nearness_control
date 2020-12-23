@@ -32,6 +32,10 @@
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 
+#include <pcl/filters/extract_indices.h>
+#include <pcl/kdtree/kdtree.h>
+#include <pcl/segmentation/extract_clusters.h>
+
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf/tf.h>
@@ -74,6 +78,7 @@ class NearnessController3D {
     void projectNearness();
     void reconstructWideFieldNearness();
     void computeSmallFieldNearness();
+    void computeSmallFieldControl();
     void computeControlCommands();
     bool newPcl();
 
@@ -122,6 +127,7 @@ class NearnessController3D {
     void configCb(Config &config, uint32_t level);
 
     // FUNCTIONS //
+    vector<float> getVectorStats(vector<float> vec);
     float sgn(double v);
     void saturateControls();
     float wrapAngle(float angle);
@@ -179,6 +185,8 @@ class NearnessController3D {
 
     vector<float> sf_mu_;
     pcl::PointCloud<pcl::PointXYZ> sf_mu_pcl_;
+    pcl::PointCloud<pcl::PointXYZ> sf_d_pcl_;
+    pcl::PointCloud<pcl::PointXYZ> sf_d_pcl_filtered_;
     sensor_msgs::PointCloud2 sf_mu_pcl_msg_;
 
     pcl::PointCloud<pcl::PointXYZI> Y00_;
@@ -243,6 +251,20 @@ class NearnessController3D {
     double forward_speed_;
     double front_mu_ave_;
     double max_lateral_nearness_;
+
+    // SF Controller
+    bool enable_sf_control_;
+    vector<vector<float>> cluster_locs_;
+    int num_clusters_;
+    vector<float> cluster_d_;
+
+    double sf_k_theta_;
+    double sf_k_phi_;
+    double sf_k_d_;
+    double sf_k_0_;
+
+    float sf_u_v_;
+    float sf_u_w_;
 
     visualization_msgs::Marker u_cmd_marker_;
     visualization_msgs::Marker v_cmd_marker_;

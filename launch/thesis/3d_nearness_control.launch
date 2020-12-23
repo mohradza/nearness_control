@@ -5,6 +5,7 @@
   <arg name="enable_altitude_hold"         default="true"/>
   <arg name="enable_speed_regulation"      default="false"/>
   <arg name="enable_command_scaling"       default="false"/>
+  <arg name="enable_sf_control"            default="true"/>
   <arg name="number_of_rings"              default = "64"/>
   <arg name="number_of_ring_points"        default = "360"/>
   <arg name="number_of_basis_shapes"       default = "9"/>
@@ -28,6 +29,7 @@
         <param name="enable_altitude_hold"     type="bool"       value="$(arg enable_altitude_hold)"/>
         <param name="enable_speed_regulation"  type="bool"       value="$(arg enable_speed_regulation)"/>
         <param name="enable_command_scaling"   type="bool"       value="$(arg enable_command_scaling)"/>
+        <param name="enable_sf_control"        type="bool"       value="$(arg enable_sf_control)"/>
 
         <!-- Sensor Parameters -->
         <param name="num_rings"                type="int"        value="$(arg number_of_rings)"/>
@@ -42,6 +44,11 @@
         <param name="vertical_speed_gain"      type="double"     value="-.5"/>
         <param name="reference_altitude"       type="double"     value=".5"/>
         <param name="forward_speed"            type="double"     value=".5"/>
+
+        <param name="small_field_theta_gain"   type="double"     value="1.0"/>
+        <param name="small_field_phi_gain"     type="double"     value="1.0"/>
+        <param name="small_field_distance_gain" type="double"    value="1.0"/>
+        <param name="small_field_signal_gain"  type="double"     value="1.0"/>
 
     </node>
   </group>
