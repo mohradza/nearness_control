@@ -260,6 +260,8 @@ class NearnessController {
     float range_agl_;
     bool debug_;
     bool flag_beacon_stop_;
+    bool estop_on_switch_;
+    bool estop_off_switch_;
 
     // converHtLaserscan2CVMat
     int h_num_fourier_terms_;

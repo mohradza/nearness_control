@@ -81,6 +81,8 @@ void NearnessController::init() {
     unable_to_plan_home_str_ = "Unable to plan home";
     unable_to_plan_str_ = "Unable to plan";
     at_gate_ = false;
+    estop_on_switch_ = false;
+    estop_off_switch_ = false;
 
     // Import parameters
     pnh_.param("enable_debug", debug_, false);
@@ -1334,7 +1336,7 @@ void NearnessController::joyconCb(const sensor_msgs::JoyConstPtr& joy_msg)
         ROS_INFO_THROTTLE(2,"Controller ESTOP disengaged");
 
     }
-	  if(joy_msg->buttons[1] == 1){
+    if(joy_msg->buttons[1] == 1){
         flag_estop_ = true;
 	      ROS_INFO_THROTTLE(2,"Controller ESTOP engaged");
     }
@@ -1343,14 +1345,29 @@ void NearnessController::joyconCb(const sensor_msgs::JoyConstPtr& joy_msg)
         ROS_INFO_THROTTLE(1,"Disable estop");
         std_msgs::Bool engage_msg;
         engage_msg.data = false;
-        pub_estop_engage_.publish(engage_msg);
+        if(!estop_off_switch_){
+            pub_estop_engage_.publish(engage_msg);
+            estop_off_switch_ = true;
+        }
+        else {
+            estop_on_switch_ = false;
+        }
     }
+
     if(joy_msg->buttons[6] == 1){
         ROS_INFO_THROTTLE(1,"Enable estop");
         std_msgs::Bool engage_msg;
         engage_msg.data = true;
-        pub_estop_engage_.publish(engage_msg);
+        if(!estop_on_switch_){
+            pub_estop_engage_.publish(engage_msg);
+            estop_on_switch_ = true;
+        }
+        else {
+            estop_off_switch_ = false;
+        }
     }
+
+
 }
 
 void NearnessController::enableControlCb(const std_msgs::BoolConstPtr& enable_msg){
