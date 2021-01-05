@@ -50,7 +50,7 @@ void NearnessController::init() {
     pub_debug_weighting_ = nh_.advertise<std_msgs::Float32MultiArray>("debug_weighting", 10);
     pub_h_sf_yawrate_command_ = nh_.advertise<std_msgs::Float32>("sf_yawrate_command", 10);
     pub_vehicle_status_ = nh_.advertise<std_msgs::Int32>("vehicle_status", 10);
-    pub_estop_engage_ = nh_.advertise<std_msgs::Bool>("estop_cmd", 10);
+    //pub_estop_engage_ = nh_.advertise<std_msgs::Bool>("estop_cmd", 10);
     pub_sf_clustering_debug_ = nh_.advertise<nearness_control_msgs::ClusterMsg>("sf_clusters", 10);
     pub_ter_clusters_ = nh_.advertise<nearness_control_msgs::ClusterMsg>("ter_clusters", 10);
 
@@ -1340,32 +1340,32 @@ void NearnessController::joyconCb(const sensor_msgs::JoyConstPtr& joy_msg)
         flag_estop_ = true;
 	      ROS_INFO_THROTTLE(2,"Controller ESTOP engaged");
     }
-
-    if(joy_msg->buttons[7] == 1){
-        ROS_INFO_THROTTLE(1,"Disable estop");
-        std_msgs::Bool engage_msg;
-        engage_msg.data = false;
-        if(!estop_off_switch_){
-            pub_estop_engage_.publish(engage_msg);
-            estop_off_switch_ = true;
-        }
-        else {
-            estop_on_switch_ = false;
-        }
-    }
-
-    if(joy_msg->buttons[6] == 1){
-        ROS_INFO_THROTTLE(1,"Enable estop");
-        std_msgs::Bool engage_msg;
-        engage_msg.data = true;
-        if(!estop_on_switch_){
-            pub_estop_engage_.publish(engage_msg);
-            estop_on_switch_ = true;
-        }
-        else {
-            estop_off_switch_ = false;
-        }
-    }
+    //
+    // if(joy_msg->buttons[7] == 1){
+    //     ROS_INFO_THROTTLE(1,"Disable estop");
+    //     std_msgs::Bool engage_msg;
+    //     engage_msg.data = false;
+    //     if(!estop_off_switch_){
+    //         pub_estop_engage_.publish(engage_msg);
+    //         estop_off_switch_ = true;
+    //     }
+    //     else {
+    //         estop_on_switch_ = false;
+    //     }
+    // }
+    //
+    // if(joy_msg->buttons[6] == 1){
+    //     ROS_INFO_THROTTLE(1,"Enable estop");
+    //     std_msgs::Bool engage_msg;
+    //     engage_msg.data = true;
+    //     if(!estop_on_switch_){
+    //         pub_estop_engage_.publish(engage_msg);
+    //         estop_on_switch_ = true;
+    //     }
+    //     else {
+    //         estop_off_switch_ = false;
+    //     }
+    // }
 
 
 }
