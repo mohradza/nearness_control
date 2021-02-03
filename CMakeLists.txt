@@ -37,7 +37,6 @@ add_message_files(
    FILES
    FourierCoefsMsg.msg
    ClusterMsg.msg
-   TrajListMsg.msg
    )
 
 ## Generate added messages and services with any dependencies listed here
@@ -105,6 +104,12 @@ target_link_libraries(trajectory_follower_node ${catkin_LIBRARIES} ${Boost_LIBRA
 
 add_executable(trajectory_follower src/trajectory_follower.cpp)
 target_link_libraries(trajectory_follower trajectory_follower_node ${catkin_LIBRARIES} ${Boost_LIBRARIES})
+
+add_library(trajectory_generator_node src/trajectory_generator_node.cpp)
+target_link_libraries(trajectory_generator_node ${catkin_LIBRARIES} ${Boost_LIBRARIES})
+
+add_executable(trajectory_generator src/trajectory_generator.cpp)
+target_link_libraries(trajectory_generator trajectory_generator_node ${catkin_LIBRARIES} ${Boost_LIBRARIES})
 
 add_executable(tf2odom src/tf2odom.cpp)
 target_link_libraries(tf2odom ${catkin_LIBRARIES})

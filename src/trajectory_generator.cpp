@@ -15,22 +15,28 @@ void trajectoryGenerator::init() {
 
     pub_traj_ = nh_.advertise<nearness_control_msgs::TrajList>("ground_truth_trajectory", 10);
 
-    pnh_.param("trajectory_point_distance_thresh", total_h_scan_points_, 1440);
+    pnh_.param("trajectory_point_distance_thresh", traj_point_dist_thresh_, 0.1);
 
     traj_point_dist_thresh_ = .1;
+    initialized_ = false;
     count_ = 0;
 
 }
 
 void trajectoryGenerator::odomCb(const nav_msgs::OdometryConstPtr& odom_msg)
 {
-    //ROS_INFO_THROTTLE(1,"Received odom");
+    ROS_INFO_THROTTLE(1,"Received odom");
     odom_ = *odom_msg;
     odom_point_ =  odom_.pose.pose.position;
 
-    ROS_INFO_THROTTLE(1,"x: %f, y: %f", odom_point_.x, odom_point_.y);
+    if(!initialized_){
+      traj_list_points_.push_back(odom_point_);
+      initialized_ = true;
+    }
 
-    if(dist(odom_point_, traj_list_points_[count_]) > traj_point_dist_thresh_){
+    //ROS_INFO_THROTTLE(1,"x: %f, y: %f", odom_point_.x, odom_point_.y);
+    float distance = dist(odom_point_, traj_list_points_[count_]);
+    if(distance > traj_point_dist_thresh_){
       traj_list_points_.push_back(odom_point_);
       count_++;
     }
@@ -43,10 +49,12 @@ float trajectoryGenerator::dist(const geometry_msgs::Point p1, const geometry_ms
     return distance;
 }
 
-void trajectoryGenerator::publishTrajectory(){
-    traj_list_msg_.traj_points.clear()
+void trajectoryGenerator::publishTrajectory()
+{
+    traj_list_msg_.traj_points.clear();
+    traj_list_msg_.traj_list_size = count_;
     traj_list_msg_.traj_points = traj_list_points_;
-    pub_traj_.publish(traj_list_points_)
+    pub_traj_.publish(traj_list_msg_);
 }
 
 

@@ -26,9 +26,10 @@ void trajectoryFollower::init() {
     lookahead_dist_long_ = 1.5;
     enable_lookahead_lookup_ = false;
     have_current_traj_home_ = false;
-    
+
     string lookahead_frame = vehicle_name + "/map";
     lookahead_point_.header.frame_id = lookahead_frame;
+    
 }
 
 void trajectoryFollower::odomCb(const nav_msgs::OdometryConstPtr& odom_msg)

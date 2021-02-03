@@ -1,5 +1,5 @@
-#ifndef TRAJECTORY_FOLLOWER_H
-#define TRAJECTORY_FOLLOWER_H
+#ifndef TRAJECTORY_GENERATOR_H
+#define TRAJECTORY_GENERATOR_H
 
 #include <ros/ros.h>
 #include <dynamic_reconfigure/server.h>
@@ -43,6 +43,7 @@ class trajectoryGenerator {
     void init();
 
     // FUNCTIONS //
+    void publishTrajectory();
     void odomCb(const nav_msgs::OdometryConstPtr& odom_msg);
     float dist(const geometry_msgs::Point p1, const geometry_msgs::Point p2);
 
@@ -64,12 +65,11 @@ class trajectoryGenerator {
     geometry_msgs::Point odom_point_;
 
     vector<geometry_msgs::Point> traj_list_points_;
-    geometry_msgs::Point
     nearness_control_msgs::TrajList traj_list_msg_;
+    double traj_point_dist_thresh_;
 
+    bool initialized_;
     long int count_;
-
-
 
 }; // class SimpleNodeClass
 
