@@ -1,0 +1,20 @@
+<launch>
+
+  <arg name="vehicle" default="X1"/>
+  <node pkg="nodelet" type="nodelet" name="octomap2laserscan_nodelet" args="manager"/>
+
+  <node pkg="nodelet" type="nodelet" name="octomap_pcl2laserscan" args="load pointcloud_to_laserscan/pointcloud_to_laserscan_nodelet octomap2laserscan_nodelet" >
+      <remap from="cloud_in" to="octomap_in"/>
+      <remap from="scan" to="octomap_laserscan"/>
+      <param name="target_frame" type="str" value="$(arg vehicle)/base_link" />
+      <param name="min_height" type="double" value="0.15" />
+      <param name="max_height" type="double" value="0.45" />
+      <param name="min_range" type="double" value="0.25" />
+      <param name="max_range" type="double" value="100" />
+      <param name="angle_min" type="double" value="-3.1415" /> <!-- 1.1780972451 -->
+      <param name="angle_max" type="double" value="3.1415" /> <!-- 1.96349540849 -->
+      <param name="angle_increment" type="double" value="0.006829" />
+      <param name="use_inf" type="boolean" value="true" />
+  </node>
+
+</launch>

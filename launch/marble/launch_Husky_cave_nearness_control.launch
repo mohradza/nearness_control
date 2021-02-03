@@ -2,6 +2,8 @@
   <!-- <arg name="vehicle" default="MARBLE_HUSKY"/> -->
   <!-- <group ns="$(arg vehicle)"> -->
   <arg name="motion_on_startup" default="0"/>
+  <arg name="vehicle" default="H01"/>
+
 
   <include file="$(find nearness_control)/launch/marble/cave_nearness_control.launch">
 
@@ -53,6 +55,7 @@
   <node pkg="dynamic_reconfigure" name="nearness_controller_parameter_config" type="dynparam" args="load nearness_control_node $(find nearness_control)/cfg/Husky_params.yaml"/>
 
   <node pkg="topic_tools" name="cmd_vel_relay" type="relay" args="nearness_controller/control_commands nav_vel" />
+
 
 
 </launch>
