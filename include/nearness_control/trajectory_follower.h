@@ -20,6 +20,7 @@
 #include <geometry_msgs/Twist.h>
 #include <geometry_msgs/Pose.h>
 #include <visualization_msgs/MarkerArray.h>
+#include <nearness_control_msgs/TrajList.h>
 #include <sensor_msgs/Joy.h>
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/Imu.h>
@@ -43,8 +44,10 @@ class trajectoryFollower {
 
     // FUNCTIONS //
     void trajCb(const lcd_pkg::PoseGraphConstPtr& msg);
+    void gtTrajCb(const nearness_control_msgs::TrajListConstPtr& msg);
     void odomCb(const nav_msgs::OdometryConstPtr& odom_msg);
     void findNextLookahead();
+    void findNextGTLookahead();
     void publishLookahead();
     void taskCb(const std_msgs::String task_msg);
     void followTrajCb(const std_msgs::BoolConstPtr& follow_traj_msg);
@@ -84,6 +87,14 @@ class trajectoryFollower {
     int traj_list_size_;
     double lookahead_dist_short_;
     double lookahead_dist_long_;
+
+    bool enable_ground_truth_;
+    int gt_traj_list_size_;
+    int last_gt_lookahead_index_;
+    bool have_current_gt_traj_home_;
+    vector<geometry_msgs::Point> gt_traj_list_points_;
+
+
 
 
 }; // class SimpleNodeClass
