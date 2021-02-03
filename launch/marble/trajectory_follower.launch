@@ -1,5 +1,7 @@
 <launch>
 
+    <arg name="vehicle_name" default="X1"/>
+
     <!-- <arg name="enable_debug" /> -->
     <node pkg="nearness_control" type="trajectory_follower" name="trajectory_follower_node" output="screen">
         <!-- TOPICS -->
@@ -7,6 +9,8 @@
         <remap from="trajectory_follower/trajectory" to="pose_graph"/>
         <remap from="trajectory_follower/task" to="fake_task"/>
         <remap from="trajectory_follower/follow_traj" to="follow_traj_fake"/>
+
+        <param name="vehicle_name" type="string" value="$(arg vehicle_name)"/>
 
     </node>
 

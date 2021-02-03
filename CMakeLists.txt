@@ -37,6 +37,7 @@ add_message_files(
    FILES
    FourierCoefsMsg.msg
    ClusterMsg.msg
+   TrajListMsg.msg
    )
 
 ## Generate added messages and services with any dependencies listed here
