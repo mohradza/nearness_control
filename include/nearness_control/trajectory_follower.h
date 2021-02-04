@@ -65,6 +65,7 @@ class trajectoryFollower {
     // SUBSCRIBERS //
     ros::Subscriber sub_odom_;
     ros::Subscriber sub_traj_;
+    ros::Subscriber sub_gt_traj_;
     ros::Subscriber sub_task_;
     ros::Subscriber sub_follow_traj_;
 
