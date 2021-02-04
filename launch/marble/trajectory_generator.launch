@@ -4,7 +4,7 @@
 
     <node pkg="nearness_control" type="trajectory_generator" name="trajectory_generator_node" output="screen">
         <!-- TOPICS -->
-        <remap from="trajectory_generator/odometry_map" to="$(arg vehicle_name)/odometry_map"/>
+        <remap from="trajectory_generator/odometry_map" to="odometry_map"/>
 
     </node>
 

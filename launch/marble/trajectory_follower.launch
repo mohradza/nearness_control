@@ -1,15 +1,15 @@
 <launch>
 
     <arg name="vehicle_name" default="X1"/>
-    <arg name="enable_ground_truth" default="false"/>
+    <arg name="enable_ground_truth" default="true"/>
 
-    <node pkg="nearness_control" type="trajectory_follower" name="trajectory_follower_node">
+    <node pkg="nearness_control" type="trajectory_follower" name="trajectory_follower_node" >
         <!-- TOPICS -->
         <remap from="trajectory_follower/odometry_map" to="odometry_map"/>
         <remap from="trajectory_follower/trajectory" to="pose_graph"/>
         <remap from="trajectory_follower/ground_truth_trajectory" to="trajectory_generator/ground_truth_trajectory"/>
         <remap from="trajectory_follower/task" to="fake_task"/>
-        <remap from="trajectory_follower/follow_traj" to="follow_traj_fake"/>
+        <remap from="trajectory_follower/follow_traj" to="fake_follow_traj"/>
 
         <param name="vehicle_name" value="$(arg vehicle_name)"/>
         <param name="enable_ground_truth" value="$(arg enable_ground_truth)"/>
@@ -17,10 +17,8 @@
     </node>
 
     <group if="$(arg enable_ground_truth)">
-      <node pkg="nearness_control" type="trajectory_generator" name="trajectory_generator_node" output="screen">
-          <!-- TOPICS -->
-          <remap from="trajectory_generator/odometry_map" to="$(arg vehicle_name)/odometry_map"/>
-
+      <node pkg="nearness_control" type="trajectory_generator" name="trajectory_generator_node">
+          <remap from="trajectory_generator/odometry_map" to="odometry_map"/>
       </node>
     </group>
 

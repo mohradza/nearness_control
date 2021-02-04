@@ -28,6 +28,8 @@ void trajectoryFollower::init() {
     lookahead_dist_long_ = 1.5;
     enable_lookahead_lookup_ = false;
     have_current_traj_home_ = false;
+    have_current_gt_traj_home_ = false;
+    last_gt_lookahead_index_ = 0;
 
     string lookahead_frame = vehicle_name + "/map";
     lookahead_point_.header.frame_id = lookahead_frame;
@@ -64,7 +66,7 @@ void trajectoryFollower::trajCb(const lcd_pkg::PoseGraphConstPtr& msg)
 
 void trajectoryFollower::gtTrajCb(const nearness_control_msgs::TrajListConstPtr& msg)
 {
-    //ROS_INFO_THROTTLE(1,"Received traj");
+    ROS_INFO_THROTTLE(1,"Received gt traj");
     // e only need to do this when we can't plan home
     uint32_t gt_traj_list_size_ = msg->traj_list_size;
 
@@ -107,11 +109,16 @@ void trajectoryFollower::findNextLookahead(){
 
 void trajectoryFollower::findNextGTLookahead(){
     // Parse through the list for the next lookahead
-    ROS_INFO_THROTTLE(1,"last_lookahead_index: %d", last_gt_lookahead_index_);
+    ROS_INFO_THROTTLE(1,"last_gt_lookahead_index: %d", last_gt_lookahead_index_);
     if(have_current_gt_traj_home_ && (last_gt_lookahead_index_ != 0)){
+        //ROS_INFO('Test1');
         //ROS_INFO_THROTTLE(1,"last_lookahead_index #2: %d", last_lookahead_index_);
         for (int i = last_gt_lookahead_index_; i > 0; i--){
+            //ROS_INFO('Test2');
+
             float dist_err = dist(odom_point_, gt_traj_list_points_[i]);
+            //ROS_INFO('Test3');
+
           //  ROS_INFO("%f, %d", dist_err, i);
             if((dist_err > lookahead_dist_short_) && (dist_err < lookahead_dist_long_)){
                 lookahead_point_.point = gt_traj_list_points_[i];
@@ -122,7 +129,7 @@ void trajectoryFollower::findNextGTLookahead(){
             }
 
         }
-        ROS_INFO_THROTTLE(1,"last_lookahead_index: %d, x: %f, y: %f", last_lookahead_index_, traj_list_points_[last_lookahead_index_].x, traj_list_points_[last_lookahead_index_].y);
+        ROS_INFO_THROTTLE(1,"last_lookahead_index: %d, x: %f, y: %f", last_gt_lookahead_index_, gt_traj_list_points_[last_gt_lookahead_index_].x, gt_traj_list_points_[last_gt_lookahead_index_].y);
     } else {
         lookahead_point_.point = odom_point_;
     }
