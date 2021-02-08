@@ -9,8 +9,10 @@
         <remap from="trajectory_follower/odometry_map" to="odometry_map"/>
         <remap from="trajectory_follower/trajectory" to="pose_graph"/>
         <remap from="trajectory_follower/follow_traj" to="follow_traj"/>
+        <remap from="trajectory_follower/ground_truth_trajectory" to="trajectory_generator/ground_truth_trajectory"/>
 
         <param name="vehicle_name" value="$(arg vehicle_name)"/>
+        <param name="enable_ground_truth" value="$(arg enable_ground_truth)"/>
 
     </node>
 

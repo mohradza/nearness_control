@@ -171,7 +171,10 @@ void trajectoryFollower::followTrajCb(const std_msgs::BoolConstPtr& follow_traj_
     } else {
       enable_lookahead_lookup_ = false;
       last_lookahead_index_ = 0;
-      have_current_traj_home_ = false;    }
+      have_current_traj_home_ = false;
+      have_current_gt_traj_home_ = false;
+      last_gt_lookahead_index_ = 0;
+   }
 }
 
 
