@@ -7,7 +7,8 @@
     <node pkg="nearness_control" type="trajectory_follower" name="trajectory_follower_node">
         <!-- TOPICS -->
         <remap from="trajectory_follower/odometry_map" to="odometry_map"/>
-        <remap from="trajectory_follower/trajectory" to="pose_graph"/>
+        <remap from="trajectory_follower/cartographer_trajectory" to="pose_graph"/>
+        <remap from="trajectory_follower/liosam_trajectory" to="lio_sam/mapping/path"/>
         <remap from="trajectory_follower/follow_traj" to="follow_traj"/>
         <remap from="trajectory_follower/ground_truth_trajectory" to="trajectory_generator/ground_truth_trajectory"/>
 

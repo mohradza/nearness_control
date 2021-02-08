@@ -12,7 +12,8 @@ trajectoryFollower::trajectoryFollower(const ros::NodeHandle &node_handle,
 void trajectoryFollower::init() {
 
     sub_odom_ = nh_.subscribe("odometry_map", 1, &trajectoryFollower::odomCb, this);
-    sub_traj_ = nh_.subscribe("trajectory", 1, &trajectoryFollower::trajCb, this);
+    sub_carto_traj_ = nh_.subscribe("cartographer_trajectory", 1, &trajectoryFollower::cartoTrajCb, this);
+    sub_liosam_traj_ = nh_.subscribe("liosam_trajectory", 1, &trajectoryFollower::liosamTrajCb, this);
     sub_gt_traj_ = nh_.subscribe("ground_truth_trajectory", 1, &trajectoryFollower::gtTrajCb, this);
     //sub_task_ = nh_.subscribe("task", 1, &trajectoryFollower::taskCb, this);
     sub_follow_traj_ = nh_.subscribe("follow_traj", 1, &trajectoryFollower::followTrajCb, this);
