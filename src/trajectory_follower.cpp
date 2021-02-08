@@ -45,7 +45,7 @@ void trajectoryFollower::odomCb(const nav_msgs::OdometryConstPtr& odom_msg)
     ROS_INFO_THROTTLE(1,"x: %f, y: %f", odom_point_.x, odom_point_.y);
 }
 
-void trajectoryFollower::trajCb(const lcd_pkg::PoseGraphConstPtr& msg)
+void trajectoryFollower::cartoTrajCb(const lcd_pkg::PoseGraphConstPtr& msg)
 {
     //ROS_INFO_THROTTLE(1,"Received traj");
     // e only need to do this when we can't plan home
@@ -59,6 +59,26 @@ void trajectoryFollower::trajCb(const lcd_pkg::PoseGraphConstPtr& msg)
         // Import trajectory list
         for (int i = 0; i < traj_list_size_; i++){
             traj_list_points_.push_back(msg->poseArray[i].pose.position);
+        }
+        //ROS_INFO("%d", last_lookahead_index_);
+        have_current_traj_home_ = true;
+      }
+}
+
+void trajectoryFollower::liosamTrajCb(const nav_msgs::PathConstPtr& msg)
+{
+    //ROS_INFO_THROTTLE(1,"Received traj");
+    // e only need to do this when we can't plan home
+    uint32_t traj_list_size_ = msg->poses.size();
+
+    //ROS_INFO_THROTTLE(1, "Traj list size: %d,", traj_list_size_);
+    if(enable_lookahead_lookup_ && !have_current_traj_home_){
+        traj_list_points_.clear();
+        //ROS_INFO_THROTTLE(1, "traj_list_size: %d", traj_list_size_);
+        last_lookahead_index_ = traj_list_size_-1;
+        // Import trajectory list
+        for (int i = 0; i < traj_list_size_; i++){
+            traj_list_points_.push_back(msg->poses[i].pose.position);
         }
         //ROS_INFO("%d", last_lookahead_index_);
         have_current_traj_home_ = true;
