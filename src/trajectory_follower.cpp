@@ -13,20 +13,27 @@ void trajectoryFollower::init() {
 
     sub_odom_ = nh_.subscribe("odometry_map", 1, &trajectoryFollower::odomCb, this);
     sub_traj_ = nh_.subscribe("trajectory", 1, &trajectoryFollower::trajCb, this);
+    sub_gt_traj_ = nh_.subscribe("ground_truth_trajectory", 1, &trajectoryFollower::gtTrajCb, this);
+    //sub_task_ = nh_.subscribe("task", 1, &trajectoryFollower::taskCb, this);
     sub_follow_traj_ = nh_.subscribe("follow_traj", 1, &trajectoryFollower::followTrajCb, this);
 
     pub_lookahead_ = nh_.advertise<geometry_msgs::PointStamped>("traj_lookahead", 10);
 
     std::string vehicle_name;
-    pnh_.param<std::string>("vehicle_name", vehicle_name, "H01");
-    //ROS_INFO("%s",vehicle_name.c_str());
+    pnh_.param<std::string>("vehicle_name", vehicle_name,"X1");
+    pnh_.param("enable_ground_truth", enable_ground_truth_, false);
 
     last_lookahead_index_ = 0;
     lookahead_dist_short_ = 1.25;
     lookahead_dist_long_ = 1.5;
     enable_lookahead_lookup_ = false;
     have_current_traj_home_ = false;
-    lookahead_point_.header.frame_id = vehicle_name + "/map";
+    have_current_gt_traj_home_ = false;
+    last_gt_lookahead_index_ = 0;
+
+    string lookahead_frame = vehicle_name + "/map";
+    lookahead_point_.header.frame_id = lookahead_frame;
+
 }
 
 void trajectoryFollower::odomCb(const nav_msgs::OdometryConstPtr& odom_msg)
@@ -51,13 +58,29 @@ void trajectoryFollower::trajCb(const lcd_pkg::PoseGraphConstPtr& msg)
         // Import trajectory list
         for (int i = 0; i < traj_list_size_; i++){
             traj_list_points_.push_back(msg->poseArray[i].pose.position);
-            //traj_list_points_[i].x = msg[i].pose.position.x;
-            //traj_list_points_[i].y = msg[i].pose.position.y;
-            //traj_list_points_[i].z = msg[i].pose.position.z;
-            //ROS_INFO("i: %d, x: %f, y: %f", i, traj_list_points_[i].x, traj_list_points_[i].y);
         }
         //ROS_INFO("%d", last_lookahead_index_);
         have_current_traj_home_ = true;
+      }
+}
+
+void trajectoryFollower::gtTrajCb(const nearness_control_msgs::TrajListConstPtr& msg)
+{
+    ROS_INFO_THROTTLE(1,"Received gt traj");
+    // e only need to do this when we can't plan home
+    uint32_t gt_traj_list_size_ = msg->traj_list_size;
+
+    //ROS_INFO_THROTTLE(1, "Traj list size: %d,", traj_list_size_);
+    if(enable_lookahead_lookup_ && !have_current_gt_traj_home_){
+        traj_list_points_.clear();
+        //ROS_INFO_THROTTLE(1, "traj_list_size: %d", traj_list_size_);
+        last_gt_lookahead_index_ = gt_traj_list_size_-1;
+        // Import trajectory list
+
+        gt_traj_list_points_ = msg->traj_points;
+
+        //ROS_INFO("%d", last_lookahead_index_);
+        have_current_gt_traj_home_ = true;
       }
 }
 
@@ -65,9 +88,6 @@ void trajectoryFollower::findNextLookahead(){
     // Parse through the list for the next lookahead
     ROS_INFO_THROTTLE(1,"last_lookahead_index: %d", last_lookahead_index_);
     if(have_current_traj_home_ && (last_lookahead_index_ != 0)){
-        // while(traj_list_points_[last_lookahead_index_].x < .01){
-        //     last_lookahead_index_ -= 1;
-        // }
         //ROS_INFO_THROTTLE(1,"last_lookahead_index #2: %d", last_lookahead_index_);
         for (int i = last_lookahead_index_; i > 0; i--){
             float dist_err = dist(odom_point_, traj_list_points_[i]);
@@ -79,10 +99,7 @@ void trajectoryFollower::findNextLookahead(){
                 //ROS_INFO_THROTTLE(1,"last_lookahead_index: %d, x: %f, y: %f", last_lookahead_index_, traj_list_points_[i].x, traj_list_points_[i].y);
                 //break;
             }
-            // if(i==1){
-            //     //ROS_INFO_THROTTLE(1,"last_lookahead_index: %d, x: %f, y: %f", 1, traj_list_points_[1].x, traj_list_points_[1].y);
-            //     //lookahead_point_.point = traj_list_points_[1];
-            // }
+
         }
         ROS_INFO_THROTTLE(1,"last_lookahead_index: %d, x: %f, y: %f", last_lookahead_index_, traj_list_points_[last_lookahead_index_].x, traj_list_points_[last_lookahead_index_].y);
     } else {
@@ -90,9 +107,41 @@ void trajectoryFollower::findNextLookahead(){
     }
 }
 
+void trajectoryFollower::findNextGTLookahead(){
+    // Parse through the list for the next lookahead
+    ROS_INFO_THROTTLE(1,"last_gt_lookahead_index: %d", last_gt_lookahead_index_);
+    if(have_current_gt_traj_home_ && (last_gt_lookahead_index_ != 0)){
+        //ROS_INFO('Test1');
+        //ROS_INFO_THROTTLE(1,"last_lookahead_index #2: %d", last_lookahead_index_);
+        for (int i = last_gt_lookahead_index_; i > 0; i--){
+            //ROS_INFO('Test2');
+
+            float dist_err = dist(odom_point_, gt_traj_list_points_[i]);
+            //ROS_INFO('Test3');
+
+          //  ROS_INFO("%f, %d", dist_err, i);
+            if((dist_err > lookahead_dist_short_) && (dist_err < lookahead_dist_long_)){
+                lookahead_point_.point = gt_traj_list_points_[i];
+                last_gt_lookahead_index_ = i + 1;
+                //ROS_INFO_THROTTLE(1,"last_lookahead_index: %d, x: %f, y: %f", last_lookahead_index_, lookahead_point_.point.x, lookahead_point_.point.y);
+                //ROS_INFO_THROTTLE(1,"last_lookahead_index: %d, x: %f, y: %f", last_lookahead_index_, traj_list_points_[i].x, traj_list_points_[i].y);
+                //break;
+            }
+
+        }
+        ROS_INFO_THROTTLE(1,"last_lookahead_index: %d, x: %f, y: %f", last_gt_lookahead_index_, gt_traj_list_points_[last_gt_lookahead_index_].x, gt_traj_list_points_[last_gt_lookahead_index_].y);
+    } else {
+        lookahead_point_.point = odom_point_;
+    }
+}
+
 void trajectoryFollower::publishLookahead(){
     ROS_INFO_THROTTLE(2,"Publishing trajectory lookahead...");
-    findNextLookahead();
+    if(enable_ground_truth_){
+      findNextGTLookahead();
+    } else {
+      findNextLookahead();
+    }
     lookahead_point_.header.stamp = ros::Time::now();
     pub_lookahead_.publish(lookahead_point_);
 }
