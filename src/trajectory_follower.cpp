@@ -25,8 +25,8 @@ void trajectoryFollower::init() {
     pnh_.param("enable_ground_truth", enable_ground_truth_, false);
 
     last_lookahead_index_ = 0;
-    lookahead_dist_short_ = 1.25;
-    lookahead_dist_long_ = 1.5;
+    lookahead_dist_short_ = .5;
+    lookahead_dist_long_ = 2.0;
     enable_lookahead_lookup_ = false;
     have_current_traj_home_ = false;
     have_current_gt_traj_home_ = false;
@@ -67,7 +67,7 @@ void trajectoryFollower::cartoTrajCb(const lcd_pkg::PoseGraphConstPtr& msg)
 
 void trajectoryFollower::liosamTrajCb(const nav_msgs::PathConstPtr& msg)
 {
-    //ROS_INFO_THROTTLE(1,"Received traj");
+    ROS_INFO_THROTTLE(1,"Received traj");
     // e only need to do this when we can't plan home
     uint32_t traj_list_size_ = msg->poses.size();
 
@@ -80,7 +80,7 @@ void trajectoryFollower::liosamTrajCb(const nav_msgs::PathConstPtr& msg)
         for (int i = 0; i < traj_list_size_; i++){
             traj_list_points_.push_back(msg->poses[i].pose.position);
         }
-        //ROS_INFO("%d", last_lookahead_index_);
+        ROS_INFO("%d", last_lookahead_index_);
         have_current_traj_home_ = true;
       }
 }
@@ -112,7 +112,7 @@ void trajectoryFollower::findNextLookahead(){
         //ROS_INFO_THROTTLE(1,"last_lookahead_index #2: %d", last_lookahead_index_);
         for (int i = last_lookahead_index_; i > 0; i--){
             float dist_err = dist(odom_point_, traj_list_points_[i]);
-          //  ROS_INFO("%f, %d", dist_err, i);
+            //sROS_INFO("%f, %d", dist_err, i);
             if((dist_err > lookahead_dist_short_) && (dist_err < lookahead_dist_long_)){
                 lookahead_point_.point = traj_list_points_[i];
                 last_lookahead_index_ = i + 1;
@@ -122,7 +122,7 @@ void trajectoryFollower::findNextLookahead(){
             }
 
         }
-        ROS_INFO_THROTTLE(1,"last_lookahead_index: %d, x: %f, y: %f", last_lookahead_index_, traj_list_points_[last_lookahead_index_].x, traj_list_points_[last_lookahead_index_].y);
+        //ROS_INFO_THROTTLE(1,"last_lookahead_index: %d, x: %f, y: %f", last_lookahead_index_, traj_list_points_[last_lookahead_index_].x, traj_list_points_[last_lookahead_index_].y);
     } else {
         lookahead_point_.point = odom_point_;
     }
@@ -130,7 +130,7 @@ void trajectoryFollower::findNextLookahead(){
 
 void trajectoryFollower::findNextGTLookahead(){
     // Parse through the list for the next lookahead
-    ROS_INFO_THROTTLE(1,"last_gt_lookahead_index: %d", last_gt_lookahead_index_);
+    //ROS_INFO_THROTTLE(1,"last_gt_lookahead_index: %d", last_gt_lookahead_index_);
     if(have_current_gt_traj_home_ && (last_gt_lookahead_index_ != 0)){
         //ROS_INFO('Test1');
         //ROS_INFO_THROTTLE(1,"last_lookahead_index #2: %d", last_lookahead_index_);
