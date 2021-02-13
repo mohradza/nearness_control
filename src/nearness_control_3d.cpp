@@ -222,14 +222,19 @@ void NearnessController3D::pclCb(const sensor_msgs::PointCloud2ConstPtr& pcl_msg
   // Convert the pcl to nearness
   pcl::PointXYZ p, mu_p;
   float dist, mu_val;
+  int index = 0;
   for(int i = 1; i < num_rings_-1; i++){
-      for(int j = 0; j < num_ring_points_; j++){
+      for(int j = 0; j < num_ring_points_ ; j++){
           // Rings are positive counterclockwise from sensor
           // So they are reversed on lookup
-          p = cloud_in->points[i*num_ring_points_ + (num_ring_points_-1-j)];
+          index = i*num_ring_points_ + (num_ring_points_-1-j);
+          p = cloud_in->points[index];
           cloud_out_.push_back(p);
           dist = sqrt(pow(p.x,2) + pow(p.y,2) + pow(p.z,2));
           mu_val = 1/dist;
+          // if(index%10 == 0){
+          //   ROS_INFO("dist: %f, mu_val: %f, index: %d, ring: %d", dist, mu_val, index, i);
+          // }
           mu_meas_.push_back(mu_val);
 
           // Get an estimate of how close things are in front of the vehicle

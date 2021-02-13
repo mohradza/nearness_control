@@ -18,7 +18,7 @@ int main(int argc, char** argv) {
             // Process 3D nearness
             nearness_control_3d_node.projectNearness();
             nearness_control_3d_node.reconstructWideFieldNearness();
-            //nearness_control_3d_node.computeSmallFieldNearness();
+            nearness_control_3d_node.computeSmallFieldNearness();
             nearness_control_3d_node.computeControlCommands();
         }
 
