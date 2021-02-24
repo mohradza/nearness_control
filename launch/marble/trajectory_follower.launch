@@ -4,7 +4,7 @@
     <arg name="vehicle_name" default="X1"/>
     <arg name="enable_ground_truth" default="false"/>
 
-    <node pkg="nearness_control" type="trajectory_follower" name="trajectory_follower_node" output="screen">
+    <node pkg="nearness_control" type="trajectory_follower" name="trajectory_follower_node">
         <!-- TOPICS -->
         <remap from="trajectory_follower/odometry_map" to="odometry_map"/>
         <remap from="trajectory_follower/cartographer_trajectory" to="pose_graph"/>
@@ -17,7 +17,7 @@
 
     </node>
 
-    <node pkg="nearness_control" type="trajectory_generator" name="trajectory_generator_node" output="screen" if="$(arg enable_ground_truth)">
+    <node pkg="nearness_control" type="trajectory_generator" name="trajectory_generator_node" if="$(arg enable_ground_truth)">
         <remap from="trajectory_generator/odometry_map" to="odometry_map"/>
     </node>
 
