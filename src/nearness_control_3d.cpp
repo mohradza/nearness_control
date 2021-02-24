@@ -388,6 +388,40 @@ void NearnessController3D::computeSmallFieldNearness(){
 
 }
 
+void NearnessController3D::computeSFControlCommands(){
+  // First, determine the std_dev of the SF nearness measurements
+  float nearness_sum = accumulate(sf_mu_.begin(), sf_mu_.end(), 0.0);
+  float nearness_mean = nearness_sum / float(last_index_);
+  float std_dev = 0.0;
+  for(int i= 0; i<last_index_; i++){
+    std_dev += pow(sf_mu_[i] - nearness_mean, 2);
+  }
+  std_dev =  pow(std_dev/float(last_index_), 0.5);
+
+  float sf_threshold = std_dev*3.0;
+
+  if(enable_debug_){
+    // Create a pcl for visualization
+    pcl::PointCloud<pcl::PointXYZ> sf_thresh_pcl;
+    pcl::PointXYZ sf_thresh_p;
+    float theta, phi;
+    for (int i=0; i<last_index_; i++){
+      theta = viewing_angle_mat_[i][0];
+      phi = viewing_angle_mat_[i][1];
+      sf_thresh_p = {sf_threshold*sin(theta)*cos(phi), sf_threshold*sin(theta)*sin(phi), sf_threshold*cos(theta) };
+      sf_thresh_pcl.push_back(sf_thresh_p);
+    }
+    sensor_msgs::PointCloud2 sf_thresh_pcl_msg;
+    pcl::toROSMsg(sf_thresh_pcl, sf_thresh_pcl_msg);
+    sf_thresh_pcl_msg.header.frame_id = frame_id_;
+    sf_thresh_pcl_msg.header.stamp = ros::Time::now();
+    pub_sf_thresh_.publish(sf_thresh_pcl_msg);
+
+  }
+
+
+}
+
 void NearnessController3D::computeControlCommands(){
 
   control_commands_.linear.x = 0.0;

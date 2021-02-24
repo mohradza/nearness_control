@@ -75,6 +75,7 @@ class NearnessController3D {
     void reconstructWideFieldNearness();
     void computeSmallFieldNearness();
     void computeControlCommands();
+    void computeSFControlCommands();
     bool newPcl();
 
 
@@ -109,6 +110,7 @@ class NearnessController3D {
     ros::Publisher pub_y_projections_with_odom_;
     ros::Publisher pub_recon_wf_mu_;
     ros::Publisher pub_sf_mu_;
+    ros::Publisher pub_sf_thresh_;
     ros::Publisher pub_control_commands_;
     ros::Publisher pub_cmd_markers_;
 
