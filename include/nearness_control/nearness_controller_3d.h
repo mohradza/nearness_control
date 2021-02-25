@@ -146,6 +146,8 @@ class NearnessController3D {
     bool enable_debug_;
     bool enable_altitude_hold_;
     bool enable_control_;
+    bool enable_wf_control_;
+    bool enable_sf_control_;
     bool enable_speed_regulation_;
     bool enable_cmd_scaling_;
     double test_ring_;
@@ -264,6 +266,10 @@ class NearnessController3D {
     visualization_msgs::Marker w_cmd_marker_;
     visualization_msgs::Marker thetadot_cmd_marker_;
     visualization_msgs::MarkerArray cmd_markers_;
+
+    // Small field commands
+    float sf_w_cmd_;
+    float sf_v_cmd_;
 
     // Joystick
     geometry_msgs::Twist joy_cmd_;

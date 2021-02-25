@@ -2,7 +2,7 @@
 
   <arg name="enable_debug"                 default="true"/>
   <arg name="sim_control"                  default="false"/>
-  <arg name="enable_altitude_hold"         default="true"/>
+  <arg name="enable_altitude_hold"         default="false"/>
   <arg name="enable_speed_regulation"      default="false"/>
   <arg name="enable_command_scaling"       default="false"/>
   <arg name="number_of_rings"              default = "64"/>
@@ -41,7 +41,7 @@
         <param name="turn_rate_gain"           type="double"     value="-.5"/>
         <param name="vertical_speed_gain"      type="double"     value="-.5"/>
         <param name="reference_altitude"       type="double"     value=".5"/>
-        <param name="forward_speed"            type="double"     value=".5"/>
+        <param name="forward_speed"            type="double"     value="0.0"/>
 
     </node>
   </group>

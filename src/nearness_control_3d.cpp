@@ -71,8 +71,10 @@ void NearnessController3D::init() {
     max_yaw_rate_ = 1.0;
 
     enable_control_ = true;
+    enable_wf_control_ = false;
+    enable_sf_control_ = true;
     enable_cmd_scaling_ = false;
-    enable_speed_regulation_ = true;
+    enable_speed_regulation_ = false;
 
     frame_id_ = "OHRAD_X3";
 
@@ -423,6 +425,10 @@ void NearnessController3D::computeSFControlCommands(){
     }
   }
 
+  vector<float> cluster_mu_averages, cluster_theta_averages, cluster_phi_averages;
+  float cluster_mu_ave, cluster_theta_ave, cluster_phi_ave;
+  int index;
+
   // Extract the SF clusters
   if(sf_filtered_mu_vec.size()){
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered (new pcl::PointCloud<pcl::PointXYZ>);
@@ -438,10 +444,6 @@ void NearnessController3D::computeSFControlCommands(){
     ec.setSearchMethod (tree);
     ec.setInputCloud (cloud_filtered);
     ec.extract (cluster_indices);
-
-    vector<float> cluster_mu_averages, cluster_theta_averages, cluster_phi_averages;
-    float cluster_mu_ave, cluster_theta_ave, cluster_phi_ave;
-    int index;
 
     for (int i = 0; i < cluster_indices.size(); i++){
 
@@ -462,8 +464,61 @@ void NearnessController3D::computeSFControlCommands(){
 
     }
 
-    if(enable_debug_){
+  }
 
+  // Compute the sf control commands
+  sf_w_cmd_ = 0.0;
+  sf_v_cmd_ = 0.0;
+
+  float sf_k_angle_ = 1.0;
+  float sf_k_d_ = 1.0;
+  float sf_k_0_ = 1.0;
+
+  float mu;
+  int num_clusters = cluster_mu_averages.size();
+
+  for(int i = 0; i < num_clusters; i++){
+    theta = cluster_theta_averages[i] - M_PI/2.0;
+    phi = cluster_phi_averages[i];
+    mu = cluster_mu_averages[i];
+    sf_w_cmd_ += sf_k_0_ * sgn(theta) * exp(-sf_k_angle_ * abs(theta)) * exp(-sf_k_d_/abs(mu));
+    sf_v_cmd_ += -sf_k_0_ * sgn(phi) * exp(-sf_k_angle_ * abs(phi)) * exp(-sf_k_d_/abs(mu));
+  }
+
+  if(num_clusters){
+    sf_w_cmd_ /= num_clusters;
+    sf_v_cmd_ /= num_clusters;
+  } else {
+    sf_w_cmd_ = 0.0;
+    sf_v_cmd_ = 0.0;
+  }
+  //cout << "w: "<< sf_w_cmd_ << " v: " << sf_v_cmd_ << endl;
+
+  if(enable_debug_){
+    // Create a pcl for visualization
+    pcl::PointCloud<pcl::PointXYZ> sf_thresh_pcl;
+    pcl::PointXYZ sf_thresh_p;
+    float theta, phi;
+    for (int i=0; i<last_index_; i++){
+      theta = viewing_angle_mat_[i][0];
+      phi = viewing_angle_mat_[i][1];
+      sf_thresh_p = {sf_threshold*sin(theta)*cos(phi), sf_threshold*sin(theta)*sin(phi), sf_threshold*cos(theta) };
+      sf_thresh_pcl.push_back(sf_thresh_p);
+    }
+
+    sensor_msgs::PointCloud2 sf_thresh_pcl_msg;
+    pcl::toROSMsg(sf_thresh_pcl, sf_thresh_pcl_msg);
+    sf_thresh_pcl_msg.header.frame_id = frame_id_;
+    sf_thresh_pcl_msg.header.stamp = ros::Time::now();
+    pub_sf_thresh_.publish(sf_thresh_pcl_msg);
+
+    sensor_msgs::PointCloud2 sf_filtered_msg;
+    pcl::toROSMsg(sf_points_filtered, sf_filtered_msg);
+    sf_filtered_msg.header.frame_id = frame_id_;
+    sf_filtered_msg.header.stamp = ros::Time::now();
+    pub_sf_filtered_.publish(sf_filtered_msg);
+
+    if(sf_filtered_mu_vec.size()){
       sensor_msgs::PointCloud2 sf_clusters_msg;
       pcl::PointXYZ sf_cluster_point;
       pcl::PointCloud<pcl::PointXYZ> sf_clusters_pcl;
@@ -478,37 +533,6 @@ void NearnessController3D::computeSFControlCommands(){
       sf_clusters_msg.header.stamp = ros::Time::now();
       pub_sf_clusters_.publish(sf_clusters_msg);
     }
-  }
-
-
-  if(enable_debug_){
-    // Create a pcl for visualization
-    pcl::PointCloud<pcl::PointXYZ> sf_thresh_pcl;
-    pcl::PointXYZ sf_thresh_p;
-    float theta, phi;
-    for (int i=0; i<last_index_; i++){
-      theta = viewing_angle_mat_[i][0];
-      phi = viewing_angle_mat_[i][1];
-      sf_thresh_p = {sf_threshold*sin(theta)*cos(phi), sf_threshold*sin(theta)*sin(phi), sf_threshold*cos(theta) };
-      sf_thresh_pcl.push_back(sf_thresh_p);
-    }
-    sensor_msgs::PointCloud2 sf_thresh_pcl_msg;
-    pcl::toROSMsg(sf_thresh_pcl, sf_thresh_pcl_msg);
-    sf_thresh_pcl_msg.header.frame_id = frame_id_;
-    sf_thresh_pcl_msg.header.stamp = ros::Time::now();
-    pub_sf_thresh_.publish(sf_thresh_pcl_msg);
-
-    sensor_msgs::PointCloud2 sf_filtered_msg;
-    pcl::toROSMsg(sf_points_filtered, sf_filtered_msg);
-    sf_filtered_msg.header.frame_id = frame_id_;
-    sf_filtered_msg.header.stamp = ros::Time::now();
-    pub_sf_filtered_.publish(sf_filtered_msg);
-
-    // sensor_msgs::PointCloud2 sf_clusters_msg;
-    // sf_cluster1_msg.header.frame_id = frame_id_;
-    // sf_cluster1_msg.header.stamp = ros::Time::now();
-    // pub_sf_cluster1_.publish(sf_cluster1_msg);
-
 
   }
 
@@ -533,27 +557,21 @@ void NearnessController3D::computeControlCommands(){
   //     u_vec_[i] += C_mat_[i][j]*y_projections_[j];
   //   }
   // }
-  u_vec_.clear();
-  u_vec_ = {0.0, 0.0, 0.0};
-  for(int j=0; j < num_basis_shapes_; j++){
-    u_vec_[0] += C_dy_[j]*y_full_[j];
-    u_vec_[1] += C_dtheta_[j]*y_front_half_[j];
-    u_vec_[2] += C_dz_[j]*y_full_[j];
-  }
+
 
   // u_vec_.push_back(0.0);
   // for(int j = 0; j < num_basis_shapes_; j++){
   //   u_vec_[2] += C_z_[j]*y_projections_half_[j];
   // }
 
+  u_u_ = 0.0;
+  u_w_ = 0.0;
+  u_v_ = 0.0;
+  u_thetadot_ = 0.0;
+
   if(enable_control_){
 
-    u_v_ = k_v_*u_vec_[0];
-    //u_w_ = k_w_*(reference_altitude_ - u_vec_[2]);
-    u_w_ = k_w_*u_vec_[2];
-    u_thetadot_ = k_thetadot_*u_vec_[1];
-    //u_thetadot_ = 0.0;
-
+    // Enable forward speed regulation based on Laplace spherical harmonic feedback
     if(enable_speed_regulation_){
       u_u_ =  max_forward_speed_*(1 - k_u_v_*abs(u_v_) - k_u_thetadot_*abs(u_thetadot_));
       //u_u_ =  max_forward_speed_*(1 - k_u_v_*abs(u_v_) - k_u_thetadot_*abs(u_thetadot_) - front_mu_ave_);
@@ -562,6 +580,26 @@ void NearnessController3D::computeControlCommands(){
       }
     } else {
       u_u_ = forward_speed_;
+    }
+
+    // Enable wide-field controller
+    if(enable_wf_control_){
+      u_vec_.clear();
+      u_vec_ = {0.0, 0.0, 0.0};
+      for(int j=0; j < num_basis_shapes_; j++){
+        u_vec_[0] += C_dy_[j]*y_full_[j];
+        u_vec_[1] += C_dtheta_[j]*y_front_half_[j];
+        u_vec_[2] += C_dz_[j]*y_full_[j];
+      }
+      u_v_ += k_v_*u_vec_[0];
+      u_w_ += k_w_*u_vec_[2];
+      u_thetadot_ += k_thetadot_*u_vec_[1];
+    }
+
+    // Enable small-field controller
+    if(enable_sf_control_){
+      u_v_ += sf_v_cmd_;
+      u_w_ += sf_w_cmd_;
     }
 
     if(enable_cmd_scaling_){
