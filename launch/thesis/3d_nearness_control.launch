@@ -43,6 +43,13 @@
         <param name="reference_altitude"       type="double"     value=".5"/>
         <param name="forward_speed"            type="double"     value="0.0"/>
 
+        <!-- Small-field controller gains -->
+        <param name="small_field_angle_gain"            type="double"     value="1.0"/>
+        <param name="small_field_nearness_gain"         type="double"     value="1.0"/>
+        <param name="small_field_vertical_speed_gain"   type="double"     value="1.0"/>
+        <param name="small_field_lateral_speed_gain"    type="double"     value="1.0"/>
+
+
     </node>
   </group>
 

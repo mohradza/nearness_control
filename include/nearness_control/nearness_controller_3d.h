@@ -270,6 +270,7 @@ class NearnessController3D {
     // Small field commands
     float sf_w_cmd_;
     float sf_v_cmd_;
+    double sf_k_v_, sf_k_w_, sf_k_angle_, sf_k_mu_;
 
     // Joystick
     geometry_msgs::Twist joy_cmd_;

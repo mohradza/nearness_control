@@ -65,6 +65,11 @@ void NearnessController3D::init() {
     pnh_.param("forward_speed_lateral_gain", k_u_v_, .1);
     pnh_.param("forward_speed_thetadot_gain", k_u_thetadot_, .1);
 
+    pnh_.param("small_field_angle_gain", sf_k_angle_, 1.0);
+    pnh_.param("small_field_nearness_gain", sf_k_mu_, 1.0);
+    pnh_.param("small_field_vertical_speed_gain", sf_k_w_, 1.0);
+    pnh_.param("small_field_lateral_speed_gain", sf_k_v_, 1.0);
+
     max_forward_speed_ = 1.0;
     max_lateral_speed_ = 1.0;
     max_vertical_speed_ = 1.0;
@@ -372,6 +377,8 @@ void NearnessController3D::computeSmallFieldNearness(){
   pcl::PointXYZ sf_mu_p;
   sf_mu_pcl_.clear();
 
+  // Take the difference of the measured nearness and the
+  // reconstructed wide-field nearness signals
   for(int i = 0; i< last_index_; i++){
     diff = mu_meas_[i] - recon_wf_mu_vec_[i];
     sf_mu_.push_back(diff);
@@ -385,6 +392,7 @@ void NearnessController3D::computeSmallFieldNearness(){
     }
   }
 
+  // Create a pointcloud2 message for visualization
   if(enable_debug_){
     pcl::toROSMsg(sf_mu_pcl_, sf_mu_pcl_msg_);
     sf_mu_pcl_msg_.header.frame_id = frame_id_;
@@ -404,6 +412,7 @@ void NearnessController3D::computeSFControlCommands(){
   }
   std_dev =  pow(std_dev/float(last_index_), 0.5);
 
+  // Create a threshold. 3 x the std dev seems to work well
   float sf_threshold = std_dev*3.0;
 
   // Filter the SF pointcloud based on threshold
@@ -415,6 +424,7 @@ void NearnessController3D::computeSFControlCommands(){
   float theta, phi;
   for(int i = 0; i < last_index_; i++){
     if(sf_mu_[i] >= sf_threshold){
+      // Store the location and nearness mu for each filtered point
       theta = viewing_angle_mat_[i][0];
       phi = viewing_angle_mat_[i][1];
       sf_filtered_mu_vec.push_back(sf_mu_[i]);
@@ -429,8 +439,8 @@ void NearnessController3D::computeSFControlCommands(){
   float cluster_mu_ave, cluster_theta_ave, cluster_phi_ave;
   int index;
 
-  // Extract the SF clusters
   if(sf_filtered_mu_vec.size()){
+    // Extract the SF clusters using euclidean cluster extraction
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered (new pcl::PointCloud<pcl::PointXYZ>);
     *cloud_filtered = sf_points_filtered;
     pcl::search::KdTree<pcl::PointXYZ>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZ>);
@@ -445,44 +455,37 @@ void NearnessController3D::computeSFControlCommands(){
     ec.setInputCloud (cloud_filtered);
     ec.extract (cluster_indices);
 
+    // Generate cluster averages to find the center of each cluster
     for (int i = 0; i < cluster_indices.size(); i++){
-
       cluster_mu_ave = 0.0;
       cluster_theta_ave = 0.0;
       cluster_phi_ave = 0.0;
-
       for (int j = 0; j < cluster_indices[i].indices.size(); j++){
           index = cluster_indices[i].indices[j];
           cluster_mu_ave += sf_filtered_mu_vec[index];
           cluster_phi_ave += sf_filtered_phi_vec[index];
           cluster_theta_ave += sf_filtered_theta_vec[index];
       }
-
       cluster_mu_averages.push_back(cluster_mu_ave / cluster_indices[i].indices.size());
       cluster_phi_averages.push_back(cluster_phi_ave / cluster_indices[i].indices.size());
       cluster_theta_averages.push_back(cluster_theta_ave / cluster_indices[i].indices.size());
-
     }
-
   }
 
   // Compute the sf control commands
   sf_w_cmd_ = 0.0;
   sf_v_cmd_ = 0.0;
 
-  float sf_k_angle_ = 1.0;
-  float sf_k_d_ = 1.0;
-  float sf_k_0_ = 1.0;
-
   float mu;
   int num_clusters = cluster_mu_averages.size();
 
+  // Treat each cluster center point as a detractor
   for(int i = 0; i < num_clusters; i++){
     theta = cluster_theta_averages[i] - M_PI/2.0;
     phi = cluster_phi_averages[i];
     mu = cluster_mu_averages[i];
-    sf_w_cmd_ += sf_k_0_ * sgn(theta) * exp(-sf_k_angle_ * abs(theta)) * exp(-sf_k_d_/abs(mu));
-    sf_v_cmd_ += -sf_k_0_ * sgn(phi) * exp(-sf_k_angle_ * abs(phi)) * exp(-sf_k_d_/abs(mu));
+    sf_w_cmd_ += sf_k_w_ * sgn(theta) * exp(-sf_k_angle_ * abs(theta)) * exp(-sf_k_mu_/abs(mu));
+    sf_v_cmd_ += -sf_k_v_ * sgn(phi) * exp(-sf_k_angle_ * abs(phi)) * exp(-sf_k_mu_/abs(mu));
   }
 
   if(num_clusters){
@@ -547,22 +550,6 @@ void NearnessController3D::computeControlCommands(){
   control_commands_.angular.x = 0.0;
   control_commands_.angular.y = 0.0;
   control_commands_.angular.z = 0.0;
-
-  // Compute control commands
-  //int num_controls = C_mat_.size();
-  //u_vec_.clear();
-  // for (int i=0; i < num_controls; i++){
-  //   u_vec_.push_back(0.0);
-  //   for(int j=0; j < num_basis_shapes_; j++){
-  //     u_vec_[i] += C_mat_[i][j]*y_projections_[j];
-  //   }
-  // }
-
-
-  // u_vec_.push_back(0.0);
-  // for(int j = 0; j < num_basis_shapes_; j++){
-  //   u_vec_[2] += C_z_[j]*y_projections_half_[j];
-  // }
 
   u_u_ = 0.0;
   u_w_ = 0.0;
