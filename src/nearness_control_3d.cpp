@@ -39,6 +39,7 @@ void NearnessController3D::init() {
     pub_y_projections_with_odom_ = nh_.advertise<nearness_control_msgs::ProjectionWithOdomMsg>("y_projections_with_odom",1);
     pub_recon_wf_mu_ = nh_.advertise<sensor_msgs::PointCloud2>("reconstructed_wf_nearness",1);
     pub_sf_mu_ = nh_.advertise<sensor_msgs::PointCloud2>("sf_nearness",1);
+    pub_sf_thresh_ = nh_.advertise<sensor_msgs::PointCloud2>("sf_thresh",1);
     pub_control_commands_ = nh_.advertise<geometry_msgs::Twist>("control_commands",1);
     pub_cmd_markers_ = nh_.advertise<visualization_msgs::MarkerArray>("cmd_markers",1);
 
@@ -418,6 +419,8 @@ void NearnessController3D::computeSFControlCommands(){
     pub_sf_thresh_.publish(sf_thresh_pcl_msg);
 
   }
+
+
 
 
 }
