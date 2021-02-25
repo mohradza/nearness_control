@@ -32,6 +32,16 @@
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 
+#include <pcl/ModelCoefficients.h>
+#include <pcl/io/pcd_io.h>
+#include <pcl/filters/extract_indices.h>
+#include <pcl/kdtree/kdtree.h>
+#include <pcl/sample_consensus/method_types.h>
+#include <pcl/sample_consensus/model_types.h>
+#include <pcl/segmentation/sac_segmentation.h>
+#include <pcl/segmentation/extract_clusters.h>
+
+
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf/tf.h>
@@ -111,6 +121,9 @@ class NearnessController3D {
     ros::Publisher pub_recon_wf_mu_;
     ros::Publisher pub_sf_mu_;
     ros::Publisher pub_sf_thresh_;
+    ros::Publisher pub_sf_filtered_;
+    ros::Publisher pub_sf_cluster1_;
+    ros::Publisher pub_sf_clusters_;
     ros::Publisher pub_control_commands_;
     ros::Publisher pub_cmd_markers_;
 

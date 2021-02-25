@@ -40,6 +40,9 @@ void NearnessController3D::init() {
     pub_recon_wf_mu_ = nh_.advertise<sensor_msgs::PointCloud2>("reconstructed_wf_nearness",1);
     pub_sf_mu_ = nh_.advertise<sensor_msgs::PointCloud2>("sf_nearness",1);
     pub_sf_thresh_ = nh_.advertise<sensor_msgs::PointCloud2>("sf_thresh",1);
+    pub_sf_filtered_ = nh_.advertise<sensor_msgs::PointCloud2>("sf_filtered",1);
+    pub_sf_cluster1_ = nh_.advertise<sensor_msgs::PointCloud2>("sf_cluster1",1);
+    pub_sf_clusters_ = nh_.advertise<sensor_msgs::PointCloud2>("sf_clusters",1);
     pub_control_commands_ = nh_.advertise<geometry_msgs::Twist>("control_commands",1);
     pub_cmd_markers_ = nh_.advertise<visualization_msgs::MarkerArray>("cmd_markers",1);
 
@@ -401,6 +404,83 @@ void NearnessController3D::computeSFControlCommands(){
 
   float sf_threshold = std_dev*3.0;
 
+  // Filter the SF pointcloud based on threshold
+  pcl::PointXYZ sf_point;
+  pcl::PointCloud<pcl::PointXYZ> sf_points_filtered;
+  vector<float> sf_filtered_mu_vec;
+  vector<float> sf_filtered_phi_vec;
+  vector<float> sf_filtered_theta_vec;
+  float theta, phi;
+  for(int i = 0; i < last_index_; i++){
+    if(sf_mu_[i] >= sf_threshold){
+      theta = viewing_angle_mat_[i][0];
+      phi = viewing_angle_mat_[i][1];
+      sf_filtered_mu_vec.push_back(sf_mu_[i]);
+      sf_filtered_theta_vec.push_back(theta);
+      sf_filtered_phi_vec.push_back(phi);
+      sf_point = { sf_mu_[i]*sin(theta)*cos(phi), sf_mu_[i]*sin(theta)*sin(phi), sf_mu_[i]*cos(theta) };
+      sf_points_filtered.push_back(sf_point);
+    }
+  }
+
+  // Extract the SF clusters
+  if(sf_filtered_mu_vec.size()){
+    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered (new pcl::PointCloud<pcl::PointXYZ>);
+    *cloud_filtered = sf_points_filtered;
+    pcl::search::KdTree<pcl::PointXYZ>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZ>);
+    tree->setInputCloud (cloud_filtered);
+
+    vector<pcl::PointIndices> cluster_indices;
+    pcl::EuclideanClusterExtraction<pcl::PointXYZ> ec;
+    ec.setClusterTolerance (0.1); // 2cm
+    ec.setMinClusterSize (5);
+    ec.setMaxClusterSize (25);
+    ec.setSearchMethod (tree);
+    ec.setInputCloud (cloud_filtered);
+    ec.extract (cluster_indices);
+
+    vector<float> cluster_mu_averages, cluster_theta_averages, cluster_phi_averages;
+    float cluster_mu_ave, cluster_theta_ave, cluster_phi_ave;
+    int index;
+
+    for (int i = 0; i < cluster_indices.size(); i++){
+
+      cluster_mu_ave = 0.0;
+      cluster_theta_ave = 0.0;
+      cluster_phi_ave = 0.0;
+
+      for (int j = 0; j < cluster_indices[i].indices.size(); j++){
+          index = cluster_indices[i].indices[j];
+          cluster_mu_ave += sf_filtered_mu_vec[index];
+          cluster_phi_ave += sf_filtered_phi_vec[index];
+          cluster_theta_ave += sf_filtered_theta_vec[index];
+      }
+
+      cluster_mu_averages.push_back(cluster_mu_ave / cluster_indices[i].indices.size());
+      cluster_phi_averages.push_back(cluster_phi_ave / cluster_indices[i].indices.size());
+      cluster_theta_averages.push_back(cluster_theta_ave / cluster_indices[i].indices.size());
+
+    }
+
+    if(enable_debug_){
+
+      sensor_msgs::PointCloud2 sf_clusters_msg;
+      pcl::PointXYZ sf_cluster_point;
+      pcl::PointCloud<pcl::PointXYZ> sf_clusters_pcl;
+      for(int i = 0; i < cluster_mu_averages.size(); i++){
+        theta = cluster_theta_averages[i];
+        phi = cluster_phi_averages[i];
+        sf_cluster_point = { cluster_mu_averages[i]*sin(theta)*cos(phi), cluster_mu_averages[i]*sin(theta)*sin(phi), cluster_mu_averages[i]*cos(theta) };
+        sf_clusters_pcl.push_back(sf_cluster_point);
+      }
+      pcl::toROSMsg(sf_clusters_pcl, sf_clusters_msg);
+      sf_clusters_msg.header.frame_id = frame_id_;
+      sf_clusters_msg.header.stamp = ros::Time::now();
+      pub_sf_clusters_.publish(sf_clusters_msg);
+    }
+  }
+
+
   if(enable_debug_){
     // Create a pcl for visualization
     pcl::PointCloud<pcl::PointXYZ> sf_thresh_pcl;
@@ -418,10 +498,19 @@ void NearnessController3D::computeSFControlCommands(){
     sf_thresh_pcl_msg.header.stamp = ros::Time::now();
     pub_sf_thresh_.publish(sf_thresh_pcl_msg);
 
+    sensor_msgs::PointCloud2 sf_filtered_msg;
+    pcl::toROSMsg(sf_points_filtered, sf_filtered_msg);
+    sf_filtered_msg.header.frame_id = frame_id_;
+    sf_filtered_msg.header.stamp = ros::Time::now();
+    pub_sf_filtered_.publish(sf_filtered_msg);
+
+    // sensor_msgs::PointCloud2 sf_clusters_msg;
+    // sf_cluster1_msg.header.frame_id = frame_id_;
+    // sf_cluster1_msg.header.stamp = ros::Time::now();
+    // pub_sf_cluster1_.publish(sf_cluster1_msg);
+
+
   }
-
-
-
 
 }
 
