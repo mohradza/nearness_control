@@ -40,14 +40,14 @@
     <arg name="vehicle_roll_angle_limit"    default="15.0"/>
     <arg name="vehicle_pitch_angle_limit"   default="15.0"/>
 
-    <node pkg="nearness_control" type="nearness_controller_node" name="nearness_control_node" output="screen">
+    <node pkg="nearness_control" type="nearness_controller_node" name="nearness_control_node" output="screen" respawn="true">
 
         <!-- SUBSCRIBED TOPICS -->
         <remap from="nearness_controller/horiz_scan" to="scan"/>
         <remap from="nearness_controller/vert_scan" to="scan1"/>
         <remap from="nearness_controller/att_lookahead" to="lookahead_point"/>
         <remap from="nearness_controller/traj_lookahead" to="trajectory_follower/traj_lookahead"/>
-        <remap from="nearness_controller/follow_traj" to="follow_traj_fake"/>
+        <remap from="nearness_controller/follow_traj" to="follow_traj"/>
         <remap from="nearness_controller/task" to="fake_task"/>
         <remap from="nearness_controller/odometry" to="odometry"/>
         <remap from="nearness_controller/odometry_map" to="odometry_map"/>
