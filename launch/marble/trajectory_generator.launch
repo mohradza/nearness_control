@@ -1,0 +1,11 @@
+<launch>
+
+    <arg name="vehicle_name" default="X1"/>
+
+    <node pkg="nearness_control" type="trajectory_generator" name="trajectory_generator_node" output="screen">
+        <!-- TOPICS -->
+        <remap from="trajectory_generator/odometry_map" to="odometry_map"/>
+
+    </node>
+
+</launch>
