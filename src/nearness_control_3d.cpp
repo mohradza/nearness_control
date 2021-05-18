@@ -449,8 +449,8 @@ void NearnessController3D::computeSFControlCommands(){
     vector<pcl::PointIndices> cluster_indices;
     pcl::EuclideanClusterExtraction<pcl::PointXYZ> ec;
     ec.setClusterTolerance (0.1); // 2cm
-    ec.setMinClusterSize (5);
-    ec.setMaxClusterSize (25);
+    ec.setMinClusterSize (3);
+    ec.setMaxClusterSize (150);
     ec.setSearchMethod (tree);
     ec.setInputCloud (cloud_filtered);
     ec.extract (cluster_indices);
@@ -478,6 +478,7 @@ void NearnessController3D::computeSFControlCommands(){
 
   float mu;
   int num_clusters = cluster_mu_averages.size();
+  // cout << num_clusters << endl;
 
   // Treat each cluster center point as a detractor
   for(int i = 0; i < num_clusters; i++){
