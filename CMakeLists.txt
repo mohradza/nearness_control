@@ -19,16 +19,13 @@ find_package(catkin REQUIRED COMPONENTS
   pcl_conversions
   pcl_ros
   nearness_control_msgs
-  lcd_pkg
   visualization_msgs
   geometry_msgs
 )
 
 ## System dependencies are found with CMake's conventions
-# find_package(Boost REQUIRED COMPONENTS system)
 find_package(OpenCV REQUIRED)
 find_package(Boost REQUIRED COMPONENTS thread)
-#find_package(Boost REQUIRED COMPONENTS system filesystem)
 
 if(cv_bridge_VERSION VERSION_GREATER "1.12.0")
   add_compile_options(-std=c++11)
@@ -100,12 +97,6 @@ target_link_libraries(joy_teleop_mixer_node ${catkin_LIBRARIES} ${Boost_LIBRARIE
 add_executable(joy_teleop_mixer src/joy_teleop_mixer.cpp)
 #add_dependencies(joy_teleop_mixer ${PROJECT_NAME}_gencfg )
 target_link_libraries(joy_teleop_mixer joy_teleop_mixer_node ${catkin_LIBRARIES} ${Boost_LIBRARIES})
-
-add_library(trajectory_follower_node src/trajectory_follower_node.cpp)
-target_link_libraries(trajectory_follower_node ${catkin_LIBRARIES} ${Boost_LIBRARIES})
-
-add_executable(trajectory_follower src/trajectory_follower.cpp)
-target_link_libraries(trajectory_follower trajectory_follower_node ${catkin_LIBRARIES} ${Boost_LIBRARIES})
 
 add_executable(tf2odom src/tf2odom.cpp)
 target_link_libraries(tf2odom ${catkin_LIBRARIES})
