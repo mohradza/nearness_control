@@ -80,6 +80,7 @@ void NearnessController3D::init() {
     enable_sf_control_ = true;
     enable_cmd_scaling_ = false;
     enable_speed_regulation_ = false;
+    enable_analytic_shapes_ = true;
 
     frame_id_ = "OHRAD_X3";
 
@@ -95,26 +96,25 @@ void NearnessController3D::init() {
 
     // Set up the Cdagger matrix
     // Will be referenced as C in code
-    // Might want to implement this with Eigen
-    vector<float> zeros_vec(num_basis_shapes_, 0.0);
-    //C_dy_ = zeros_vec;
+
+    // Lateral Error Shapes
+    // Trained using LSE in DARPA Simple Cave World 1
     //C_dy_ = {0.0137, -0.2525, 0.1475, -3.7765, 0.0200, -0.2169, -1.1179, 0.3504, -.0037};
     C_dy_ = {-0.4665, 0.0037, 0.2523, 3.3906, 1.6712, 0.0114, 1.8488, 0.0045, -0.0378};
-    //C_mat_.push_back(C_dy_);
-    //C_dtheta_ = zeros_vec;
+
+    // Angle Error Shapes
+    // Full Sphere
     //C_dtheta_ = {-0.0408, 0.0168, -0.1982, -0.0513, 0.1610, -0.0519, 0.0344, 0.0596, -2.6322};
     //C_dtheta_ = {0.0820, -0.1909, -0.6301, 0.0640, -0.3424, -0.0814, -0.1268, 0.0088, 2.6603};
+
     // Half Front sphere
     C_dtheta_ = {-0.2357, -0.0990, 0.2396, 0.0491, 0.7532, -0.0251, -0.2976, -0.1963, 5.3746};
 
-  //  C_mat_.push_back(C_dtheta_);
-
-    //C_dz_ = zeros_vec;
+    // Vertical Error Shapes
     // Full Sphere
     C_dz_ = {0.1425, -1.2913, -1.6798, 2.6784, 0.1223, -0.0236, -6.7826, 2.0289, -2.9310};
     // Half Sphere
     //C_z_ = {0.0006589,  -0.0002733, -0.0005839, 0.00004139, -0.001567, -0.0001882, 0.0009429, -0.0009308, 0.002691};
-    //C_mat_.push_back(C_dz_);
 
     // Prepare the Laplace spherical harmonic basis set
     generateViewingAngleVectors();
@@ -202,7 +202,7 @@ void NearnessController3D::generateViewingAngleVectors(){
     phi_view_vec_.push_back(phi_start - float(i)*dphi_);
   }
 
-  // Make a matrix for making generating pointclouds from
+  // Make a matrix for generating pointclouds from
   // vector representations of nearness
   for(int i = 1; i < num_rings_-1; i++){
     for(int j = 0; j < num_ring_points_; j++){
@@ -243,9 +243,6 @@ void NearnessController3D::pclCb(const sensor_msgs::PointCloud2ConstPtr& pcl_msg
           cloud_out_.push_back(p);
           dist = sqrt(pow(p.x,2) + pow(p.y,2) + pow(p.z,2));
           mu_val = 1/dist;
-          // if(index%10 == 0){
-          //   ROS_INFO("dist: %f, mu_val: %f, index: %d, ring: %d", dist, mu_val, index, i);
-          // }
           mu_meas_.push_back(mu_val);
 
           // Get an estimate of how close things are in front of the vehicle
@@ -309,7 +306,7 @@ void NearnessController3D::projectNearness(){
       increment = shape_mat_[j][i]*mu_meas_[i]*sin(theta)*dtheta_*dphi_;
       y_full_[j] += increment;
 
-      // Front half for steering
+      // Front half only for steering
       if( phi < M_PI/2 && phi > -M_PI/2){
         y_front_half_[j] += increment;
       }
@@ -571,17 +568,24 @@ void NearnessController3D::computeControlCommands(){
     }
 
     // Enable wide-field controller
+    r_ = 1.0; // Estimated radius
     if(enable_wf_control_){
       u_vec_.clear();
       u_vec_ = {0.0, 0.0, 0.0};
-      for(int j=0; j < num_basis_shapes_; j++){
-        u_vec_[0] += C_dy_[j]*y_full_[j];
-        u_vec_[1] += C_dtheta_[j]*y_front_half_[j];
-        u_vec_[2] += C_dz_[j]*y_full_[j];
+      if(enable_analytic_shapes_){
+        u_thetadotvec_ = k_thetadot_*(-r_/1.5564)*y_full_[4];
+        u_v_ = k_v_*(-r_/1.3478)*y_full_[6];
+        u_w_ = k_w_(r_/1.3478)*y_full_[5];
+      } else {
+        for(int j=0; j < num_basis_shapes_; j++){
+          u_vec_[0] += C_dy_[j]*y_full_[j];
+          u_vec_[1] += C_dtheta_[j]*y_front_half_[j];
+          u_vec_[2] += C_dz_[j]*y_full_[j];
+        }
+        u_v_ = k_v_*u_vec_[0];
+        u_w_ = k_w_*u_vec_[2];
+        u_thetadot_ = k_thetadot_*u_vec_[1];
       }
-      u_v_ += k_v_*u_vec_[0];
-      u_w_ += k_w_*u_vec_[2];
-      u_thetadot_ += k_thetadot_*u_vec_[1];
     }
 
     // Enable small-field controller

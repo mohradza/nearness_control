@@ -150,6 +150,7 @@ class NearnessController3D {
     bool enable_sf_control_;
     bool enable_speed_regulation_;
     bool enable_cmd_scaling_;
+    bool enable_analytic_shapes_;
     double test_ring_;
     bool new_pcl_;
     bool half_projections_;
