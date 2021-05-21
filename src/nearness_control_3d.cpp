@@ -573,9 +573,9 @@ void NearnessController3D::computeControlCommands(){
       u_vec_.clear();
       u_vec_ = {0.0, 0.0, 0.0};
       if(enable_analytic_shapes_){
-        u_thetadotvec_ = k_thetadot_*(-r_/1.5564)*y_full_[4];
+        u_thetadot_ = k_thetadot_*(-r_/1.5564)*y_full_[4];
         u_v_ = k_v_*(-r_/1.3478)*y_full_[6];
-        u_w_ = k_w_(r_/1.3478)*y_full_[5];
+        u_w_ = k_w_*(r_/1.3478)*y_full_[5];
       } else {
         for(int j=0; j < num_basis_shapes_; j++){
           u_vec_[0] += C_dy_[j]*y_full_[j];
@@ -732,7 +732,7 @@ void NearnessController3D::generateProjectionShapes(){
         phi = phi_view_vec_[j];
 
         // Y00
-        d = sqrt(1/(4*M_PI));
+        d = (1/2)*sqrt(1/(M_PI));
         d_abs = abs(d);
         Y00_vec_.push_back(d);
         pcl::PointXYZ Y00_pcl (d_abs*sin(theta)*cos(phi), d_abs*sin(theta)*sin(phi), d_abs*cos(theta) );
@@ -747,7 +747,7 @@ void NearnessController3D::generateProjectionShapes(){
         Y00_.push_back(Y00_pcli);
 
         // Y0p1
-        d = sqrt(3.0/(4.0*M_PI))*cos(theta);
+        d = (1/2)*sqrt(3.0/(M_PI))*cos(theta);
         d_abs = abs(d);
         Y0p1_vec_.push_back(d);
         pcl::PointXYZ Y0p1_pcl (d_abs*sin(theta)*cos(phi), d_abs*sin(theta)*sin(phi), d_abs*cos(theta) );
@@ -762,7 +762,7 @@ void NearnessController3D::generateProjectionShapes(){
         Y0p1_.push_back(Y0p1_pcli);
 
         // Yp1p1
-        d = sqrt(3.0/(4.0*M_PI))*cos(phi)*sin(theta);
+        d = (1/2)*sqrt(3.0/M_PI)*sin(theta)*cos(phi);
         d_abs = abs(d);
         Yp1p1_vec_.push_back(d);
         pcl::PointXYZ Yp1p1_pcl (d_abs*sin(theta)*cos(phi), d_abs*sin(theta)*sin(phi), d_abs*cos(theta) );
@@ -776,8 +776,8 @@ void NearnessController3D::generateProjectionShapes(){
         Yp1p1_pcli.intensity = intensity_val;
         Yp1p1_.push_back(Yp1p1_pcli);
 
-        // Yn1p1
-        d = sqrt(3.0/(4.0*M_PI))*sin(phi)*sin(theta);
+        // Yp1n1
+        d = (1/2)*sqrt(3.0/M_PI)*sin(theta)*sin(phi);
         d_abs = abs(d);
         Yn1p1_vec_.push_back(d);
         pcl::PointXYZ Yn1p1_pcl (d_abs*sin(theta)*cos(phi), d_abs*sin(theta)*sin(phi), d_abs*cos(theta) );
@@ -791,8 +791,8 @@ void NearnessController3D::generateProjectionShapes(){
         Yn1p1_pcli.intensity = intensity_val;
         Yn1p1_.push_back(Yn1p1_pcli);
 
-        // Y0p2
-        d = sqrt(5.0/(16.0*M_PI))*(3.0*pow(cos(theta),2)-1);
+        // Yp20
+        d = (1/4)*sqrt(5.0/M_PI)*(3.0*pow(cos(theta),2)-1);
         d_abs = abs(d);
         Y0p2_vec_.push_back(d);
         pcl::PointXYZ Y0p2_pcl (d_abs*sin(theta)*cos(phi), d_abs*sin(theta)*sin(phi), d_abs*cos(theta) );
@@ -806,8 +806,8 @@ void NearnessController3D::generateProjectionShapes(){
         Y0p2_pcli.intensity = intensity_val;
         Y0p2_.push_back(Y0p2_pcli);
 
-        // Yp1p2
-        d = sqrt(15.0/(4.0*M_PI))*cos(phi)*sin(theta)*cos(theta);
+        // Yp2p1
+        d = (3/2)*sqrt(5.0/M_PI)*sin(theta)*cos(theta)*cos(phi);
         d_abs = abs(d);
         Yp1p2_vec_.push_back(d);
         pcl::PointXYZ Yp1p2_pcl (d_abs*sin(theta)*cos(phi), d_abs*sin(theta)*sin(phi), d_abs*cos(theta) );
@@ -821,8 +821,8 @@ void NearnessController3D::generateProjectionShapes(){
         Yp1p2_pcli.intensity = intensity_val;
         Yp1p2_.push_back(Yp1p2_pcli);
 
-        //  Yn1p2
-        d = sqrt(15.0/(4.0*M_PI))*sin(phi)*sin(theta)*cos(theta);
+        //  Yp2n1
+        d = (3/2)*sqrt(5.0/M_PI)*sin(theta)*cos(theta)*sin(phi);
         d_abs = abs(d);
         Yn1p2_vec_.push_back(d);
         pcl::PointXYZ Yn1p2_pcl (d_abs*sin(theta)*cos(phi), d_abs*sin(theta)*sin(phi), d_abs*cos(theta) );
@@ -837,7 +837,7 @@ void NearnessController3D::generateProjectionShapes(){
         Yn1p2_.push_back(Yn1p2_pcli);
 
         // Yp2p2
-        d = sqrt(15.0/(16.0*M_PI))*(pow(cos(phi),2)-pow(sin(phi),2))*pow(sin(theta),2);
+        d = (1/4)*sqrt(5.0/M_PI)*pow(sin(theta),2)*cos(2*phi);
         d_abs = abs(d);
         Yp2p2_vec_.push_back(d);
         pcl::PointXYZ Yp2p2_pcl (d_abs*sin(theta)*cos(phi), d_abs*sin(theta)*sin(phi), d_abs*cos(theta) );
@@ -852,7 +852,7 @@ void NearnessController3D::generateProjectionShapes(){
         Yp2p2_.push_back(Yp2p2_pcli);
 
         // Yn2p2
-        d = sqrt(15.0/(4.0*M_PI))*sin(phi)*cos(phi)*pow(sin(theta),2);
+        d = (1/4)*sqrt(5.0/M_PI)*pow(sin(theta),2)*sin(2*phi);
         d_abs = abs(d);
         Yn2p2_vec_.push_back(d);
         pcl::PointXYZ Yn2p2_pcl (d_abs*sin(theta)*cos(phi), d_abs*sin(theta)*sin(phi), d_abs*cos(theta) );

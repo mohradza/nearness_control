@@ -248,6 +248,7 @@ class NearnessController3D {
     vector<float> C_dz_;
     vector<float> C_z_;
     vector<float> u_vec_;
+    double r_;
     double u_u_, u_v_, u_thetadot_, u_w_;
     double k_v_, k_thetadot_, k_w_, k_alt_;
     double k_u_v_, k_u_thetadot_;
