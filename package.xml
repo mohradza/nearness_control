@@ -28,7 +28,6 @@
   <build_depend>pcl_ros</build_depend>
   <build_depend>pcl_conversions</build_depend>
   <build_depend>nearness_control_msgs</build_depend>
-  <build_depend>lcd_pkg</build_depend>
   <build_depend>geometry_msgs</build_depend>
   <build_depend>visualization_msgs</build_depend>
 
@@ -45,7 +44,6 @@
   <exec_depend>cv_bridge</exec_depend>
   <exec_depend>message_runtime</exec_depend>
   <exec_depend>tf2_ros</exec_depend>
-  <exec_depend>lcd_pkg</exec_depend>
   <exec_depend>pcl_ros</exec_depend>
   <exec_depend>pcl_conversions</exec_depend>
   <exec_depend>nearness_control_msgs</exec_depend>

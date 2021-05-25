@@ -559,7 +559,7 @@ void NearnessController3D::computeControlCommands(){
 
     // Enable wide-field controller
     r_ = 1.0; // Estimated radius
-    ROS_INFO_THROTTLE(1.0,"y4: %f, y5: %f, y6: %f", y_full_[4], y_full_[5], y_full_[6]);
+    ROS_INFO_THROTTLE(1.0,"y0: %.3f, y1: %f, y2: %f, y3: %f, y4: %f, y5: %f, y6: %f, y7: %f, y8: %f, y9: %f", y_full_[0], y_full_[1], y_full_[2], y_full_[3], y_full_[4], y_full_[5], y_full_[6], y_full_[7], y_full_[8], y_full_[9]);
     if(enable_wf_control_){
       u_vec_.clear();
       u_vec_ = {0.0, 0.0, 0.0};
