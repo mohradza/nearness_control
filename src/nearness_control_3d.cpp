@@ -58,12 +58,12 @@ void NearnessController3D::init() {
     pnh_.param("num_wf_harmonics", num_wf_harmonics_, 9);
 
     pnh_.param("lateral_speed_gain", k_v_, -0.1);
-    pnh_.param("turn_rate_gain", k_thetadot_, -0.1);
+    pnh_.param("turn_rate_gain", k_r_, -0.1);
     pnh_.param("vertical_speed_gain", k_w_, -0.1);
     pnh_.param("forward_speed", forward_speed_, .5);
     pnh_.param("reference_altitude", reference_altitude_, .5);
     pnh_.param("forward_speed_lateral_gain", k_u_v_, .1);
-    pnh_.param("forward_speed_thetadot_gain", k_u_thetadot_, .1);
+    pnh_.param("forward_speed_r_gain", k_u_r_, .1);
 
     pnh_.param("small_field_angle_gain", sf_k_angle_, 1.0);
     pnh_.param("small_field_nearness_gain", sf_k_mu_, 1.0);
@@ -76,8 +76,8 @@ void NearnessController3D::init() {
     max_yaw_rate_ = 1.0;
 
     enable_control_ = true;
-    enable_wf_control_ = false;
-    enable_sf_control_ = true;
+    enable_wf_control_ = true;
+    enable_sf_control_ = false;
     enable_cmd_scaling_ = false;
     enable_speed_regulation_ = false;
     enable_analytic_shapes_ = true;
@@ -158,12 +158,12 @@ void NearnessController3D::init() {
     w_cmd_marker_.color.b = 1.0;
     cmd_markers_.markers.push_back(w_cmd_marker_);
 
-    thetadot_cmd_marker_ = u_cmd_marker_;
-    thetadot_cmd_marker_.id = 3;
-    thetadot_cmd_marker_.color.b = 1.0;
-    thetadot_cmd_marker_.points[0].x = .5;
-    thetadot_cmd_marker_.points[1].x = .5;
-    cmd_markers_.markers.push_back(thetadot_cmd_marker_);
+    r_cmd_marker_ = u_cmd_marker_;
+    r_cmd_marker_.id = 3;
+    r_cmd_marker_.color.b = 1.0;
+    r_cmd_marker_.points[0].x = .5;
+    r_cmd_marker_.points[1].x = .5;
+    cmd_markers_.markers.push_back(r_cmd_marker_);
 
 
 } // End of init
@@ -214,6 +214,7 @@ void NearnessController3D::generateViewingAngleVectors(){
 
 void NearnessController3D::pclCb(const sensor_msgs::PointCloud2ConstPtr& pcl_msg){
 
+  //ROS_INFO_THROTTLE(1.0, "Have new pcl.");
   new_pcl_ = true;
 
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_in (new pcl::PointCloud<pcl::PointXYZ>);
@@ -552,28 +553,18 @@ void NearnessController3D::computeControlCommands(){
   u_u_ = 0.0;
   u_w_ = 0.0;
   u_v_ = 0.0;
-  u_thetadot_ = 0.0;
+  u_r_ = 0.0;
 
   if(enable_control_){
 
-    // Enable forward speed regulation based on Laplace spherical harmonic feedback
-    if(enable_speed_regulation_){
-      u_u_ =  max_forward_speed_*(1 - k_u_v_*abs(u_v_) - k_u_thetadot_*abs(u_thetadot_));
-      //u_u_ =  max_forward_speed_*(1 - k_u_v_*abs(u_v_) - k_u_thetadot_*abs(u_thetadot_) - front_mu_ave_);
-      if(enable_cmd_scaling_){
-        u_u_ =  max_forward_speed_*(1.0 - 2*front_mu_ave_);
-      }
-    } else {
-      u_u_ = forward_speed_;
-    }
-
     // Enable wide-field controller
     r_ = 1.0; // Estimated radius
+    ROS_INFO_THROTTLE(1.0,"y4: %f, y5: %f, y6: %f", y_full_[4], y_full_[5], y_full_[6]);
     if(enable_wf_control_){
       u_vec_.clear();
       u_vec_ = {0.0, 0.0, 0.0};
       if(enable_analytic_shapes_){
-        u_thetadot_ = k_thetadot_*(-r_/1.5564)*y_full_[4];
+        u_r_ = k_r_*(-r_/1.5564)*y_full_[4];
         u_v_ = k_v_*(-r_/1.3478)*y_full_[6];
         u_w_ = k_w_*(r_/1.3478)*y_full_[5];
       } else {
@@ -584,7 +575,7 @@ void NearnessController3D::computeControlCommands(){
         }
         u_v_ = k_v_*u_vec_[0];
         u_w_ = k_w_*u_vec_[2];
-        u_thetadot_ = k_thetadot_*u_vec_[1];
+        u_r_ = k_r_*u_vec_[1];
       }
     }
 
@@ -594,17 +585,27 @@ void NearnessController3D::computeControlCommands(){
       u_w_ += sf_w_cmd_;
     }
 
-    if(enable_cmd_scaling_){
-      // Scale lateral speed command by max lateral nearness
-      max_lateral_nearness_ = sat(max_lateral_nearness_, .1, 1);
-      u_v_ *= 1/max_lateral_nearness_;
-
+    // Enable forward speed regulation based on Laplace spherical harmonic feedback
+    if(enable_speed_regulation_){
+      u_u_ =  max_forward_speed_*(1 - k_u_v_*abs(u_v_) - k_u_r_*abs(u_r_));
+      //u_u_ =  max_forward_speed_*(1 - k_u_v_*abs(u_v_) - k_u_r_*abs(u_r_) - front_mu_ave_);
+      // if(enable_cmd_scaling_){
+      //   u_u_ =  max_forward_speed_*(1.0 - 2*front_mu_ave_);
+      // }
+    } else {
+      u_u_ = forward_speed_;
     }
+
+    // if(enable_cmd_scaling_){
+    //   // Scale lateral speed command by max lateral nearness
+    //   max_lateral_nearness_ = sat(max_lateral_nearness_, .1, 1);
+    //   u_v_ *= 1/max_lateral_nearness_;
+    // }
 
     control_commands_.linear.x = u_u_;
     control_commands_.linear.y = u_v_;
     control_commands_.linear.z = u_w_;
-    control_commands_.angular.z = u_thetadot_;
+    control_commands_.angular.z = u_r_;
 
   }
 
@@ -629,9 +630,9 @@ void NearnessController3D::computeControlCommands(){
 
   pub_control_commands_.publish(control_commands_);
 
-    if(enable_debug_){
+  if(enable_debug_){
 
-    //ROS_INFO_THROTTLE(1,"U: %f, V: %f, W: %f, YR: %f", u_u_, u_v_, u_w_, u_thetadot_);
+    ROS_INFO_THROTTLE(1,"U: %f, V: %f, W: %f, YR: %f", u_u_, u_v_, u_w_, u_r_);
 
     // Forward speed marker
     ros::Time time_now = ros::Time::now();
@@ -653,9 +654,9 @@ void NearnessController3D::computeControlCommands(){
     //pub_w_cmd_marker_.publish(w_cmd_marker_);
 
     // Turn rate marker
-    thetadot_cmd_marker_.header.stamp = time_now;
-    thetadot_cmd_marker_.points[1].y = u_thetadot_;
-    cmd_markers_.markers[3] = thetadot_cmd_marker_;
+    r_cmd_marker_.header.stamp = time_now;
+    r_cmd_marker_.points[1].y = u_r_;
+    cmd_markers_.markers[3] = r_cmd_marker_;
     pub_cmd_markers_.publish(cmd_markers_);
 
   }
@@ -851,7 +852,7 @@ void NearnessController3D::generateProjectionShapes(){
         Yp2p2_pcli.intensity = intensity_val;
         Yp2p2_.push_back(Yp2p2_pcli);
 
-        // Yn2p2
+        // Yp2n2
         d = (1/4)*sqrt(5.0/M_PI)*pow(sin(theta),2)*sin(2*phi);
         d_abs = abs(d);
         Yn2p2_vec_.push_back(d);

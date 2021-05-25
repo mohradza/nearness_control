@@ -24,7 +24,7 @@ int main(int argc, char** argv){
   ros::Publisher cmd_vel_pub =
     node.advertise<geometry_msgs::Twist>("cmd_vel/ground_truth", 10);
 
-  ros::Subscriber cmd_sub = nh.subscribe("/OHRAD_X3/cmd_vel", 10, cmdCallback);
+  ros::Subscriber cmd_sub = nh.subscribe("cmd_vel", 10, cmdCallback);
 
   tf::TransformListener listener;
   nav_msgs::Odometry odom_msg;
@@ -69,8 +69,9 @@ int main(int argc, char** argv){
       ros::Duration(0.1).sleep();
     }
     diff = abs(last_x_pos - transform.getOrigin().x());
+    //ROS_INFO_THROTTLE(1.0,"diff: %f", diff);
 
-    if( diff > .00001){
+    // if( diff > .0001){
       odom_msg.header.stamp = ros::Time::now();
       dt = (odom_msg.header.stamp - last_odom_time).toSec();
       last_odom_time = odom_msg.header.stamp;
@@ -118,7 +119,7 @@ int main(int argc, char** argv){
 
       robot_odom_pub.publish(odom_msg);
       cmd_vel_pub.publish(cmd_);
-    }
+    // }
 /*
     point_msg.header.stamp = ros::Time::now();
     point_msg.point.x = odom_msg.pose.pose.position.x;

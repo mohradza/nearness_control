@@ -249,9 +249,9 @@ class NearnessController3D {
     vector<float> C_z_;
     vector<float> u_vec_;
     double r_;
-    double u_u_, u_v_, u_thetadot_, u_w_;
-    double k_v_, k_thetadot_, k_w_, k_alt_;
-    double k_u_v_, k_u_thetadot_;
+    double u_u_, u_v_, u_r_, u_w_;
+    double k_v_, k_r_, k_w_, k_alt_;
+    double k_u_v_, k_u_r_;
     geometry_msgs::Twist control_commands_;
     geometry_msgs::Point current_pos_;
     double current_roll_, current_pitch_, current_heading_;
@@ -266,7 +266,7 @@ class NearnessController3D {
     visualization_msgs::Marker u_cmd_marker_;
     visualization_msgs::Marker v_cmd_marker_;
     visualization_msgs::Marker w_cmd_marker_;
-    visualization_msgs::Marker thetadot_cmd_marker_;
+    visualization_msgs::Marker r_cmd_marker_;
     visualization_msgs::MarkerArray cmd_markers_;
 
     // Small field commands
