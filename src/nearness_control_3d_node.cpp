@@ -18,10 +18,10 @@ int main(int argc, char** argv) {
             // Process 3D nearness
             //ROS_INFO_THROTTLE(1.0, "Running nearness controller...");
             nearness_control_3d_node.projectNearness();
-            nearness_control_3d_node.reconstructWideFieldNearness();
-            nearness_control_3d_node.computeSmallFieldNearness();
-            nearness_control_3d_node.computeSFControlCommands();
-            nearness_control_3d_node.computeControlCommands();
+            //nearness_control_3d_node.reconstructWideFieldNearness();
+            //nearness_control_3d_node.computeSmallFieldNearness();
+            //nearness_control_3d_node.computeSFControlCommands();
+            //nearness_control_3d_node.computeControlCommands();
         }
 
         ros::spinOnce();

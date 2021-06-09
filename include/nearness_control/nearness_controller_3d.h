@@ -81,6 +81,7 @@ class NearnessController3D {
     void generateViewingAngleVectors();
     void generateProjectionShapes();
     void publishProjectionShapes();
+    void processPcl();
     void projectNearness();
     void reconstructWideFieldNearness();
     void computeSmallFieldNearness();

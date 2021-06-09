@@ -221,6 +221,9 @@ void NearnessController3D::pclCb(const sensor_msgs::PointCloud2ConstPtr& pcl_msg
   pcl::fromROSMsg (*pcl_msg, *cloud_in);
   size_t pcl_size = cloud_in->points.size();
 
+}
+
+void NearnessController3D::processPcl(){
   mu_meas_.clear();
   cloud_out_.clear();
   mu_cloud_out_.clear();
@@ -228,8 +231,8 @@ void NearnessController3D::pclCb(const sensor_msgs::PointCloud2ConstPtr& pcl_msg
   int count = 0;
   int ring_win_size = 10;
   int scan_win_size = 2;
-  front_mu_ave_ = 0.0;
-  max_lateral_nearness_ = 0.0;
+  // front_mu_ave_ = 0.0;
+  // max_lateral_nearness_ = 0.0;
 
   // Convert the pcl to nearness
   pcl::PointXYZ p, mu_p;
@@ -248,16 +251,16 @@ void NearnessController3D::pclCb(const sensor_msgs::PointCloud2ConstPtr& pcl_msg
 
           // Get an estimate of how close things are in front of the vehicle
           // to use for speed regulation. Look at a window of nearness.
-          if((i < (num_rings_/2 + scan_win_size)) && (i > (num_rings_/2 - scan_win_size))) {
-            if((j < (num_ring_points_/2 + ring_win_size)) && (j > (num_ring_points_/2 - ring_win_size))) {
-              front_mu_ave_ += mu_val;
-              count++;
-            }
-
-            if(mu_val > max_lateral_nearness_){
-              max_lateral_nearness_ = mu_val;
-            }
-          }
+          // if((i < (num_rings_/2 + scan_win_size)) && (i > (num_rings_/2 - scan_win_size))) {
+          //   if((j < (num_ring_points_/2 + ring_win_size)) && (j > (num_ring_points_/2 - ring_win_size))) {
+          //     front_mu_ave_ += mu_val;
+          //     count++;
+          //   }
+          //
+          //   if(mu_val > max_lateral_nearness_){
+          //     max_lateral_nearness_ = mu_val;
+          //   }
+          // }
 
           // Convert back to cartesian for viewing
           if(enable_debug_){
@@ -267,7 +270,7 @@ void NearnessController3D::pclCb(const sensor_msgs::PointCloud2ConstPtr& pcl_msg
       }
   }
 
-  front_mu_ave_ /= count;
+  // front_mu_ave_ /= count;
 
   // Treat the first point as a rangefinder for alt hold
   p = cloud_in->points[0];
@@ -559,7 +562,7 @@ void NearnessController3D::computeControlCommands(){
 
     // Enable wide-field controller
     r_ = 1.0; // Estimated radius
-    ROS_INFO_THROTTLE(1.0,"y0: %.3f, y1: %f, y2: %f, y3: %f, y4: %f, y5: %f, y6: %f, y7: %f, y8: %f, y9: %f", y_full_[0], y_full_[1], y_full_[2], y_full_[3], y_full_[4], y_full_[5], y_full_[6], y_full_[7], y_full_[8], y_full_[9]);
+    //ROS_INFO_THROTTLE(1.0,"y0: %.3f, y1: %f, y2: %f, y3: %f, y4: %f, y5: %f, y6: %f, y7: %f, y8: %f, y9: %f", y_full_[0], y_full_[1], y_full_[2], y_full_[3], y_full_[4], y_full_[5], y_full_[6], y_full_[7], y_full_[8], y_full_[9]);
     if(enable_wf_control_){
       u_vec_.clear();
       u_vec_ = {0.0, 0.0, 0.0};
