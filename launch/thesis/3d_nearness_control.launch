@@ -18,7 +18,7 @@
 
         <!-- SUBSCRIBED TOPICS -->
         <remap from="nearness_controller_3d/points"   to="ouster_points"/>
-        <remap from="nearness_controller_3d/odometry" to="odometry/ground_truth"/>
+        <remap from="nearness_controller_3d/odometry" to="/odometry/ground_truth"/>
         <!-- <remap from="nearness_controller_3d/control_commands" to="cmd_vel"/> -->
         <remap from="nearness_controller_3d/joy" to="joy"/>
 
@@ -37,9 +37,9 @@
 
         <!-- Controller Parameters -->
         <param name="altitude_hold_gain"       type="double"     value=".5"/>
-        <param name="lateral_speed_gain"       type="double"     value="-.5"/>
+        <param name="lateral_speed_gain"       type="double"     value="5.0"/>
         <param name="turn_rate_gain"           type="double"     value="-.5"/>
-        <param name="vertical_speed_gain"      type="double"     value="-.5"/>
+        <param name="vertical_speed_gain"      type="double"     value="-5.0"/>
         <param name="reference_altitude"       type="double"     value=".5"/>
         <param name="forward_speed"            type="double"     value="0.0"/>
 

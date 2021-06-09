@@ -14,6 +14,7 @@
 
 
 #include <std_msgs/Bool.h>
+#include <std_msgs/Header.h>
 #include <std_msgs/Float32MultiArray.h>
 #include <std_msgs/Float32.h>
 #include <std_msgs/Int32.h>
@@ -163,6 +164,7 @@ class NearnessController3D {
     float dtheta_;
     string frame_id_;
 
+
     std::vector<float> phi_view_vec_;
     std::vector<float> theta_view_vec_;
     vector<vector<float>> viewing_angle_mat_;
@@ -170,12 +172,14 @@ class NearnessController3D {
     sensor_msgs::PointCloud2 pcl_out_msg_;
     sensor_msgs::PointCloud2 mu_out_msg_;
 
+    pcl::PointCloud<pcl::PointXYZ> new_cloud_;
     pcl::PointCloud<pcl::PointXYZ> cloud_out_;
     pcl::PointCloud<pcl::PointXYZ> mu_cloud_out_;
     pcl::PointCloud<pcl::PointXYZ> recon_wf_cloud_out_;
     std::vector<float> mu_meas_;
     int pcl_width_;
     int pcl_height_;
+    std_msgs::Header pcl_header_;
     int pcl_vertical_spread_;
     int num_ring_points_;
     int num_rings_;
