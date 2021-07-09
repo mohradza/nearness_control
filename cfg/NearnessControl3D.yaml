@@ -1,0 +1,42 @@
+# Sensor Model Parameters for a Spherical Depth Sensor Model
+num_rings: 64
+num_ring_points: 360
+
+# Wide-Field
+num_basis_shapes: 9
+num_wf_harmonics: 5
+
+
+# General Controller Parameters
+forward_speed_min: .01
+forward_speed_max: 1.0
+yaw_rate_max: .5
+reference_altitude: .5
+forward_speed: 0.0
+altitude_hold_gain: .5
+
+
+# Wide-Field Controller Gains
+lateral_speed_gain: 5.0
+turn_rate_gain: -.5
+vertical_speed_gain: -5.0
+
+# Small-Field Controller Gains
+small_field_angle_gain: 1.0
+small_field_nearness_gain: 1.0
+small_field_vertical_speed_gain: 1.0
+small_field_lateral_speed_gain: 1.0
+
+# forward_speed_k_hb_1:
+# forward_speed_k_hb_2:
+#
+# yaw_rate_max:
+# yaw_rate_k_hb_1:
+# yaw_rate_k_hb_2:
+# yaw_rate_k_att_0:
+# yaw_rate_k_att_d:
+#
+# h_sf_k_thresh:
+# h_sf_k_0:
+# h_sf_k_d:
+# h_sf_k_psi:

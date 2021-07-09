@@ -1,23 +1,23 @@
-#include <nearness_control/nearness_controller_3d.h>
+#include <nearness_control/nearness_control_3d.h>
 
 namespace nearness_3d{
-NearnessController3D::NearnessController3D(const ros::NodeHandle &node_handle,
+NearnessControl3D::NearnessControl3D(const ros::NodeHandle &node_handle,
                                        const ros::NodeHandle &private_node_handle)
       :nh_(node_handle),
        pnh_(private_node_handle) {
       this->init();
   }
 
-void NearnessController3D::init() {
+void NearnessControl3D::init() {
     // Set up dynamic reconfigure
     reconfigure_server_.reset(new ReconfigureServer(config_mutex_, pnh_));
-    ReconfigureServer::CallbackType f = boost::bind(&NearnessController3D::configCb, this, _1, _2);
+    ReconfigureServer::CallbackType f = boost::bind(&NearnessControl3D::configCb, this, _1, _2);
     reconfigure_server_->setCallback(f);
 
     // Set up subscribers and callbacks
-    sub_pcl_ = nh_.subscribe("points", 1, &NearnessController3D::pclCb, this);
-    sub_odom_ = nh_.subscribe("odometry", 1, &NearnessController3D::odomCb, this);
-    sub_joy_ = nh_.subscribe("joy", 1, &NearnessController3D::joyconCb, this);
+    sub_pcl_ = nh_.subscribe("points", 1, &NearnessControl3D::pclCb, this);
+    sub_odom_ = nh_.subscribe("odometry", 1, &NearnessControl3D::odomCb, this);
+    sub_joy_ = nh_.subscribe("joy", 1, &NearnessControl3D::joyconCb, this);
 
     // Set up publishers
     pub_pcl_ = nh_.advertise<sensor_msgs::PointCloud2>("pcl_out",1);
@@ -169,7 +169,7 @@ void NearnessController3D::init() {
 
 } // End of init
 
-void NearnessController3D::configCb(Config &config, uint32_t level)
+void NearnessControl3D::configCb(Config &config, uint32_t level)
 {
     config_ = config;
 
@@ -179,11 +179,11 @@ void NearnessController3D::configCb(Config &config, uint32_t level)
 
 }
 
-bool NearnessController3D::newPcl(){
+bool NearnessControl3D::newPcl(){
   return new_pcl_;
 }
 
-void NearnessController3D::generateViewingAngleVectors(){
+void NearnessControl3D::generateViewingAngleVectors(){
 
   // Inclination angle
   // TODO: These should also be parameters
@@ -213,7 +213,7 @@ void NearnessController3D::generateViewingAngleVectors(){
 
 }
 
-void NearnessController3D::pclCb(const sensor_msgs::PointCloud2ConstPtr& pcl_msg){
+void NearnessControl3D::pclCb(const sensor_msgs::PointCloud2ConstPtr& pcl_msg){
 
   //ROS_INFO_THROTTLE(1.0, "Have new pcl.");
   new_pcl_ = true;
@@ -226,7 +226,7 @@ void NearnessController3D::pclCb(const sensor_msgs::PointCloud2ConstPtr& pcl_msg
 
 }
 
-void NearnessController3D::processPcl(){
+void NearnessControl3D::processPcl(){
   mu_meas_.clear();
   cloud_out_.clear();
   mu_cloud_out_.clear();
@@ -274,7 +274,7 @@ void NearnessController3D::processPcl(){
 
 }
 
-void NearnessController3D::projectNearness(){
+void NearnessControl3D::projectNearness(){
 
   // Process incoming pointcloud and reformat if necessary
   // Converts incoming pcl to vector of nearness values
@@ -331,7 +331,7 @@ void NearnessController3D::projectNearness(){
 
 }
 
-void NearnessController3D::reconstructWideFieldNearness(){
+void NearnessControl3D::reconstructWideFieldNearness(){
 
   recon_wf_mu_vec_.clear();
   vector<float> zeros(last_index_,0.0);
@@ -364,7 +364,7 @@ void NearnessController3D::reconstructWideFieldNearness(){
   }
 }
 
-void NearnessController3D::computeSmallFieldNearness(){
+void NearnessControl3D::computeSmallFieldNearness(){
 
   sf_mu_.clear();
   float diff, theta, phi;
@@ -396,7 +396,7 @@ void NearnessController3D::computeSmallFieldNearness(){
 
 }
 
-void NearnessController3D::computeSFControlCommands(){
+void NearnessControl3D::computeSFControlCommands(){
   // First, determine the std_dev of the SF nearness measurements
   float nearness_sum = accumulate(sf_mu_.begin(), sf_mu_.end(), 0.0);
   float nearness_mean = nearness_sum / float(last_index_);
@@ -536,7 +536,7 @@ void NearnessController3D::computeSFControlCommands(){
 
 }
 
-void NearnessController3D::computeControlCommands(){
+void NearnessControl3D::computeControlCommands(){
 
   control_commands_.linear.x = 0.0;
   control_commands_.linear.y = 0.0;
@@ -659,7 +659,7 @@ void NearnessController3D::computeControlCommands(){
 
 }
 
-void NearnessController3D::odomCb(const nav_msgs::OdometryConstPtr& odom_msg){
+void NearnessControl3D::odomCb(const nav_msgs::OdometryConstPtr& odom_msg){
     current_odom_ = *odom_msg;
     current_pos_ = current_odom_.pose.pose.position;
     current_odom_.pose.pose.position.z = current_height_agl_;
@@ -669,7 +669,7 @@ void NearnessController3D::odomCb(const nav_msgs::OdometryConstPtr& odom_msg){
     tf::Matrix3x3(vehicle_quat_tf).getRPY(current_roll_, current_pitch_, current_heading_);
 }
 
-void NearnessController3D::joyconCb(const sensor_msgs::JoyConstPtr& joy_msg)
+void NearnessControl3D::joyconCb(const sensor_msgs::JoyConstPtr& joy_msg)
 {
 
     // Enable / Disable Altitude Hold
@@ -708,7 +708,7 @@ void NearnessController3D::joyconCb(const sensor_msgs::JoyConstPtr& joy_msg)
 
 }
 
-void NearnessController3D::generateProjectionShapes(){
+void NearnessControl3D::generateProjectionShapes(){
 
     // This makes rviz plotting look nice
     // Positive is red, negative is blue with this config
@@ -1011,7 +1011,7 @@ void NearnessController3D::generateProjectionShapes(){
 
 }
 
-void NearnessController3D::publishProjectionShapes(){
+void NearnessControl3D::publishProjectionShapes(){
 
     ros::Time time_now = ros::Time::now();
 
@@ -1053,11 +1053,11 @@ void NearnessController3D::publishProjectionShapes(){
 
 }
 
-float NearnessController3D::sgn(double v) {
+float NearnessControl3D::sgn(double v) {
     return (v < 0.0) ? -1.0 : ((v > 0.0) ? 1.0 : 0.0);
 }
 
-float NearnessController3D::wrapAngle(float angle){
+float NearnessControl3D::wrapAngle(float angle){
     if (angle > M_PI){
         angle -= 2*M_PI;
     } else if( angle < -M_PI){
@@ -1066,7 +1066,7 @@ float NearnessController3D::wrapAngle(float angle){
     return angle;
 }
 
-float NearnessController3D::sat(float num, float min_val, float max_val){
+float NearnessControl3D::sat(float num, float min_val, float max_val){
     if (num >= max_val){
         return max_val;
     } else if( num <= min_val){
@@ -1076,7 +1076,7 @@ float NearnessController3D::sat(float num, float min_val, float max_val){
     }
 }
 
-int NearnessController3D::fact(int n)
+int NearnessControl3D::fact(int n)
 {
     if(n > 1)
         return n * fact(n - 1);
