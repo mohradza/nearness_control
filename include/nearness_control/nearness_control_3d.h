@@ -1,5 +1,5 @@
-#ifndef NEARNESS_CONTROLLER_3D_H
-#define NEARNESS_CONTROLLER_3D_H
+#ifndef NEARNESS_CONTROL_3D_H
+#define NEARNESS_CONTROL_3D_H
 
 #include <ros/ros.h>
 #include <dynamic_reconfigure/server.h>
@@ -38,16 +38,11 @@
 #include <pcl/filters/extract_indices.h>
 #include <pcl/kdtree/kdtree.h>
 #include <pcl/sample_consensus/method_types.h>
-#include <pcl/sample_consensus/model_types.h>
-#include <pcl/segmentation/sac_segmentation.h>
 #include <pcl/segmentation/extract_clusters.h>
-
 
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf/tf.h>
-
-
 
 #include <math.h>
 #include <numeric>
@@ -62,16 +57,16 @@
 #include <std_msgs/String.h>
 #include <boost/thread.hpp>
 
-#include <nearness_control/NearnessController3DConfig.h>
+#include <nearness_control/NearnessControl3DConfig.h>
 using namespace cv_bridge;
 using namespace std;
 namespace nearness_3d{
 
-class NearnessController3D {
+class NearnessControl3D {
  public:
-    NearnessController3D(const ros::NodeHandle &node_handle,
+    NearnessControl3D(const ros::NodeHandle &node_handle,
                             const ros::NodeHandle &private_node_handle);
-    ~NearnessController3D() = default;
+    ~NearnessControl3D() = default;
 
     void init();
 
@@ -132,7 +127,7 @@ class NearnessController3D {
     // DYNAMIC RECONFIGURE //
     boost::mutex connect_mutex_;
     boost::recursive_mutex config_mutex_;
-    typedef nearness_control::NearnessController3DConfig Config;
+    typedef nearness_control::NearnessControl3DConfig Config;
     typedef dynamic_reconfigure::Server<Config> ReconfigureServer;
     boost::shared_ptr<ReconfigureServer> reconfigure_server_;
     Config config_;
@@ -246,7 +241,7 @@ class NearnessController3D {
     sensor_msgs::PointCloud2 theta_projection_shape_msg_;
     sensor_msgs::PointCloud2 z_projection_shape_msg_;
 
-    // Controller
+    // Control
     vector<vector<float>> C_mat_;
     vector<float> C_dy_;
     vector<float> C_dtheta_;
