@@ -2,7 +2,7 @@
 
   <arg name="enable_debug"                 default="true"/>
   <arg name="enable_altitude_hold"         default="false"/>
-  <arg name="enable_speed_regulation"      default="true"/>
+  <arg name="enable_speed_regulation"      default="false"/>
 
   <arg name="number_of_rings"              default = "64"/>
   <arg name="number_of_ring_points"        default = "360"/>
@@ -18,7 +18,7 @@
         <!-- SUBSCRIBED TOPICS -->
         <remap from="nearness_controller_3d/points"   to="ouster_points"/>
         <remap from="nearness_controller_3d/odometry" to="odometry/ground_truth"/>
-        <remap from="nearness_controller_3d/control_commands" to="cmd_vel"/>
+        <remap from="nearness_controller_3d/control_commands" to="cmd_vel_out"/>
         <remap from="nearness_controller_3d/joy" to="joy"/>
 
         <!-- Enable switches -->
@@ -46,7 +46,7 @@
 
     </node>
 
-    <!-- <include file="$(find nearness_control)/launch/sim/tf2odom.launch"/> -->
+    <include file="$(find nearness_control)/launch/sim/tf2odom.launch"/>
 
     <include file="$(find nearness_control)/launch/sim/sim_teleop.launch" if="$(arg enable_teleop)"/>
 
