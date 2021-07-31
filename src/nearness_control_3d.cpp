@@ -18,6 +18,7 @@ void NearnessControl3D::init() {
     sub_pcl_ = nh_.subscribe("points", 1, &NearnessControl3D::pclCb, this);
     sub_odom_ = nh_.subscribe("odometry", 1, &NearnessControl3D::odomCb, this);
     sub_joy_ = nh_.subscribe("joy", 1, &NearnessControl3D::joyconCb, this);
+    sub_enable_control_ = nh_.subscribe("enable_control", 1, &NearnessControl3D::enableControlCb, this);
 
     // Set up publishers
     pub_pcl_ = nh_.advertise<sensor_msgs::PointCloud2>("pcl_out",1);
@@ -48,9 +49,12 @@ void NearnessControl3D::init() {
 
     // Import parameters
     pnh_.param("enable_debug", enable_debug_, false);
+    pnh_.param("enable_wf_control", enable_wf_control_, true);
+    pnh_.param("enable_sf_control", enable_sf_control_, false);
     pnh_.param("enable_altitude_hold", enable_altitude_hold_, false);
     pnh_.param("enable_speed_regulation", enable_speed_regulation_, false);
     pnh_.param("enable_command_scaling", enable_cmd_scaling_, false);
+    pnh_.param("use_observed_shapes", use_observed_shapes_, false);
 
     pnh_.param("num_rings", num_rings_, 64);
     pnh_.param("num_ring_points", num_ring_points_, 360);
@@ -76,8 +80,6 @@ void NearnessControl3D::init() {
     max_yaw_rate_ = 1.0;
 
     enable_control_ = true;
-    enable_wf_control_ = true;
-    enable_sf_control_ = false;
     enable_cmd_scaling_ = false;
     enable_speed_regulation_ = false;
     enable_analytic_shapes_ = true;
@@ -98,24 +100,30 @@ void NearnessControl3D::init() {
     // Set up the Cdagger matrix
     // Will be referenced as C in code
 
-    // Lateral Error Shapes
+    // Lateral Error Shapes: Full Sphere
     // Trained using LSE in DARPA Simple Cave World 1
-    //C_dy_ = {0.0137, -0.2525, 0.1475, -3.7765, 0.0200, -0.2169, -1.1179, 0.3504, -.0037};
-    C_dy_ = {-0.4665, 0.0037, 0.2523, 3.3906, 1.6712, 0.0114, 1.8488, 0.0045, -0.0378};
+    C_y_ = {-1.991 0.2666 6.4548 0.4897 0.3655 -1.004 -0.5274 36.7821};
+    // Observed C_dagger components
+    // C_y_ = {0.0, 0.0, 0.0, 3.5, 0.0, 0.0, 0.5, 0.0, 0.0};
 
-    // Angle Error Shapes
-    // Full Sphere
-    //C_dtheta_ = {-0.0408, 0.0168, -0.1982, -0.0513, 0.1610, -0.0519, 0.0344, 0.0596, -2.6322};
-    //C_dtheta_ = {0.0820, -0.1909, -0.6301, 0.0640, -0.3424, -0.0814, -0.1268, 0.0088, 2.6603};
+    // Vertical Error Shapes: Full Sphere
+    // Trained using LSE in DARPA Simple Cave World 1
+    C_z_ = {2.0 , 1.0, 0.0, 0.0, -2.55, 0.0, 0.0, 0.0, 0.0};
+    // C_z_ = {2.0 , 1.0, 0.0, 0.0, -2.55, 0.0, 0.0, 0.0, 0.0};
 
-    // Half Front sphere
-    C_dtheta_ = {-0.2357, -0.0990, 0.2396, 0.0491, 0.7532, -0.0251, -0.2976, -0.1963, 5.3746};
+    // Angle Error Shapes : Full Sphere
+    // Trained using LSE in DARPA Simple Cave World 1
+    C_theta_ = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -.05, 5.25};
+    // Observed C_dagger components
+    // C_theta_ = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -.05, 5.25};
 
-    // Vertical Error Shapes
-    // Full Sphere
-    C_dz_ = {0.1425, -1.2913, -1.6798, 2.6784, 0.1223, -0.0236, -6.7826, 2.0289, -2.9310};
-    // Half Sphere
-    //C_z_ = {0.0006589,  -0.0002733, -0.0005839, 0.00004139, -0.001567, -0.0001882, 0.0009429, -0.0009308, 0.002691};
+    if(use_observed_shapes){
+      C_y_ = {0.0, 0.0, 0.0, 3.5, 0.0, 0.0, 0.5, 0.0, 0.0};
+      C_z_ = {2.0 , 1.0, 0.0, 0.0, -2.55, 0.0, 0.0, 0.0, 0.0};
+      C_theta_ = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -.05, 5.25};
+    }
+
+
 
     // Prepare the Laplace spherical harmonic basis set
     generateViewingAngleVectors();
@@ -212,6 +220,11 @@ void NearnessControl3D::generateViewingAngleVectors(){
   }
 
 }
+
+void NearnessControl3D::enableControlCb(const std_msgs::Bool msg){
+  enable_control_ = msg.data;
+}
+
 
 void NearnessControl3D::pclCb(const sensor_msgs::PointCloud2ConstPtr& pcl_msg){
 
@@ -565,9 +578,9 @@ void NearnessControl3D::computeControlCommands(){
         u_w_ = k_w_*(r_/1.3478)*y_full_[5];
       } else {
         for(int j=0; j < num_basis_shapes_; j++){
-          u_vec_[0] += C_dy_[j]*y_full_[j];
-          u_vec_[1] += C_dtheta_[j]*y_front_half_[j];
-          u_vec_[2] += C_dz_[j]*y_full_[j];
+          u_vec_[0] += C_y_[j]*y_full_[j];
+          u_vec_[1] += C_z_[j]*y_front_half_[j];
+          u_vec_[2] += C_z_[j]*y_full_[j];
         }
         u_v_ = k_v_*u_vec_[0];
         u_w_ = k_w_*u_vec_[2];
@@ -889,10 +902,10 @@ void NearnessControl3D::generateProjectionShapes(){
       d_theta = 0.0;
       d_z = 0.0;
       for (int k = 0; k < num_basis_shapes_; k++){
-        d_y += C_dy_[k]*shape_mat_[k][i];
-        d_theta += C_dtheta_[k]*shape_mat_[k][i];
+        d_y += C_y_[k]*shape_mat_[k][i];
+        d_theta += C_theta_[k]*shape_mat_[k][i];
         if(k < last_index_ / 2){
-          d_z += C_dz_[k]*shape_mat_[k][i];
+          d_z += C_z_[k]*shape_mat_[k][i];
         }
       }
       y_projection_shape_vec_.push_back(d_y);

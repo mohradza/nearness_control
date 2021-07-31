@@ -74,6 +74,7 @@ class NearnessControl3D {
     void pclCb(const sensor_msgs::PointCloud2ConstPtr& pcl_msg);
     void odomCb(const nav_msgs::OdometryConstPtr& odom_msg);
     void joyconCb(const sensor_msgs::JoyConstPtr& joy_msg);
+    void enableControlCb(const std_msgs::Bool msg);
     void generateViewingAngleVectors();
     void generateProjectionShapes();
     void publishProjectionShapes();
@@ -97,6 +98,7 @@ class NearnessControl3D {
     ros::Subscriber sub_pcl_;
     ros::Subscriber sub_odom_;
     ros::Subscriber sub_joy_;
+    ros::Subscriber sub_enable_control_;
 
     ros::Publisher pub_pcl_;
     ros::Publisher pub_mu_pcl_;
@@ -243,9 +245,9 @@ class NearnessControl3D {
 
     // Control
     vector<vector<float>> C_mat_;
-    vector<float> C_dy_;
-    vector<float> C_dtheta_;
-    vector<float> C_dz_;
+    vector<float> C_y_;
+    vector<float> C_z_;
+    vector<float> C_z_;
     vector<float> C_z_;
     vector<float> u_vec_;
     double r_;
@@ -277,6 +279,7 @@ class NearnessControl3D {
     // Joystick
     geometry_msgs::Twist joy_cmd_;
     bool sim_control_;
+    bool use_observed_shapes_;
 
 
 }; // class SimpleNodeClass

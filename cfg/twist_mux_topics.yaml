@@ -9,10 +9,10 @@ topics:
 -
   name    : nav
   topic   : OHRAD_X3/nav_vel
-  timeout : 0.5
+  timeout : 0.25
   priority: 10
 -
   name    : teleop
   topic   : teleop/cmd_vel
-  timeout : 0.5
+  timeout : 0.1
   priority: 100

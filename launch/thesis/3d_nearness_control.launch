@@ -2,9 +2,12 @@
 
   <arg name="enable_debug"                 default="true"/>
   <arg name="sim_control"                  default="false"/>
+  <arg name="enable_wf_control"            default="true"/>
+  <arg name="enable_sf_control"            default="false"/>
   <arg name="enable_altitude_hold"         default="false"/>
   <arg name="enable_speed_regulation"      default="false"/>
   <arg name="enable_command_scaling"       default="false"/>
+  <arg name="use_observed_shapes"          default="true"/>
 
   <arg name="enable_teleop"                default = "1"/>
 
@@ -23,9 +26,12 @@
       <!-- Enable switches -->
       <param name="enable_debug"             type="bool"       value="$(arg enable_debug)"/>
       <param name="sim_control"              type="bool"       value="$(arg sim_control)"/>
+      <param name="enable_wf_control"        type="bool"       value="$(arg enable_wf_control)"/>
+      <param name="enable_sf_control"        type="bool"       value="$(arg enable_sf_control)"/>
       <param name="enable_altitude_hold"     type="bool"       value="$(arg enable_altitude_hold)"/>
       <param name="enable_speed_regulation"  type="bool"       value="$(arg enable_speed_regulation)"/>
       <param name="enable_command_scaling"   type="bool"       value="$(arg enable_command_scaling)"/>
+      <param name="use_observed_shapes"      type="bool"       value="$(arg enable_command_scaling)"/>
 
   </node>
 
