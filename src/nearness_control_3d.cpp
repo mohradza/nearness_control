@@ -315,7 +315,7 @@ void NearnessControl3D::projectNearness(){
 
       // Full projections for centering
 
-      if(!isObstructedPoint(i)){
+      if(!isObstructedPoint(theta, phi)){
         increment = shape_mat_[j][i]*mu_meas_[i]*sin(theta)*dtheta_*dphi_;
       } else {
         increment = 0.0;
@@ -354,12 +354,12 @@ void NearnessControl3D::projectNearness(){
 
 }
 
-bool NearnessControl3D::isObstructedPoint(const int index){
+bool NearnessControl3D::isObstructedPoint(const int t, const int p){
   bool obstructed = false;
-  float theta = viewing_angle_mat_[index][0];
-  float phi = viewing_angle_mat_[index][1];
-  if(theta < 1.768 && theta > 1.473){
-    if( (phi < 2.165 && phi > 2.145) || (phi < 1.065 && phi > 1.046) || (phi < -1.028 && phi > -1.048) || (phi < -2.145 && phi > -2.165) ) {
+  // float theta = viewing_angle_mat_[index][0];
+  // float phi = viewing_angle_mat_[index][1];
+  if((t) < 1.768 && t > 1.473){
+    if( (p < 2.165 && p > 2.145) || (p < 1.065 && p > 1.046) || (p < -1.028 && p > -1.048) || (p < -2.145 && p > -2.165) ) {
       obstructed = true;
     }
   }
