@@ -250,6 +250,7 @@ void NearnessControl3D::processPcl(){
   float dist, mu_val;
   int index = 0;
   // Exclude the first and last rings, because they don't contain much information
+  ROS_INFO("New cloud!");
   for(int i = 1; i < num_rings_-1; i++){
       for(int j = 0; j < num_ring_points_ ; j++){
           // Rings are positive counterclockwise from sensor
@@ -259,6 +260,9 @@ void NearnessControl3D::processPcl(){
           p = new_cloud_.points[index];
           cloud_out_.push_back(p);
           dist = sqrt(pow(p.x,2) + pow(p.y,2) + pow(p.z,2));
+          if (dist < .5){
+            ROS_INFO("index: %i", index);
+          }
           mu_val = 1.0/dist;
           mu_meas_.push_back(mu_val);
 
