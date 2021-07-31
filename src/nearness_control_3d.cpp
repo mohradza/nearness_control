@@ -250,7 +250,6 @@ void NearnessControl3D::processPcl(){
   float dist, mu_val;
   int index = 0;
   // Exclude the first and last rings, because they don't contain much information
-  ROS_INFO("New cloud!");
   for(int i = 1; i < num_rings_-1; i++){
       for(int j = 0; j < num_ring_points_ ; j++){
           // Rings are positive counterclockwise from sensor
@@ -260,9 +259,7 @@ void NearnessControl3D::processPcl(){
           p = new_cloud_.points[index];
           cloud_out_.push_back(p);
           dist = sqrt(pow(p.x,2) + pow(p.y,2) + pow(p.z,2));
-          if (isObstructedPoint(index)){
-            ROS_INFO("index: %i, theta: %f, phi: %f", index, theta_view_vec_[i], phi_view_vec_[j]);
-          }
+
           mu_val = 1.0/dist;
           mu_meas_.push_back(mu_val);
 
@@ -354,11 +351,10 @@ void NearnessControl3D::projectNearness(){
 
 }
 
-bool NearnessControl3D::isObstructedPoint(const int t, const int p){
+bool NearnessControl3D::isObstructedPoint(const float t, const float p){
   bool obstructed = false;
-  // float theta = viewing_angle_mat_[index][0];
-  // float phi = viewing_angle_mat_[index][1];
-  if((t) < 1.768 && t > 1.473){
+
+  if(t < 1.768 && t > 1.473){
     if( (p < 2.165 && p > 2.145) || (p < 1.065 && p > 1.046) || (p < -1.028 && p > -1.048) || (p < -2.145 && p > -2.165) ) {
       obstructed = true;
     }

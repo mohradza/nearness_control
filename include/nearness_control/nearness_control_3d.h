@@ -85,7 +85,7 @@ class NearnessControl3D {
     void computeControlCommands();
     void computeSFControlCommands();
     bool newPcl();
-    bool isObstructedPoint(const int t, const int p);
+    bool isObstructedPoint(const float t, const float p);
 
 
  private:
