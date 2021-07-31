@@ -79,7 +79,7 @@ void NearnessControl3D::init() {
     max_vertical_speed_ = 1.0;
     max_yaw_rate_ = 1.0;
 
-    enable_control_ = true;
+    enable_control_ = false;
     enable_cmd_scaling_ = false;
     enable_speed_regulation_ = false;
     enable_analytic_shapes_ = false;
@@ -108,7 +108,7 @@ void NearnessControl3D::init() {
 
     // Vertical Error Shapes: Full Sphere
     // Trained using LSE in DARPA Simple Cave World 1
-    C_z_ = {1.0 , 2.0, 0.0, 0.0, -2.55*2.0, 0.0, 0.0, 0.0, 0.0};
+    C_z_ = {0.0, -1.25, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
     // C_z_ = {2.0 , 1.0, 0.0, 0.0, -2.55, 0.0, 0.0, 0.0, 0.0};
 
     // Angle Error Shapes : Full Sphere
@@ -120,7 +120,7 @@ void NearnessControl3D::init() {
     if(use_observed_shapes_){
       ROS_INFO("Using observed shapes.");
       C_y_ = {0.0, 0.0, 0.0, 3.5, 0.0, 0.0, 0.5, 0.0, 0.0};
-      C_z_ = {2.0 , 1.0, 0.0, 0.0, -2.55, 0.0, 0.0, 0.0, 0.0};
+      C_z_ = {0.0, -1.25, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
       C_theta_ = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -.05, 5.25};
     }
 
@@ -590,11 +590,11 @@ void NearnessControl3D::computeControlCommands(){
       }
     }
 
-    // Enable small-field controller
-    if(enable_sf_control_){
-      u_v_ += sf_v_cmd_;
-      u_w_ += sf_w_cmd_;
-    }
+    // // Enable small-field controller
+    // if(enable_sf_control_){
+    //   u_v_ += sf_v_cmd_;
+    //   u_w_ += sf_w_cmd_;
+    // }
 
     // Enable forward speed regulation based on Laplace spherical harmonic feedback
     if(enable_speed_regulation_){
@@ -620,11 +620,11 @@ void NearnessControl3D::computeControlCommands(){
 
   }
 
-  if(enable_altitude_hold_){
-    //ROS_INFO("%f", current_pos_.z);
-    u_w_ = k_w_*(reference_altitude_ - current_height_agl_);
-    control_commands_.linear.z = u_w_;
-  }
+  // if(enable_altitude_hold_){
+  //   //ROS_INFO("%f", current_pos_.z);
+  //   u_w_ = k_w_*(reference_altitude_ - current_height_agl_);
+  //   control_commands_.linear.z = u_w_;
+  // }
 
 
 
