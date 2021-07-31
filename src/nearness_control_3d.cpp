@@ -260,8 +260,8 @@ void NearnessControl3D::processPcl(){
           p = new_cloud_.points[index];
           cloud_out_.push_back(p);
           dist = sqrt(pow(p.x,2) + pow(p.y,2) + pow(p.z,2));
-          if (!isObstructedPoint(index)){
-            ROS_INFO("index: %i", index);
+          if (isObstructedPoint(index)){
+            ROS_INFO("index: %i, theta: %f, phi: %f", index, theta_view_vec_[i], phi_view_vec_[j]);
           }
           mu_val = 1.0/dist;
           mu_meas_.push_back(mu_val);
