@@ -108,7 +108,7 @@ void NearnessControl3D::init() {
 
     // Vertical Error Shapes: Full Sphere
     // Trained using LSE in DARPA Simple Cave World 1
-    C_z_ = {2.0 , 1.0, 0.0, 0.0, -2.55, 0.0, 0.0, 0.0, 0.0};
+    C_z_ = {1.0 , 2.0, 0.0, 0.0, -2.55*2.0, 0.0, 0.0, 0.0, 0.0};
     // C_z_ = {2.0 , 1.0, 0.0, 0.0, -2.55, 0.0, 0.0, 0.0, 0.0};
 
     // Angle Error Shapes : Full Sphere
