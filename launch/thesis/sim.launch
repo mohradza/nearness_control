@@ -16,10 +16,10 @@
     <node pkg="nearness_control" type="nearness_control_3d_node" name="nearness_control_3d_node" output="screen">
 
         <!-- SUBSCRIBED TOPICS -->
-        <remap from="nearness_controller_3d/points"   to="ouster_points"/>
-        <remap from="nearness_controller_3d/odometry" to="odometry/ground_truth"/>
-        <remap from="nearness_controller_3d/control_commands" to="cmd_vel_out"/>
-        <remap from="nearness_controller_3d/joy" to="joy"/>
+        <remap from="nearness_control_3d/points"   to="ouster_points"/>
+        <remap from="nearness_control_3d/odometry" to="odometry/ground_truth"/>
+        <remap from="nearness_control_3d/control_commands" to="cmd_vel_out"/>
+        <remap from="nearness_control_3d/joy" to="joy"/>
 
         <!-- Enable switches -->
         <param name="enable_debug"             type="bool"       value="$(arg enable_debug)"/>
