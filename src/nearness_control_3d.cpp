@@ -260,7 +260,7 @@ void NearnessControl3D::processPcl(){
           p = new_cloud_.points[index];
           cloud_out_.push_back(p);
           dist = sqrt(pow(p.x,2) + pow(p.y,2) + pow(p.z,2));
-          if (dist < .5){
+          if (!isObstructedPoint(index)){
             ROS_INFO("index: %i", index);
           }
           mu_val = 1.0/dist;
@@ -315,7 +315,12 @@ void NearnessControl3D::projectNearness(){
 
       // Full projections for centering
 
-      increment = shape_mat_[j][i]*mu_meas_[i]*sin(theta)*dtheta_*dphi_;
+      if(!isObstructedPoint(i)){
+        increment = shape_mat_[j][i]*mu_meas_[i]*sin(theta)*dtheta_*dphi_;
+      } else {
+        increment = 0.0;
+      }
+
       y_full_[j] += increment;
       // if(j == 0 && !(i%50)){
       //   ROS_INFO("index: %d, inc: %f, shape_val: %f, mu: %f, theta: %f, dtheta: %f, dphi: %f", i, increment, shape_mat_[j][i], mu_meas_[i], theta, dtheta_, dphi_);
@@ -347,6 +352,18 @@ void NearnessControl3D::projectNearness(){
   // We are done processing the current pointcloud
   new_pcl_ = false;
 
+}
+
+bool NearnessControl3D::isObstructedPoint(const int index){
+  bool obstructed = false;
+  float theta = viewing_angle_mat_[index][0];
+  float phi = viewing_angle_mat_[index][1];
+  if(theta < 1.768 && theta > 1.473){
+    if( (phi < 2.165 && phi > 2.145) || (phi < 1.065 && phi > 1.046) || (phi < -1.028 && phi > -1.048) || (phi < -2.145 && phi > -2.165) ) {
+      obstructed = true;
+    }
+  }
+  return obstructed;
 }
 
 void NearnessControl3D::reconstructWideFieldNearness(){
