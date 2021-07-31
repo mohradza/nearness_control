@@ -2,55 +2,37 @@
 
   <arg name="enable_debug"                 default="true"/>
   <arg name="sim_control"                  default="false"/>
+  <arg name="enable_wf_control"            default="true"/>
+  <arg name="enable_sf_control"            default="false"/>
   <arg name="enable_altitude_hold"         default="false"/>
   <arg name="enable_speed_regulation"      default="false"/>
   <arg name="enable_command_scaling"       default="false"/>
-  <arg name="number_of_rings"              default = "64"/>
-  <arg name="number_of_ring_points"        default = "360"/>
-  <arg name="number_of_basis_shapes"       default = "9"/>
-  <arg name="number_of_wf_harmonics"       default = "9"/>
+  <arg name="use_observed_shapes"          default="true"/>
 
   <arg name="enable_teleop"                default = "1"/>
-  <!-- <arg name=""             deault = ""/> -->
 
-  <group ns="OHRAD_X3">
-    <node pkg="nearness_control" type="nearness_control_3d_node" name="nearness_control_3d_node" output="screen">
+  <!-- Launch the config file, which contains controller gains and other relevant parameters -->
+  <rosparam file="$(find nearness_control)/cfg/NearnessControl3D.yaml" command="load" ns="nearness_control_3d_node"/>
 
-        <!-- SUBSCRIBED TOPICS -->
-        <remap from="nearness_controller_3d/points"   to="ouster_points"/>
-        <remap from="nearness_controller_3d/odometry" to="odometry/ground_truth"/>
-        <!-- <remap from="nearness_controller_3d/control_commands" to="cmd_vel"/> -->
-        <remap from="nearness_controller_3d/joy" to="joy"/>
+  <!-- Launch the nearness control node -->
+  <node pkg="nearness_control" type="nearness_control_3d_node" name="nearness_control_3d" output="screen">
 
-        <!-- Enable switches -->
-        <param name="enable_debug"             type="bool"       value="$(arg enable_debug)"/>
-        <param name="sim_control"              type="bool"       value="$(arg sim_control)"/>
-        <param name="enable_altitude_hold"     type="bool"       value="$(arg enable_altitude_hold)"/>
-        <param name="enable_speed_regulation"  type="bool"       value="$(arg enable_speed_regulation)"/>
-        <param name="enable_command_scaling"   type="bool"       value="$(arg enable_command_scaling)"/>
+      <!-- SUBSCRIBED TOPICS -->
+      <remap from="nearness_control_3d/points"   to="ouster_points"/>
+      <remap from="nearness_control_3d/odometry" to="/odometry/ground_truth"/>
+      <!-- <remap from="nearness_controller_3d/control_commands" to="cmd_vel"/> -->
+      <remap from="nearness_control_3d/joy" to="joy"/>
 
-        <!-- Sensor Parameters -->
-        <param name="num_rings"                type="int"        value="$(arg number_of_rings)"/>
-        <param name="num_ring_points"          type="int"        value="$(arg number_of_ring_points)"/>
-        <param name="num_basis_shapes"         type="int"        value="$(arg number_of_basis_shapes)"/>
-        <param name="num_wf_harmonics"         type="int"        value="$(arg number_of_wf_harmonics)"/>
+      <!-- Enable switches -->
+      <param name="enable_debug"             type="bool"       value="$(arg enable_debug)"/>
+      <param name="sim_control"              type="bool"       value="$(arg sim_control)"/>
+      <param name="enable_wf_control"        type="bool"       value="$(arg enable_wf_control)"/>
+      <param name="enable_sf_control"        type="bool"       value="$(arg enable_sf_control)"/>
+      <param name="enable_altitude_hold"     type="bool"       value="$(arg enable_altitude_hold)"/>
+      <param name="enable_speed_regulation"  type="bool"       value="$(arg enable_speed_regulation)"/>
+      <param name="enable_command_scaling"   type="bool"       value="$(arg enable_command_scaling)"/>
+      <param name="use_observed_shapes"      type="bool"       value="$(arg use_observed_shapes)"/>
 
-        <!-- Controller Parameters -->
-        <param name="altitude_hold_gain"       type="double"     value=".5"/>
-        <param name="lateral_speed_gain"       type="double"     value="-.5"/>
-        <param name="turn_rate_gain"           type="double"     value="-.5"/>
-        <param name="vertical_speed_gain"      type="double"     value="-.5"/>
-        <param name="reference_altitude"       type="double"     value=".5"/>
-        <param name="forward_speed"            type="double"     value="0.0"/>
-
-        <!-- Small-field controller gains -->
-        <param name="small_field_angle_gain"            type="double"     value="1.0"/>
-        <param name="small_field_nearness_gain"         type="double"     value="1.0"/>
-        <param name="small_field_vertical_speed_gain"   type="double"     value="1.0"/>
-        <param name="small_field_lateral_speed_gain"    type="double"     value="1.0"/>
-
-
-    </node>
-  </group>
+  </node>
 
 </launch>

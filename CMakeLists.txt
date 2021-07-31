@@ -47,8 +47,9 @@ generate_messages(
 )
 
 generate_dynamic_reconfigure_options(
-	cfg/NearnessController.cfg
-  cfg/NearnessController3D.cfg)
+	cfg/NearnessControl.cfg
+  cfg/NearnessControl3D.cfg
+)
 
 catkin_package(
   INCLUDE_DIRS include
@@ -70,12 +71,12 @@ include_directories(
   ${OpenCV_INCLUDE_DIRS}
 )
 
-add_library(nearness_controller src/nearness_controller.cpp)
-add_dependencies(nearness_controller ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_generate_messages_cpp)
-target_link_libraries(nearness_controller ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${OpenCV_LIBS})
+add_library(nearness_control src/nearness_control.cpp)
+add_dependencies(nearness_control ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(nearness_control ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${OpenCV_LIBS})
 
-add_executable(nearness_controller_node src/nearness_controller_node.cpp)
-target_link_libraries(nearness_controller_node nearness_controller ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${OpenCV_LIBS})
+add_executable(nearness_control_node src/nearness_control_node.cpp)
+target_link_libraries(nearness_control_node nearness_control ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${OpenCV_LIBS})
 
 add_library(nearness_control_3d src/nearness_control_3d.cpp)
 add_dependencies(nearness_control_3d ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_generate_messages_cpp)
