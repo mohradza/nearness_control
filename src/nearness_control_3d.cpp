@@ -82,7 +82,7 @@ void NearnessControl3D::init() {
     enable_control_ = true;
     enable_cmd_scaling_ = false;
     enable_speed_regulation_ = false;
-    enable_analytic_shapes_ = true;
+    enable_analytic_shapes_ = false;
 
     frame_id_ = "OHRAD_X3";
 
@@ -579,8 +579,8 @@ void NearnessControl3D::computeControlCommands(){
       } else {
         for(int j=0; j < num_basis_shapes_; j++){
           u_vec_[0] += C_y_[j]*y_full_[j];
-          u_vec_[1] += C_z_[j]*y_front_half_[j];
-          u_vec_[2] += C_z_[j]*y_full_[j];
+          u_vec_[1] += C_z_[j]*y_full_[j];
+          u_vec_[2] += C_theta_[j]*y_full_[j];
         }
         u_v_ = k_v_*u_vec_[0];
         u_w_ = k_w_*u_vec_[2];
