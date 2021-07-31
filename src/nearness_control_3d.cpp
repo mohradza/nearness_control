@@ -102,7 +102,7 @@ void NearnessControl3D::init() {
 
     // Lateral Error Shapes: Full Sphere
     // Trained using LSE in DARPA Simple Cave World 1
-    C_y_ = {-1.991 0.2666 6.4548 0.4897 0.3655 -1.004 -0.5274 36.7821};
+    C_y_ = {-1.991, 0.2666, 6.4548, 0.4897, 0.3655, -1.004, -0.5274, 36.7821};
     // Observed C_dagger components
     // C_y_ = {0.0, 0.0, 0.0, 3.5, 0.0, 0.0, 0.5, 0.0, 0.0};
 
@@ -117,7 +117,7 @@ void NearnessControl3D::init() {
     // Observed C_dagger components
     // C_theta_ = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -.05, 5.25};
 
-    if(use_observed_shapes){
+    if(use_observed_shapes_){
       C_y_ = {0.0, 0.0, 0.0, 3.5, 0.0, 0.0, 0.5, 0.0, 0.0};
       C_z_ = {2.0 , 1.0, 0.0, 0.0, -2.55, 0.0, 0.0, 0.0, 0.0};
       C_theta_ = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -.05, 5.25};

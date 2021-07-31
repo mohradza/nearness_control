@@ -247,8 +247,7 @@ class NearnessControl3D {
     vector<vector<float>> C_mat_;
     vector<float> C_y_;
     vector<float> C_z_;
-    vector<float> C_z_;
-    vector<float> C_z_;
+    vector<float> C_theta_;
     vector<float> u_vec_;
     double r_;
     double u_u_, u_v_, u_r_, u_w_;
