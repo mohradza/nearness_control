@@ -17,9 +17,9 @@ altitude_hold_gain: .5
 
 
 # Wide-Field Controller Gains
-lateral_speed_gain: 5.0
+lateral_speed_gain: 1.0
 turn_rate_gain: -.5
-vertical_speed_gain: -5.0
+vertical_speed_gain: -1.0
 
 # Small-Field Controller Gains
 small_field_angle_gain: 1.0

@@ -118,6 +118,7 @@ void NearnessControl3D::init() {
     // C_theta_ = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -.05, 5.25};
 
     if(use_observed_shapes_){
+      ROS_INFO("Using observer shapes.");
       C_y_ = {0.0, 0.0, 0.0, 3.5, 0.0, 0.0, 0.5, 0.0, 0.0};
       C_z_ = {2.0 , 1.0, 0.0, 0.0, -2.55, 0.0, 0.0, 0.0, 0.0};
       C_theta_ = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -.05, 5.25};
@@ -577,14 +578,15 @@ void NearnessControl3D::computeControlCommands(){
         u_v_ = k_v_*(-r_/1.3478)*y_full_[6];
         u_w_ = k_w_*(r_/1.3478)*y_full_[5];
       } else {
+        ROS_INFO_THROTTLE(1.0, "Processing...");
         for(int j=0; j < num_basis_shapes_; j++){
           u_vec_[0] += C_y_[j]*y_full_[j];
           u_vec_[1] += C_z_[j]*y_full_[j];
           u_vec_[2] += C_theta_[j]*y_full_[j];
         }
         u_v_ = k_v_*u_vec_[0];
-        u_w_ = k_w_*u_vec_[2];
-        u_r_ = k_r_*u_vec_[1];
+        u_w_ = k_w_*u_vec_[1];
+        u_r_ = k_r_*u_vec_[2];
       }
     }
 
