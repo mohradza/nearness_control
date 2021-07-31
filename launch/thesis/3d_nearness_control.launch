@@ -31,7 +31,7 @@
       <param name="enable_altitude_hold"     type="bool"       value="$(arg enable_altitude_hold)"/>
       <param name="enable_speed_regulation"  type="bool"       value="$(arg enable_speed_regulation)"/>
       <param name="enable_command_scaling"   type="bool"       value="$(arg enable_command_scaling)"/>
-      <param name="use_observed_shapes"      type="bool"       value="$(arg enable_command_scaling)"/>
+      <param name="use_observed_shapes"      type="bool"       value="$(arg use_observed_shapes)"/>
 
   </node>
 
