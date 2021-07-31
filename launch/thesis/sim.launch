@@ -52,4 +52,7 @@
 
   </group>
 
+  <include file="$(find nearness_control)/launch/sim/twist_mux.launch"/>
+  
+
 </launch>
