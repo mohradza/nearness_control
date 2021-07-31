@@ -46,7 +46,7 @@
 
     </node>
 
-    <include file="$(find nearness_control)/launch/thesis/tf2odom.launch"/>
+    <!-- <include file="$(find nearness_control)/launch/sim/tf2odom.launch"/> -->
 
     <include file="$(find nearness_control)/launch/sim/sim_teleop.launch" if="$(arg enable_teleop)"/>
 
