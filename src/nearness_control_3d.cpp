@@ -54,7 +54,7 @@ void NearnessControl3D::init() {
     pnh_.param("enable_altitude_hold", enable_altitude_hold_, false);
     pnh_.param("enable_speed_regulation", enable_speed_regulation_, false);
     pnh_.param("enable_command_scaling", enable_cmd_scaling_, false);
-    pnh_.param("use_observed_shapes", use_observed_shapes_, false);
+    pnh_.param("use_observed_shapes", use_observed_shapes_, true);
 
     pnh_.param("num_rings", num_rings_, 64);
     pnh_.param("num_ring_points", num_ring_points_, 360);
@@ -118,7 +118,7 @@ void NearnessControl3D::init() {
     // C_theta_ = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -.05, 5.25};
 
     if(use_observed_shapes_){
-      ROS_INFO("Using observer shapes.");
+      ROS_INFO("Using observed shapes.");
       C_y_ = {0.0, 0.0, 0.0, 3.5, 0.0, 0.0, 0.5, 0.0, 0.0};
       C_z_ = {2.0 , 1.0, 0.0, 0.0, -2.55, 0.0, 0.0, 0.0, 0.0};
       C_theta_ = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -.05, 5.25};
