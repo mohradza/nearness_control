@@ -80,8 +80,6 @@ void NearnessControl3D::init() {
     max_yaw_rate_ = 1.0;
 
     enable_control_ = false;
-    enable_cmd_scaling_ = false;
-    enable_speed_regulation_ = false;
     enable_analytic_shapes_ = false;
 
     frame_id_ = "OHRAD_X3";
@@ -100,23 +98,17 @@ void NearnessControl3D::init() {
     // Set up the Cdagger matrix
     // Will be referenced as C in code
 
+    // Trained using LSE in DARPA Simple Cave World 1sudo
     // Lateral Error Shapes: Full Sphere
-    // Trained using LSE in DARPA Simple Cave World 1
     C_y_ = {-1.991, 0.2666, 6.4548, 0.4897, 0.3655, -1.004, -0.5274, 36.7821};
-    // Observed C_dagger components
-    // C_y_ = {0.0, 0.0, 0.0, 3.5, 0.0, 0.0, 0.5, 0.0, 0.0};
 
     // Vertical Error Shapes: Full Sphere
-    // Trained using LSE in DARPA Simple Cave World 1
     C_z_ = {0.0, -1.25, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-    // C_z_ = {2.0 , 1.0, 0.0, 0.0, -2.55, 0.0, 0.0, 0.0, 0.0};
 
     // Angle Error Shapes : Full Sphere
-    // Trained using LSE in DARPA Simple Cave World 1
     C_theta_ = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -.05, 5.25};
-    // Observed C_dagger components
-    // C_theta_ = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -.05, 5.25};
 
+    // Observed C_dagger components
     if(use_observed_shapes_){
       ROS_INFO("Using observed shapes.");
       C_y_ = {0.0, 0.0, 0.0, 3.5, 0.0, 0.0, 0.5, 0.0, 0.0};
