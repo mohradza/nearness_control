@@ -587,7 +587,6 @@ void NearnessControl3D::computeControlCommands(){
         u_v_ = k_v_*(-r_/1.3478)*y_full_[6];
         u_w_ = k_w_*(r_/1.3478)*y_full_[5];
       } else {
-        ROS_INFO_THROTTLE(1.0, "Processing...");
         for(int j=0; j < num_basis_shapes_; j++){
           u_vec_[0] += C_y_[j]*y_full_[j];
           u_vec_[1] += C_z_[j]*y_full_[j];

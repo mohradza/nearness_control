@@ -12,7 +12,7 @@ forward_speed_min: .01
 forward_speed_max: 1.0
 yaw_rate_max: .5
 reference_altitude: .5
-forward_speed: 1.0
+forward_speed: 2.0
 altitude_hold_gain: .5
 
 
