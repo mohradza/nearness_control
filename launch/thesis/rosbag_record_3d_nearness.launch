@@ -2,7 +2,7 @@
 
   <arg name="ns" default="OHRAD_X3"/>
 
-  <arg name="folder_name" default="thesis_datasets/cave_tests/full_system_test"/>
+  <arg name="folder_name" default="thesis_datasets/cylinder/perturbation_no_noise"/>
   <arg name="user" default="marble"/>
   <arg name="record_sensors" default="1"/>
   <arg name="record_outputs" default="1"/>
@@ -26,13 +26,13 @@
 
   <!-- Record Output Data  -->
   <group if="$(arg record_outputs)">
-    <node pkg="rosbag" type="record" name="rosbag_niosh_outputs" output="screen"
+    <node pkg="rosbag" type="record" name="rosbag_record" output="screen"
       args=" --split --duration=$(arg split_time) --max-splits $(arg split_number) --buffsize 0 --output-prefix /home/$(arg user)/$(arg folder_name)/outputs
       /tf
       /tf_static
       $(arg ns)/odometry/ground_truth
       $(arg ns)/cmd_vel/ground_truth
-      $(arg ns)/nearness_controller_3d/y_projections_with_odom
+      $(arg ns)/nearness_control_3d/y_projections_with_odom
       ">
     </node>
   </group>

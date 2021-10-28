@@ -281,6 +281,10 @@ class NearnessControl3D {
     bool sim_control_;
     bool use_observed_shapes_;
 
+    std::default_random_engine generator_;
+    double noise_std_dev_;
+
+
 
 }; // class SimpleNodeClass
 

@@ -60,24 +60,39 @@ void NearnessControl3D::init() {
     pnh_.param("num_ring_points", num_ring_points_, 360);
     pnh_.param("num_basis_shapes", num_basis_shapes_, 9);
     pnh_.param("num_wf_harmonics", num_wf_harmonics_, 9);
+    pnh_.param("noise_std_dev", noise_std_dev_, 0.03);
 
-    pnh_.param("lateral_speed_gain", k_v_, -0.1);
-    pnh_.param("turn_rate_gain", k_r_, -0.1);
-    pnh_.param("vertical_speed_gain", k_w_, -0.1);
+    // Forward speed params
     pnh_.param("forward_speed", forward_speed_, .5);
-    pnh_.param("reference_altitude", reference_altitude_, .5);
+    pnh_.param("forward_speed_max", max_forward_speed_, .5);
+    // pnh_.param("forward_speed_min", min_forward_speed_, .5);
     pnh_.param("forward_speed_lateral_gain", k_u_v_, .1);
     pnh_.param("forward_speed_r_gain", k_u_r_, .1);
+
+    // Lateral speed params
+    pnh_.param("lateral_speed_gain", k_v_, -0.1);
+    pnh_.param("lateral_speed_max", max_lateral_speed_, 1.0);
+
+    // Vertical speed params
+    pnh_.param("vertical_speed_gain", k_w_, -0.1);
+    pnh_.param("vertical_speed_max", max_vertical_speed_, 1.0);
+
+    // Turn rate Parameters
+    pnh_.param("yaw_rate_gain", k_r_, -0.1);
+    pnh_.param("yaw_rate_max", max_yaw_rate_, 1.0);
+
+    // Altitude hold parameters
+    pnh_.param("reference_altitude", reference_altitude_, .5);
 
     pnh_.param("small_field_angle_gain", sf_k_angle_, 1.0);
     pnh_.param("small_field_nearness_gain", sf_k_mu_, 1.0);
     pnh_.param("small_field_vertical_speed_gain", sf_k_w_, 1.0);
     pnh_.param("small_field_lateral_speed_gain", sf_k_v_, 1.0);
 
-    max_forward_speed_ = 1.0;
-    max_lateral_speed_ = 1.0;
-    max_vertical_speed_ = 1.0;
-    max_yaw_rate_ = 1.0;
+    // max_forward_speed_ = 1.0;
+    // max_lateral_speed_ = 1.0;
+    // max_vertical_speed_ = 1.0;
+    // max_yaw_rate_ = 1.0;
 
     enable_control_ = false;
     enable_analytic_shapes_ = false;
@@ -122,6 +137,9 @@ void NearnessControl3D::init() {
       C_z_ = {0.0, -1.9544, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
       C_theta_ = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 5.25};
     }
+    // unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+    // generator_(seed);
+    //
 
 
 
@@ -248,6 +266,10 @@ void NearnessControl3D::processPcl(){
   pcl::PointXYZ p, mu_p;
   float dist, mu_val;
   int index = 0;
+
+  // Generate random gaussian noise for the sensor model
+  std::normal_distribution<double> noise(0.0, noise_std_dev_);
+
   // Exclude the first and last rings, because they don't contain much information
   for(int i = 1; i < num_rings_-1; i++){
       for(int j = 0; j < num_ring_points_ ; j++){
@@ -257,6 +279,7 @@ void NearnessControl3D::processPcl(){
           //p = cloud_in->points[index];
           p = new_cloud_.points[index];
           cloud_out_.push_back(p);
+          //dist = sqrt(pow(p.x,2) + pow(p.y,2) + pow(p.z,2)) + noise(generator_);
           dist = sqrt(pow(p.x,2) + pow(p.y,2) + pow(p.z,2));
 
           mu_val = 1.0/dist;
@@ -692,7 +715,7 @@ void NearnessControl3D::computeControlCommands(){
 void NearnessControl3D::odomCb(const nav_msgs::OdometryConstPtr& odom_msg){
     current_odom_ = *odom_msg;
     current_pos_ = current_odom_.pose.pose.position;
-    current_odom_.pose.pose.position.z = current_height_agl_;
+    //current_odom_.pose.pose.position.z = current_height_agl_;
     geometry_msgs::Quaternion vehicle_quat_msg = current_odom_.pose.pose.orientation;
     tf::Quaternion vehicle_quat_tf;
     tf::quaternionMsgToTF(vehicle_quat_msg, vehicle_quat_tf);
