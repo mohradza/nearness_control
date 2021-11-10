@@ -26,6 +26,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## System dependencies are found with CMake's conventions
 find_package(OpenCV REQUIRED)
 find_package(Boost REQUIRED COMPONENTS thread)
+find_package(Eigen3 REQUIRED)
 
 if(cv_bridge_VERSION VERSION_GREATER "1.12.0")
   add_compile_options(-std=c++11)
@@ -69,6 +70,7 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
   ${Boost_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS}
+  ${Eigen3_INCLUDE_DIRS}
 )
 
 add_library(nearness_control src/nearness_control.cpp)
