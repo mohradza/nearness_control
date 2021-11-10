@@ -8,7 +8,7 @@ int main(int argc, char** argv) {
     ros::NodeHandle nh_private("~");
     nearness_3d::NearnessControl3D nearness_control_3d_node(nh, nh_private);
 
-    ros::Rate loop_rate(100);
+    ros::Rate loop_rate(50);
 
     while(ros::ok()){
 
@@ -18,9 +18,9 @@ int main(int argc, char** argv) {
             // Process 3D nearness
             //ROS_INFO_THROTTLE(1.0, "Running nearness controller...");
             nearness_control_3d_node.projectNearness();
-            nearness_control_3d_node.reconstructWideFieldNearness();
-            nearness_control_3d_node.computeSmallFieldNearness();
-            nearness_control_3d_node.computeSFControlCommands();
+            //nearness_control_3d_node.reconstructWideFieldNearness();
+            //nearness_control_3d_node.computeSmallFieldNearness();
+            //nearness_control_3d_node.computeSFControlCommands();
             nearness_control_3d_node.computeControlCommands();
         }
 

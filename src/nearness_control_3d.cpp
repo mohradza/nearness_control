@@ -133,9 +133,25 @@ void NearnessControl3D::init() {
 
     if(true){
       ROS_INFO("Using observed shapes.");
+      // Simple Cave 02 Test 1
+      // C_y_ = {0.0, 0.0, 0.0, -1.9544, 0.0, 0.0, 0.0, 0.0, 0.0};
+      // C_z_ = {0.0, -1.9544, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+      // C_theta_ = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.4658};
+
+      // Simple Cave 02 Test 2
+      // C_y_ = {0.0, 0.0, 0.0, -4.3974, 0.0, 0.0, 0.0, 0.0, 0.0};
+      // C_z_ = {0.0, -4.3974, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+      // C_theta_ = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -3.2981};
+
+      // Simple Cave 02 Test 3
       C_y_ = {0.0, 0.0, 0.0, -1.9544, 0.0, 0.0, 0.0, 0.0, 0.0};
       C_z_ = {0.0, -1.9544, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-      C_theta_ = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 5.25};
+      C_theta_ = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.4658};
+
+      // Simple Tunnel 03
+      // C_y_ = {0.0, 0.0, 0.0, -1.4963, 0.0, 0.0, 0.0, 0.0, 0.0};
+      // C_z_ = {0.0, -1.4963, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+      // C_theta_ = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.1223};
     }
     // unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
     // generator_(seed);
@@ -281,6 +297,15 @@ void NearnessControl3D::processPcl(){
           cloud_out_.push_back(p);
           //dist = sqrt(pow(p.x,2) + pow(p.y,2) + pow(p.z,2)) + noise(generator_);
           dist = sqrt(pow(p.x,2) + pow(p.y,2) + pow(p.z,2));
+
+          if(dist < 0.3){
+            dist = 1000;
+          } else {
+            dist = dist + noise(generator_);
+            if(dist < 0.3){
+              dist = 1000;
+            }
+          }
 
           mu_val = 1.0/dist;
           mu_meas_.push_back(mu_val);
@@ -620,13 +645,15 @@ void NearnessControl3D::computeControlCommands(){
         for(int j=0; j < num_basis_shapes_; j++){
           u_vec_[0] += C_y_[j]*y_full_[j];
           u_vec_[1] += C_z_[j]*y_full_[j];
-          u_vec_[2] += C_theta_[j]*y_full_[j];
+          // u_vec_[2] += C_theta_[j]*y_full_[j];
+          u_vec_[2] += C_theta_[j]*y_front_half_[j];
         }
         u_v_ = k_v_*u_vec_[0];
         u_w_ = k_w_*u_vec_[1];
         u_r_ = k_r_*u_vec_[2];
       }
     }
+
 
     // // Enable small-field controller
     // if(enable_sf_control_){
@@ -635,8 +662,12 @@ void NearnessControl3D::computeControlCommands(){
     // }
 
     // Enable forward speed regulation based on Laplace spherical harmonic feedback
+    float k_u_w_ = 0.25;
+    float k_front_ = 2.0;
+    float front_reg = k_front_*abs(y_full_[2]);
+    // ROS_INFO("front_reg: %f", front_reg);
     if(enable_speed_regulation_){
-      u_u_ =  max_forward_speed_*(1 - k_u_v_*abs(u_v_) - k_u_r_*abs(u_r_));
+      u_u_ =  forward_speed_*(1 - k_u_v_*abs(u_v_) - k_u_r_*abs(u_r_) - k_u_w_*abs(u_w_) - front_reg);
       //u_u_ =  max_forward_speed_*(1 - k_u_v_*abs(u_v_) - k_u_r_*abs(u_r_) - front_mu_ave_);
       // if(enable_cmd_scaling_){
       //   u_u_ =  max_forward_speed_*(1.0 - 2*front_mu_ave_);
@@ -644,6 +675,13 @@ void NearnessControl3D::computeControlCommands(){
     } else {
       u_u_ = forward_speed_;
     }
+
+    // u_u_ = 0.0;
+    // u_w_ = -k_w_*current_pos_.z;
+    // u_v_ = -k_v_*current_pos_.y;
+    // u_r_ = -(k_r_/50.0)*current_heading_;
+
+
 
     // if(enable_cmd_scaling_){
     //   // Scale lateral speed command by max lateral nearness
@@ -657,6 +695,16 @@ void NearnessControl3D::computeControlCommands(){
     control_commands_.angular.z = u_r_;
 
   }
+
+      // u_u_ = 0.0;
+      // u_w_ = -k_w_*current_pos_.z;
+      // u_v_ = -k_v_*current_pos_.y;
+      // u_r_ = -(k_r_/50.0)*current_heading_;
+
+      // control_commands_.linear.x = u_u_;
+      // control_commands_.linear.z = u_w_;
+      // control_commands_.linear.y = u_v_;
+      // control_commands_.angular.z = u_r_;
 
   // if(enable_altitude_hold_){
   //   //ROS_INFO("%f", current_pos_.z);
@@ -678,6 +726,8 @@ void NearnessControl3D::computeControlCommands(){
   // }
 
   pub_control_commands_.publish(control_commands_);
+
+  // ROS_INFO_THROTTLE(.5,"heading: %f", current_heading_);
 
   if(enable_debug_){
 

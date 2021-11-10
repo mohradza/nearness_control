@@ -57,7 +57,7 @@ int main(int argc, char** argv){
 
   ros::Time last_odom_time = ros::Time::now();
 
-  ros::Rate rate(50);
+  ros::Rate rate(25);
   while (node.ok()){
     tf::StampedTransform transform;
     try{
