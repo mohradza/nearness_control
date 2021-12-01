@@ -86,6 +86,8 @@ class NearnessControl3D {
     void computeSFControlCommands();
     bool newPcl();
     bool isObstructedPoint(const float t, const float p);
+    bool isSideZonePoint(const float t, const float p);
+    bool isVerticalZonePoint(const float t, const float p);
 
 
  private:
@@ -284,6 +286,16 @@ class NearnessControl3D {
     std::default_random_engine generator_;
     double noise_std_dev_;
 
+    float side_zone_dist_;
+    int side_zone_count_;
+
+    float vert_zone_dist_;
+    int vert_zone_count_;
+
+    float average_radius_;
+    bool enable_radius_scaling_;
+    float max_dist_;
+    float min_dist_;
 
 
 }; // class SimpleNodeClass

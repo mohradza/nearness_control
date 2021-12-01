@@ -156,8 +156,14 @@ void NearnessControl3D::init() {
     // unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
     // generator_(seed);
     //
-
-
+    enable_radius_scaling_ = true;
+    if(enable_radius_scaling_){
+      C_y_ = {0.0, 0.0, 0.0, -0.4886, 0.0, 0.0, 0.0, 0.0, 0.0};
+      C_z_ = {0.0, -0.4886, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+      C_theta_ = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.4658};
+    }
+    max_dist_ = 5.0;
+    min_dist_ = 0.5;
 
     // Prepare the Laplace spherical harmonic basis set
     generateViewingAngleVectors();
@@ -278,6 +284,9 @@ void NearnessControl3D::processPcl(){
   cloud_out_.clear();
   mu_cloud_out_.clear();
 
+  side_zone_dist_ = 0.0;
+  side_zone_count_ = 0;
+
   // Convert the pcl to nearness
   pcl::PointXYZ p, mu_p;
   float dist, mu_val;
@@ -315,8 +324,40 @@ void NearnessControl3D::processPcl(){
               mu_p = {mu_val*sin(theta_view_vec_[i])*cos(phi_view_vec_[j]), mu_val*sin(theta_view_vec_[i])*sin(phi_view_vec_[j]), mu_val*cos(theta_view_vec_[i]) };
               mu_cloud_out_.push_back(mu_p);
           }
+
+          if(dist > max_dist_){
+            dist = max_dist_;
+          }
+          if(dist < min_dist_){
+            dist = min_dist_;
+          }
+
+          if(isSideZonePoint(theta_view_vec_[i], phi_view_vec_[j])){
+            side_zone_dist_ += dist;
+            side_zone_count_ += 1;
+          }
+
+          if(isVerticalZonePoint(theta_view_vec_[i], phi_view_vec_[j])){
+            vert_zone_dist_ += dist;
+            vert_zone_count_ += 1;
+          }
+
       }
   }
+
+  average_radius_ = 5.0;
+  // Compute the average radius
+  if(side_zone_count_ && vert_zone_count_){
+    average_radius_ = (side_zone_dist_ / side_zone_count_ + vert_zone_dist_ / vert_zone_count_) / 2.0;
+    if (average_radius_ > 5.0){
+      average_radius_ = 5.0;
+    }
+  } else {
+    ROS_INFO_THROTTLE(1.0, "Missing zone counts: side: %d, vert: %d", side_zone_count_, vert_zone_count_);
+    average_radius_ = 2.0;
+  }
+
+  //ROS_INFO_THROTTLE(0.5,"Average radius: %f", average_radius_);
 
   // Treat the first point as a rangefinder for alt hold
   //p = cloud_in->points[0];
@@ -390,12 +431,42 @@ void NearnessControl3D::projectNearness(){
     y_projections_with_odom_msg_.front_half_projections = y_front_half_;
     y_projections_with_odom_msg_.bottom_half_projections = y_bottom_half_;
     y_projections_with_odom_msg_.odometry = current_odom_;
+    y_projections_with_odom_msg_.average_radius = average_radius_;
     pub_y_projections_with_odom_.publish(y_projections_with_odom_msg_);
   }
 
   // We are done processing the current pointcloud
   new_pcl_ = false;
 
+}
+
+bool NearnessControl3D::isSideZonePoint(const float t, const float p){
+  float side_delta_p = M_PI / 8.0;
+  float side_delta_t = M_PI / 8.0;
+  // Point is in the left side zone
+  if(p < (-M_PI/2.0 + side_delta_p) && p > (-M_PI/2.0 - side_delta_p)){
+    if(t > (M_PI/2.0 - side_delta_t) && t < (M_PI/2.0 + side_delta_t)){
+      return true;
+    }
+  }
+  // Point is in the right side zone
+  if(p > (M_PI/2.0 - side_delta_p) && p < (M_PI/2.0 + side_delta_p)){
+    if(t > (M_PI/2.0 - side_delta_t) && t < (M_PI/2.0 + side_delta_t)){
+      return true;
+    }
+  }
+
+  return false;
+}
+
+bool NearnessControl3D::isVerticalZonePoint(const float t, const float p){
+  float vert_delta_t = M_PI / 8.0;
+  // Point is in the top or bottom zone
+  if(t < (vert_delta_t) || t > (M_PI - vert_delta_t)){
+    return true;
+  }
+
+  return false;
 }
 
 bool NearnessControl3D::isObstructedPoint(const float t, const float p){
@@ -651,6 +722,11 @@ void NearnessControl3D::computeControlCommands(){
         u_v_ = k_v_*u_vec_[0];
         u_w_ = k_w_*u_vec_[1];
         u_r_ = k_r_*u_vec_[2];
+
+        if(enable_radius_scaling_){
+          u_v_ *= pow(average_radius_, 2.0);
+          u_w_ *= pow(average_radius_, 2.0);
+        }
       }
     }
 
