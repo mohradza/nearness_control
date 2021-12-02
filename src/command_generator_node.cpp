@@ -6,7 +6,6 @@ int main(int argc, char** argv) {
     ros::init(argc, argv, node_name);
     ros::NodeHandle nh("command_generator");
     ros::NodeHandle nh_private("~");
-    //nearness::NearnessController nearness_controller_node(nh, nh_private);
     command_generator::commandGenerator command_generator_node(nh, nh_private);
 
     ros::Rate loop_rate(50);

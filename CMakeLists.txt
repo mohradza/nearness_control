@@ -103,3 +103,10 @@ target_link_libraries(joy_teleop_mixer joy_teleop_mixer_node ${catkin_LIBRARIES}
 
 add_executable(tf2odom src/tf2odom.cpp)
 target_link_libraries(tf2odom ${catkin_LIBRARIES})
+
+add_library(command_generator_node src/command_generator_node.cpp)
+target_link_libraries(command_generator_node ${catkin_LIBRARIES} ${Boost_LIBRARIES})
+
+add_executable(command_generator src/command_generator.cpp)
+#add_dependencies(command_generator ${PROJECT_NAME}_gencfg )
+target_link_libraries(command_generator command_generator_node ${catkin_LIBRARIES} ${Boost_LIBRARIES})
