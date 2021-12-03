@@ -26,7 +26,7 @@ commandGenerator::commandGenerator(const ros::NodeHandle &node_handle,
     routine_ = "doublets";
     start_doublets_ = false;
     doublet_period_ = 8.0;
-    doublet_amplitude_ = 0.5;
+    doublet_amplitude_ = .5;
 
     k_u_ = 0.75;
     k_v_ = 0.75;
@@ -79,7 +79,10 @@ commandGenerator::commandGenerator(const ros::NodeHandle &node_handle,
       // Start the test routine
       if(!routine_.compare("doublets")){
         generateDoubletsCommand();
+        cmd_vel_msg_.linear.x = k_u_*(starting_point_.x - current_pos_.x);
         cmd_vel_msg_.linear.z = k_w_*(starting_point_.z - current_pos_.z);
+        cmd_vel_msg_.linear.y = k_v_*(starting_point_.y - current_pos_.y);
+        // cmd_vel_msg_.angular.z = (k_r_/50.0)*(starting_heading_ - current_heading_);
       }
     }
   }
@@ -126,9 +129,9 @@ commandGenerator::commandGenerator(const ros::NodeHandle &node_handle,
       }
     }
 
-    cmd_vel_msg_.linear.y = cmd;
-    //cmd_vel_msg_.linear.z = cmd;
-    //cmd_vel_msg_.angular.z = cmd;
+    // cmd_vel_msg_.linear.y = cmd;
+    // cmd_vel_msg_.linear.z = cmd;
+    cmd_vel_msg_.angular.z = cmd;
   }
 
 

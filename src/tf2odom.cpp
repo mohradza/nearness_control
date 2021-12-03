@@ -142,15 +142,18 @@ int main(int argc, char** argv){
 
     Vector3f body_vels_vec(0.0, 0.0, 0.0);
     body_vels_vec = mat_rot*world_vels;
-    
+
     body_vels.linear.x = body_vels_vec[0];
     body_vels.linear.y = body_vels_vec[1];
     body_vels.linear.z = body_vels_vec[2];
 
+    odom_msg.twist.twist.linear.x = body_vels_vec[0];
+    odom_msg.twist.twist.linear.y = body_vels_vec[1];
+    odom_msg.twist.twist.linear.z = body_vels_vec[2];
+
     body_vels.angular.x = p;
     body_vels.angular.y = q;
     body_vels.angular.z = r;
-
 
     body_vel_pub.publish(body_vels);
 
