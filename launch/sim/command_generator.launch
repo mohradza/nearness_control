@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+
+<launch>
+
+  <arg name="name" default="OHRAD_X3"/>
+
+  <group ns="$(arg name)">
+
+    <node name="command_generator_node" type="command_generator" pkg="nearness_control" output="screen">
+      <remap from="command_generator/odometry" to="odometry/ground_truth"/>
+      <remap from="command_generator/cmd_vel_out" to="cmd_vel"/>
+    </node>
+
+    <include file="$(find nearness_control)/launch/sim/tf2odom.launch"/>
+
+  </group>
+
+</launch>

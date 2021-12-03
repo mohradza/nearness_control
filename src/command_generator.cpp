@@ -11,26 +11,27 @@ commandGenerator::commandGenerator(const ros::NodeHandle &node_handle,
   void commandGenerator::init(){
     // SUBSCRIBERS
     sub_state_ = nh_.subscribe("state", 1, &commandGenerator::stateCb, this);
+    sub_odom_ = nh_.subscribe("odometry", 1, &commandGenerator::odomCb, this);
 
     // PUBLISHERS
     pub_cmd_vel_ = nh_.advertise<geometry_msgs::Twist>("cmd_vel_out", 10);
 
     state_ = "init";
 
-    starting_point_.x = 0.0;
+    starting_point_.x = 4.0;
     starting_point_.y = 0.0;
     starting_point_.z = 0.75;
     starting_heading_ = 0.0;
 
     routine_ = "doublets";
     start_doublets_ = false;
-    doublet_period_ = 4.0;
-    doublet_amplitude_ = 1.0;
+    doublet_period_ = 8.0;
+    doublet_amplitude_ = 0.5;
 
-    k_u_ = 1.25;
-    k_v_ = 1.25;
+    k_u_ = 0.75;
+    k_v_ = 0.75;
     k_w_ = 1.5;
-    k_r_ = 1.5;
+    k_r_ = 0.5;
 
   }
 
@@ -66,6 +67,7 @@ commandGenerator::commandGenerator(const ros::NodeHandle &node_handle,
     if(!state_.compare("init")){
       // Do nothing
       start_doublets_ = false;
+      ROS_INFO_THROTTLE(1.0,"z pos: %f", current_pos_.z);
     } else if(!state_.compare("go_to_start")){
       // Go to the starting point
       cmd_vel_msg_.linear.x = k_u_*(starting_point_.x - current_pos_.x);
@@ -77,6 +79,7 @@ commandGenerator::commandGenerator(const ros::NodeHandle &node_handle,
       // Start the test routine
       if(!routine_.compare("doublets")){
         generateDoubletsCommand();
+        cmd_vel_msg_.linear.z = k_w_*(starting_point_.z - current_pos_.z);
       }
     }
   }
@@ -89,30 +92,43 @@ commandGenerator::commandGenerator(const ros::NodeHandle &node_handle,
     }
 
     float time_diff_s = (ros::Time::now() - start_doublets_time_).toSec();
-    if(time_diff_s > 2.0*doublet_period_ && !first_doublet_complete_){
+    if(time_diff_s > doublet_period_ && !first_doublet_complete_){
       first_doublet_complete_ = true;
       start_doublets_time_ = ros::Time::now();
       time_diff_s = (ros::Time::now() - start_doublets_time_).toSec();
     }
 
+    float cmd;
     if(!first_doublet_complete_){
       // First doublet
-      if(time_diff_s <= doublet_period_/2.0){
-        cmd_vel_msg_.linear.y = doublet_amplitude_;
-      } else if(time_diff_s >= doublet_period_/2.0){
-        cmd_vel_msg_.linear.y = -doublet_amplitude_;
+      if(time_diff_s <= doublet_period_/4.0){
+        cmd = doublet_amplitude_;
+      } else if((time_diff_s >= doublet_period_/4.0) && (time_diff_s <= doublet_period_/2.0)){
+        cmd = -doublet_amplitude_;
+      } else if((time_diff_s >= doublet_period_/2.0) && (time_diff_s <= 3.0*doublet_period_/4.0)){
+        cmd = doublet_amplitude_;
+      } else if((time_diff_s >= 3.0*doublet_period_/4.0) && (time_diff_s <= doublet_period_)){
+        cmd = -doublet_amplitude_;
       }
+
     } else {
       // Second doublet
-      if(time_diff_s <= doublet_period_/4.0){
-        cmd_vel_msg_.linear.y = doublet_amplitude_;
-      } else if(time_diff_s >= doublet_period_/4.0){
-        cmd_vel_msg_.linear.y = -doublet_amplitude_;
-        if(time_diff_s >= doublet_period_/2.0){
-          state_ = "init";
-        }
+      if(time_diff_s <= doublet_period_/8.0){
+        cmd = doublet_amplitude_;
+      } else if((time_diff_s >= doublet_period_/8.0) && (time_diff_s <= doublet_period_/4.0)){
+        cmd = -doublet_amplitude_;
+      } else if((time_diff_s >= doublet_period_/4.0) && (time_diff_s <= 3.0*doublet_period_/8.0)){
+        cmd = doublet_amplitude_;
+      } else if((time_diff_s >= 3.0*doublet_period_/8.0) && (time_diff_s <= doublet_period_/2.0)){
+        cmd = -doublet_amplitude_;
+      } else if(time_diff_s >= doublet_period_/2.0){
+        state_ = "init";
       }
     }
+
+    cmd_vel_msg_.linear.y = cmd;
+    //cmd_vel_msg_.linear.z = cmd;
+    //cmd_vel_msg_.angular.z = cmd;
   }
 
 

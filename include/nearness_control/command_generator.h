@@ -58,6 +58,7 @@ private:
    void generateDoubletsCommand();
 
    ros::Subscriber sub_state_;
+   ros::Subscriber sub_odom_;
    ros::Publisher pub_cmd_vel_;
 
    string state_;
