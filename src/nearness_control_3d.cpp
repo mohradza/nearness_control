@@ -96,7 +96,7 @@ void NearnessControl3D::init() {
 
     enable_control_ = false;
     enable_analytic_shapes_ = false;
-
+    enable_dynamic_control_ = true;
     frame_id_ = "OHRAD_X3";
 
     // We want to exclude the top and bottom rings
@@ -157,6 +157,8 @@ void NearnessControl3D::init() {
     // generator_(seed);
     //
 
+    // Initialize dynamic controllers
+    xv_k_ = 0.0;
 
 
     // Prepare the Laplace spherical harmonic basis set
@@ -637,21 +639,31 @@ void NearnessControl3D::computeControlCommands(){
     if(enable_wf_control_){
       u_vec_.clear();
       u_vec_ = {0.0, 0.0, 0.0};
-      if(enable_analytic_shapes_){
-        u_r_ = k_r_*(-r_/1.5564)*y_full_[4];
-        u_v_ = k_v_*(-r_/1.3478)*y_full_[6];
-        u_w_ = k_w_*(r_/1.3478)*y_full_[5];
-      } else {
-        for(int j=0; j < num_basis_shapes_; j++){
-          u_vec_[0] += C_y_[j]*y_full_[j];
-          u_vec_[1] += C_z_[j]*y_full_[j];
-          // u_vec_[2] += C_theta_[j]*y_full_[j];
-          u_vec_[2] += C_theta_[j]*y_front_half_[j];
-        }
-        u_v_ = k_v_*u_vec_[0];
-        u_w_ = k_w_*u_vec_[1];
-        u_r_ = k_r_*u_vec_[2];
+      state_est_vec_ = {0.0, 0.0, 0.0};
+
+      for(int j=0; j < num_basis_shapes_; j++){
+        state_est_vec_[0] += C_y_[j]*y_full_[j];
+        state_est_vec_[1] += C_z_[j]*y_full_[j];
+        // u_vec_[2] += C_theta_[j]*y_full_[j];
+        state_est_vec_[2] += C_theta_[j]*y_front_half_[j];
       }
+
+      if(enable_dynamic_control_){
+        // Simple lateral dynamic control
+        uv_k_ = state_est_vec_[0];
+        xv_kp1_ = 0.6065*xv_k_ + 0.01574*uv_k_;
+        u_v_ = k_v_*(15.0*xv_kp1_);
+        xv_k_ = xv_kp1_;
+        ROS_INFO_THROTTLE(0.5, "u_v: %f", u_v_);
+
+        u_w_ = k_w_*state_est_vec_[1];
+        u_r_ = k_r_*state_est_vec_[2];
+      } else {
+        u_v_ = k_v_*state_est_vec_[0];
+        u_w_ = k_w_*state_est_vec_[1];
+        u_r_ = k_r_*state_est_vec_[2];
+      }
+
     }
 
 

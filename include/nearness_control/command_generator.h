@@ -80,6 +80,7 @@ private:
    double current_roll_, current_pitch_, current_heading_;
 
    double k_u_, k_v_, k_r_, k_w_;
+   double xv_kp1_, xv_k_, u_y_, u_v_;
 };
 } // end namespace
 

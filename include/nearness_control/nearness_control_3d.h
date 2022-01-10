@@ -250,6 +250,7 @@ class NearnessControl3D {
     vector<float> C_z_;
     vector<float> C_theta_;
     vector<float> u_vec_;
+    vector<float> state_est_vec_;
     double r_;
     double u_u_, u_v_, u_r_, u_w_;
     double k_v_, k_r_, k_w_, k_alt_;
@@ -284,6 +285,9 @@ class NearnessControl3D {
     std::default_random_engine generator_;
     double noise_std_dev_;
 
+    // Dynamic Control
+    bool enable_dynamic_control_ = false;
+    float xv_kp1_, xv_k_, uv_k_;
 
 
 }; // class SimpleNodeClass

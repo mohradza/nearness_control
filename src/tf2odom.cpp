@@ -77,7 +77,7 @@ int main(int argc, char** argv){
     }
     diff = abs(last_x_pos - transform.getOrigin().x());
     //ROS_INFO_THROTTLE(1.0,"diff: %f", diff);
-    ROS_INFO_THROTTLE(1.0,"Publishing odometry...");
+    // ROS_INFO_THROTTLE(1.0,"Publishing odometry...");
     // if( diff > .0001){
     odom_msg.header.stamp = ros::Time::now();
     dt = (odom_msg.header.stamp - last_odom_time).toSec();

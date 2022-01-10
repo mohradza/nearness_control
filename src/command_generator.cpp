@@ -18,20 +18,23 @@ commandGenerator::commandGenerator(const ros::NodeHandle &node_handle,
 
     state_ = "init";
 
-    starting_point_.x = 4.0;
+    starting_point_.x = 30.0;
     starting_point_.y = 0.0;
-    starting_point_.z = 0.75;
+    starting_point_.z = 1.5;
     starting_heading_ = 0.0;
 
     routine_ = "doublets";
+    routine_ = "dynamic";
     start_doublets_ = false;
     doublet_period_ = 8.0;
     doublet_amplitude_ = 1.0;
 
     k_u_ = 0.75;
-    k_v_ = 0.75;
+    k_v_ = 1.5;
     k_w_ = 1.5;
     k_r_ = 0.5;
+
+    xv_k_ = 0.0;
 
   }
 
@@ -55,7 +58,7 @@ commandGenerator::commandGenerator(const ros::NodeHandle &node_handle,
   }
 
   void commandGenerator::generateCommandVel(){
-    ROS_INFO_THROTTLE(1.0,"state: %s", state_.c_str());
+    // ROS_INFO_THROTTLE(1.0,"state: %s", state_.c_str());
     cmd_vel_msg_.linear.x = 0.0;
     cmd_vel_msg_.linear.y = 0.0;
     cmd_vel_msg_.linear.z = 0.0;
@@ -75,6 +78,10 @@ commandGenerator::commandGenerator(const ros::NodeHandle &node_handle,
       cmd_vel_msg_.linear.y = k_v_*(starting_point_.y - current_pos_.y);
       cmd_vel_msg_.angular.z = (k_r_/50.0)*(starting_heading_ - current_heading_);
 
+
+
+    } else if(!state_.compare("standby")){
+      // Do nothing, just wait
     } else if(!state_.compare("start_test")){
       // Start the test routine
       if(!routine_.compare("doublets")){
@@ -84,7 +91,29 @@ commandGenerator::commandGenerator(const ros::NodeHandle &node_handle,
         cmd_vel_msg_.linear.y = k_v_*(starting_point_.y - current_pos_.y);
         cmd_vel_msg_.angular.z = (k_r_/50.0)*(starting_heading_ - current_heading_);
       }
+
+      if(!routine_.compare("dynamic")){
+        cmd_vel_msg_.linear.x = k_u_*(starting_point_.x - current_pos_.x);
+        cmd_vel_msg_.linear.z = k_w_*(starting_point_.z - current_pos_.z);
+        cmd_vel_msg_.angular.z = (k_r_/50.0)*(starting_heading_ - current_heading_);
+
+        u_y_ = (starting_point_.y - current_pos_.y);
+        // Simple lateral dynamic control
+        xv_kp1_ = 0.6065*xv_k_ + 0.01574*u_y_;
+        u_v_ = k_v_*(15.0*xv_kp1_);
+        xv_k_ = xv_kp1_;
+        ROS_INFO_THROTTLE(0.1, "u_v: %f", u_v_);
+
+        cmd_vel_msg_.linear.y = u_v_;
+
+      }
+
     }
+
+    if(cmd_vel_msg_.linear.x > 2.0){
+      cmd_vel_msg_.linear.x = 2.0;
+    }
+
   }
 
   void commandGenerator::generateDoubletsCommand(){
