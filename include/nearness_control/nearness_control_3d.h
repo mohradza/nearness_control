@@ -292,12 +292,19 @@ class NearnessControl3D {
     bool enable_dynamic_control_ = false;
     float xv_kp1_, xv_k_, uv_k_;
 
-    Matrix<float, 5, 5> Mv_A_;
-    Matrix<float, 5, 1> Mv_B_;
-    Matrix<float, 1, 5> Mv_C_;
+    // Matrix<float, 5, 5> Mv_A_;
+    // Matrix<float, 5, 1> Mv_B_;
+    // Matrix<float, 1, 5> Mv_C_;
+    //
+    // Matrix<float, 5, 1> Mv_Xkp1_;
+    // Matrix<float, 5, 1> Mv_Xk_;
 
-    Matrix<float, 5, 1> Mv_Xkp1_;
-    Matrix<float, 5, 1> Mv_Xk_;
+    Matrix<float, 3, 3> Mv_A_;
+    Matrix<float, 3, 1> Mv_B_;
+    Matrix<float, 1, 3> Mv_C_;
+
+    Matrix<float, 3, 1> Mv_Xkp1_;
+    Matrix<float, 3, 1> Mv_Xk_;
 
 
 }; // class SimpleNodeClass
