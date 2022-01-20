@@ -160,6 +160,31 @@ void NearnessControl3D::init() {
     // Initialize dynamic controllers
     xv_k_ = 0.0;
 
+    Mv_Xk_ << 0.0, 0.0, 0.0, 0.0, 0.0;
+
+
+    // Mv_A_ <<    -0.0604,    0.1146,    1.1115,    0.0332,    0.4309,
+    //              0.0238,   -0.0451,   -0.4382,   -0.0128,   -0.1699,
+    //             -0.0035,    0.0067,    0.0652,    0.0019,    0.0253,
+    //             -0.0071,    0.0133,    0.1300,    0.0038,    0.0504,
+    //             -0.0051,    0.0097,    0.0942,    0.0028,    0.0365;
+    // Mv_A_ = Mv_A_* 1e5;
+    //
+    // Mv_B_ <<   415.7734, -541.3587, 44.8877, 248.7642, 67.2225;
+    //
+    // Mv_C_ <<     0.0785,   -0.1491,   -1.4446,   -0.0435,   -0.5600;
+    // Mv_C_ = Mv_C_*1e7;
+
+    Mv_A_ <<       31.3661,  -49.7719,  253.1663,  331.2509, -236.7332,
+  -67.3166,  111.2854, -559.4720, -732.3019,  523.1710,
+  -18.2357,   29.9376, -150.6573, -198.5493,  141.8301,
+   17.4173,  -28.5748,  144.8438,  190.6184, -135.4576,
+   23.1005,  -37.8383, 192.1063,  251.4352, -178.6454;
+
+    Mv_B_ <<       0.1599, -0.3167, -0.0824, 0.0809, 0.1120;
+
+    Mv_C_ <<     0.1378,   -0.2259,    1.1447,    1.5007,   -1.0716;
+    Mv_C_ = Mv_C_*1e4;
 
     // Prepare the Laplace spherical harmonic basis set
     generateViewingAngleVectors();
@@ -650,10 +675,17 @@ void NearnessControl3D::computeControlCommands(){
 
       if(enable_dynamic_control_){
         // Simple lateral dynamic control
+        // uv_k_ = state_est_vec_[0];
+        // xv_kp1_ = 0.6065*xv_k_ + 0.01574*uv_k_;
+        // u_v_ = k_v_*(15.0*xv_kp1_);
+        // xv_k_ = xv_kp1_;
+        // ROS_INFO_THROTTLE(0.5, "u_v: %f", u_v_);
+
+        // Complex dynamic controller
         uv_k_ = state_est_vec_[0];
-        xv_kp1_ = 0.6065*xv_k_ + 0.01574*uv_k_;
-        u_v_ = k_v_*(15.0*xv_kp1_);
-        xv_k_ = xv_kp1_;
+        Mv_Xkp1_ = Mv_A_*Mv_Xk_ + Mv_B_*uv_k_;
+        u_v_ = k_v_*Mv_C_*Mv_Xkp1_;
+        Mv_Xk_ = Mv_Xkp1_;
         ROS_INFO_THROTTLE(0.5, "u_v: %f", u_v_);
 
         u_w_ = k_w_*state_est_vec_[1];

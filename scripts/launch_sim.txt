@@ -3,6 +3,7 @@ ign launch -v 4 tunnel_circuit_practice.ign worldName:=simple_tunnel_01 localMod
 
 
 # Tunnel Worlds used for Sensor Paper
+ign launch -v 4 circuit:=tunnel tunnel_circuit_practice.ign worldName:=simple_tunnel_01 localModel:=true robotName1:=OHRAD_X3 robotConfig1:=OHRAD_X3_SENSOR_CONFIG_2 enableGroundTruth:=true
 ign launch -v 4 circuit:=tunnel tunnel_circuit_practice.ign worldName:=simple_tunnel_03 localModel:=true robotName1:=OHRAD_X3 robotConfig1:=OHRAD_X3_SENSOR_CONFIG_2 enableGroundTruth:=true
 
 ign launch -v 4 tunnel_circuit_practice.ign worldName:=simple_cave_01 localModel:=true robotName1:=OHRAD_X3 robotConfig1:=OHRAD_X3_SENSOR_CONFIG_2 enableGroundTruth:=true

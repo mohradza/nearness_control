@@ -54,12 +54,15 @@
 #include <tf2_ros/transform_broadcaster.h>
 #include <geometry_msgs/TransformStamped.h>
 
+#include <Eigen/Core>
+
 #include <std_msgs/String.h>
 #include <boost/thread.hpp>
 
 #include <nearness_control/NearnessControl3DConfig.h>
 using namespace cv_bridge;
 using namespace std;
+using namespace Eigen;
 namespace nearness_3d{
 
 class NearnessControl3D {
@@ -288,6 +291,13 @@ class NearnessControl3D {
     // Dynamic Control
     bool enable_dynamic_control_ = false;
     float xv_kp1_, xv_k_, uv_k_;
+
+    Matrix<float, 5, 5> Mv_A_;
+    Matrix<float, 5, 1> Mv_B_;
+    Matrix<float, 1, 5> Mv_C_;
+
+    Matrix<float, 5, 1> Mv_Xkp1_;
+    Matrix<float, 5, 1> Mv_Xk_;
 
 
 }; // class SimpleNodeClass

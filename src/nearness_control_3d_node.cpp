@@ -12,7 +12,7 @@ int main(int argc, char** argv) {
 
     while(ros::ok()){
 
-      nearness_control_3d_node.publishProjectionShapes();
+      // nearness_control_3d_node.publishProjectionShapes();
 
         if(nearness_control_3d_node.newPcl()){
             // Process 3D nearness

@@ -31,7 +31,10 @@
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf/tf.h>
 
+#include <Eigen/Core>
+
 using namespace std;
+using namespace Eigen;
 
 namespace command_generator{
 
@@ -74,6 +77,7 @@ private:
    geometry_msgs::Twist cmd_vel_msg_;
 
    geometry_msgs::Point starting_point_;
+   geometry_msgs::Point goal_point_;
    float starting_heading_;
    nav_msgs::Odometry current_odom_;
    geometry_msgs::Point current_pos_;
@@ -81,6 +85,20 @@ private:
 
    double k_u_, k_v_, k_r_, k_w_;
    double xv_kp1_, xv_k_, u_y_, u_v_;
+
+   // Matrix<float, 5, 5> Mv_A_;
+   // Matrix<float, 5, 1> Mv_B_;
+   // Matrix<float, 1, 5> Mv_C_;
+   //
+   // Matrix<float, 5, 1> Mv_Xkp1_;
+   // Matrix<float, 5, 1> Mv_Xk_;
+
+   Matrix<float, 3, 3> Mv_A_;
+   Matrix<float, 3, 1> Mv_B_;
+   Matrix<float, 1, 3> Mv_C_;
+
+   Matrix<float, 3, 1> Mv_Xkp1_;
+   Matrix<float, 3, 1> Mv_Xk_;
 };
 } // end namespace
 
