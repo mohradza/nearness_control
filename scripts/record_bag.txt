@@ -1,0 +1,2 @@
+rosbag record -O bagfile /OHRAD_X3/odometry/ground_truth /OHRAD_X3/cmd_vel/ground_truth 
+

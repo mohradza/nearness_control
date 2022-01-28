@@ -262,6 +262,7 @@ class NearnessControl3D {
     geometry_msgs::Point current_pos_;
     double current_roll_, current_pitch_, current_heading_;
     double current_height_agl_;
+    double p_;
     double reference_altitude_;
     double max_forward_speed_, max_lateral_speed_;
     double max_vertical_speed_, max_yaw_rate_;
@@ -292,19 +293,17 @@ class NearnessControl3D {
     bool enable_dynamic_control_ = false;
     float xv_kp1_, xv_k_, uv_k_;
 
-    // Matrix<float, 5, 5> Mv_A_;
-    // Matrix<float, 5, 1> Mv_B_;
-    // Matrix<float, 1, 5> Mv_C_;
-    //
-    // Matrix<float, 5, 1> Mv_Xkp1_;
-    // Matrix<float, 5, 1> Mv_Xk_;
+    Matrix<float, 10, 10> Mv_A_;
+    Matrix<float, 10, 2> Mv_B_;
+    Matrix<float, 1, 10> Mv_C_;
+    Matrix<float, 10, 1> Mv_Xkp1_;
+    Matrix<float, 10, 1> Mv_Xk_;
 
-    Matrix<float, 3, 3> Mv_A_;
-    Matrix<float, 3, 1> Mv_B_;
-    Matrix<float, 1, 3> Mv_C_;
-
-    Matrix<float, 3, 1> Mv_Xkp1_;
-    Matrix<float, 3, 1> Mv_Xk_;
+    Matrix<float, 5, 5> Mr_A_;
+    Matrix<float, 5, 2> Mr_B_;
+    Matrix<float, 1, 5> Mr_C_;
+    Matrix<float, 5, 1> Mr_Xkp1_;
+    Matrix<float, 5, 1> Mr_Xk_;
 
 
 }; // class SimpleNodeClass

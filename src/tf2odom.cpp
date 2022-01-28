@@ -5,6 +5,7 @@
 #include <geometry_msgs/Point.h>
 #include <geometry_msgs/PointStamped.h>
 #include <geometry_msgs/TransformStamped.h>
+#include <sensor_msgs/Imu.h>
 #include <Eigen/Dense>
 
 using namespace Eigen;
@@ -12,8 +13,13 @@ using namespace Eigen;
 bool new_cmd_;
 geometry_msgs::Twist cmd_;
 void cmdCallback(const geometry_msgs::TwistConstPtr& cmd_msg){
-     new_cmd_ = true;
-     cmd_ = *cmd_msg;
+  new_cmd_ = true;
+  cmd_ = *cmd_msg;
+}
+
+geometry_msgs::Vector3 angular_velocities_;
+void imuCallback(const sensor_msgs::ImuConstPtr& imu_msg){
+  angular_velocities_ = imu_msg->angular_velocity;
 }
 
 int main(int argc, char** argv){
@@ -30,6 +36,9 @@ int main(int argc, char** argv){
     node.advertise<geometry_msgs::Twist>("cmd_vel/ground_truth", 10);
 
   ros::Subscriber cmd_sub = nh.subscribe("cmd_vel", 1, cmdCallback);
+
+  ros::Subscriber imu_sub = nh.subscribe("imu/data", 1, imuCallback);
+
 
   tf::TransformListener listener;
   nav_msgs::Odometry odom_msg;
@@ -137,20 +146,24 @@ int main(int argc, char** argv){
         roll += M_PI;
       }
 
-      roll_dot = (roll - last_roll)/dt;
-      pitch_dot = (pitch - last_pitch)/dt;
-      yaw_dot = (yaw - last_yaw)/dt;
-      p = roll_dot - sin(pitch)*yaw_dot;
+      roll_dot = angular_velocities_.x;
+      pitch_dot = angular_velocities_.y;
+      yaw_dot = angular_velocities_.z;
+      p = angular_velocities_.z;
       q = cos(roll)*pitch_dot + sin(roll)*cos(pitch)*yaw_dot;
       r = -sin(roll)*pitch_dot + cos(roll)*cos(pitch)*yaw_dot;
 
-      last_roll = roll;
-      last_pitch = pitch;
-      last_yaw = yaw;
+      // last_roll = roll;
+      // last_pitch = pitch;
+      // last_yaw = yaw;
 
       odom_msg.twist.twist.angular.x = p;
       odom_msg.twist.twist.angular.y = q;
       odom_msg.twist.twist.angular.z = r;
+
+      odom_msg.twist.covariance[0] = angular_velocities_.x;
+      odom_msg.twist.covariance[1] = angular_velocities_.y;
+      odom_msg.twist.covariance[2] = angular_velocities_.z;
 
       robot_odom_pub.publish(odom_msg);
       cmd_vel_pub.publish(cmd_);
