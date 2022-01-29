@@ -76,10 +76,10 @@ int main(int argc, char** argv){
   // tf::StampedTransform transform;
   tf::StampedTransform transform;
 
-  ros::Rate rate(100);
+  ros::Rate rate(200);
   while (node.ok()){
     try{
-      listener.lookupTransform("/simple_tunnel_01", "/OHRAD_X3",
+      listener.lookupTransform("/simple_tunnel_03", "/OHRAD_X3",
          ros::Time(0), transform);
     }
     catch (tf::TransformException ex){
@@ -149,7 +149,7 @@ int main(int argc, char** argv){
       roll_dot = angular_velocities_.x;
       pitch_dot = angular_velocities_.y;
       yaw_dot = angular_velocities_.z;
-      p = angular_velocities_.z;
+      p = roll_dot - sin(pitch)*yaw_dot;
       q = cos(roll)*pitch_dot + sin(roll)*cos(pitch)*yaw_dot;
       r = -sin(roll)*pitch_dot + cos(roll)*cos(pitch)*yaw_dot;
 

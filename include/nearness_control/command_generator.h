@@ -85,15 +85,8 @@ private:
    double current_roll_, current_pitch_, current_heading_;
 
    double k_u_, k_v_, k_r_, k_w_;
-   double xv_kp1_, xv_k_, u_y_, u_v_, u_r_;
+   double xv_kp1_, xv_k_, u_y_, u_v_, u_r_, u_z_, u_w_;
    double p_, q_, r_;
-
-   // Matrix<float, 5, 5> Mv_A_;
-   // Matrix<float, 5, 1> Mv_B_;
-   // Matrix<float, 1, 5> Mv_C_;
-   //
-   // Matrix<float, 5, 1> Mv_Xkp1_;
-   // Matrix<float, 5, 1> Mv_Xk_;
 
    Matrix<float, 10, 10> Mv_A_;
    Matrix<float, 10, 2> Mv_B_;
@@ -106,6 +99,12 @@ private:
    Matrix<float, 1, 5> Mr_C_;
    Matrix<float, 5, 1> Mr_Xkp1_;
    Matrix<float, 5, 1> Mr_Xk_;
+
+   Matrix<float, 4, 4> Mw_A_;
+   Matrix<float, 4, 1> Mw_B_;
+   Matrix<float, 1, 4> Mw_C_;
+   Matrix<float, 4, 1> Mw_Xkp1_;
+   Matrix<float, 4, 1> Mw_Xk_;
 };
 } // end namespace
 

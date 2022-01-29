@@ -25,7 +25,7 @@ commandGenerator::commandGenerator(const ros::NodeHandle &node_handle,
 
     goal_point_.x = 0.0;
     goal_point_.y = 1.0;
-    goal_point_.z = 1.5;
+    goal_point_.z = 2.5;
     goal_heading_ = 1.0;
 
     routine_ = "doublets";
@@ -46,6 +46,7 @@ commandGenerator::commandGenerator(const ros::NodeHandle &node_handle,
     // Mv_Xk_ << 0.0, 0.0, 0.0, 0.0, 0.0;
     Mv_Xk_ << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
     Mr_Xk_ << 0.0, 0.0, 0.0, 0.0, 0.0;
+    Mw_Xk_ << 0.0, 0.0, 0.0, 0.0;
 
   // Lateral - Mixed synthesis, 4x4 state model, 2 inputs
   Mv_A_ <<     1.0000,   -0.0000,   -0.0000,    0.0000,    0.0000,    0.0000,    0.0000,   -0.0000,    0.0000,    0.0000,
@@ -72,21 +73,6 @@ commandGenerator::commandGenerator(const ros::NodeHandle &node_handle,
 
   Mv_C_ <<     3.3970,   -0.0024,    4.5351,   -0.2622,   -0.3348,  -0.3904,   -8.2916,   -0.0230,   -0.0230,   -0.0111;
 
-  // Heading - Mixed sythesis, 2x2 state model, 2 inputs
-  // Mr_A_ <<     0.9999,   -0.0000,   -0.0000,   -0.0000,   -0.0000,
-  //              0.0000,    0.9802,   -0.0000,   -0.0000,   -0.0000,
-  //              1.7231,   -0.2134,    0.4934,   -0.1714,   -3.6133,
-  //              2.4167,   -0.2997,    0.1878,    0.5383,   -5.0789,
-  //              0.0254,   -0.0032,    0.0023,    0.0152,    0.9465;
-  //
-  // Mr_B_ <<     0.0200,   -0.0000,
-  //             -0.0000,    0.0198,
-  //              0.0203,   -0.0025,
-  //              0.0254,   -0.0032,
-  //              0.0002,   -0.0000;
-  //
-  // Mr_C_ <<    34.3496,   -4.3046,    4.3365,   -3.0566,  -72.0497;
-
   // Heading - Mixed sythesis, 2x2 state model, 2 inputs, no modifications
   Mr_A_ <<         0.9999,    0.0000,    0.0000,    0.0000,    0.0000,
                   -0.0000,    0.9891,    0.0000,    0.0000,    0.0000,
@@ -100,11 +86,17 @@ commandGenerator::commandGenerator(const ros::NodeHandle &node_handle,
                    0.0112,   -0.0004,
                    0.0001,   -0.0000;
 
-  Mr_C_ <<       11.4841,   -0.8545,    8.3533,   -1.4462,  -29.8040;
-;
+  Mr_C_ <<     11.4841,   -0.8545,    8.3533,   -1.4462,  -29.8040;
 
+  // Vertical - Mixed sythesis, 2x2 state model, 1 input, no modifications
+  Mw_A_ <<     0.9999,         0,         0,         0,
+               2.0339,    0.2061,   -0.3587,   -5.3946,
+               1.3648,   -0.2811,    0.7331,   -3.6251,
+               0.0044,   -0.0010,    0.0042,    0.9883;
 
+  Mw_B_ <<     0.0200,    0.0298,    0.0177,    0.0000;
 
+  Mw_C_ <<    81.6559,  -23.0286,  -13.8929, -216.6187;
 
 
   }
@@ -160,11 +152,11 @@ commandGenerator::commandGenerator(const ros::NodeHandle &node_handle,
 
       if(!routine_.compare("const")){
         cmd_vel_msg_.linear.x = k_u_*(starting_point_.x - current_pos_.x);
-        cmd_vel_msg_.linear.z = k_w_*(starting_point_.z - current_pos_.z);
-        // cmd_vel_msg_.linear.y = 1.0;
-        // cmd_vel_msg_.linear.y = k_v_*(starting_point_.y - current_pos_.y);
-        // cmd_vel_msg_.angular.z = (k_r_/50.0)*(starting_heading_ - current_heading_);
-        cmd_vel_msg_.angular.z = 2.0;
+        // cmd_vel_msg_.linear.z = k_w_*(starting_point_.z - current_pos_.z);
+        cmd_vel_msg_.linear.z = 2.0;
+        cmd_vel_msg_.linear.y = k_v_*(starting_point_.y - current_pos_.y);
+        cmd_vel_msg_.angular.z = (k_r_/50.0)*(starting_heading_ - current_heading_);
+        // cmd_vel_msg_.angular.z = 0.5;
       }
 
       if(!routine_.compare("doublets")){
@@ -179,9 +171,12 @@ commandGenerator::commandGenerator(const ros::NodeHandle &node_handle,
         cmd_vel_msg_.linear.x = k_u_*(starting_point_.x - current_pos_.x);
         cmd_vel_msg_.linear.y = k_v_*(starting_point_.y - current_pos_.y);
         cmd_vel_msg_.linear.z = k_w_*(starting_point_.z - current_pos_.z);
-        // cmd_vel_msg_.angular.z = (k_r_/50.0)*(starting_heading_ - current_heading_);
+        cmd_vel_msg_.angular.z = (k_r_/50.0)*(starting_heading_ - current_heading_);
 
         u_y_ = (goal_point_.y - current_pos_.y);
+        u_z_ = (goal_point_.z - current_pos_.z);
+        float u_psi = (goal_heading_ - current_heading_);
+
         // Complex lateral dynamic controller
         // Vector2f a(u_y_, -p_);
         // Mv_Xkp1_ = Mv_A_*Mv_Xk_ + Mv_B_*a;
@@ -189,20 +184,26 @@ commandGenerator::commandGenerator(const ros::NodeHandle &node_handle,
         // Mv_Xk_ = Mv_Xkp1_;
         // ROS_INFO("u_v: %f", u_v_);
 
-        float u_psi = (goal_heading_ - current_heading_);
         // Complex heading dynamic controller
-        Vector2f a(u_psi, -r_);
-        Mr_Xkp1_ = Mr_A_*Mr_Xk_ + Mr_B_*a;
-        u_r_ = Mr_C_*Mr_Xkp1_;
-        Mr_Xk_ = Mr_Xkp1_;
-        ROS_INFO("u_r: %f, psi: %f", u_r_, u_psi);
+        // Vector2f a(u_psi, -r_);
+        // Mr_Xkp1_ = Mr_A_*Mr_Xk_ + Mr_B_*a;
+        // u_r_ = Mr_C_*Mr_Xkp1_;
+        // Mr_Xk_ = Mr_Xkp1_;
+        // ROS_INFO("u_r: %f, psi: %f", u_r_, u_psi);
 
-        if(isnan(u_r_)){
+        // Complex vertical dynamic controller
+        Mw_Xkp1_ = Mw_A_*Mw_Xk_ + Mw_B_*u_z_;
+        u_w_ = Mw_C_*Mw_Xkp1_;
+        Mw_Xk_ = Mw_Xkp1_;
+        ROS_INFO("u_w: %f, ", u_w_);
+
+        if(isnan(u_w_)){
           state_ = "init";
         }
 
-        cmd_vel_msg_.linear.y = u_v_;
-        cmd_vel_msg_.angular.z = u_r_;
+        // cmd_vel_msg_.linear.y = u_v_;
+        // cmd_vel_msg_.angular.z = u_r_;
+        cmd_vel_msg_.linear.z = u_w_;
 
       }
 

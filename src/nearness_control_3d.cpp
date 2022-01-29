@@ -145,13 +145,13 @@ void NearnessControl3D::init() {
 
       // Simple Cave 02 Test 3
       C_y_ = {0.0, 0.0, 0.0, -1.9544, 0.0, 0.0, 0.0, 0.0, 0.0};
-      C_z_ = {0.0, -1.9544, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-      C_theta_ = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.4658};
+      // C_z_ = {0.0, -1.9544, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+      // C_theta_ = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.4658};
 
       // Simple Tunnel 03
-      // C_y_ = {0.0, 0.0, 0.0, -1.4963, 0.0, 0.0, 0.0, 0.0, 0.0};
-      // C_z_ = {0.0, -1.4963, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-      // C_theta_ = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.1223};
+      C_y_ = {0.0, 0.0, 0.0, -1.4963, 0.0, 0.0, 0.0, 0.0, 0.0};
+      C_z_ = {0.0, -1.4963, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+      C_theta_ = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.1223};
     }
     // unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
     // generator_(seed);
@@ -160,6 +160,7 @@ void NearnessControl3D::init() {
     // Initialize dynamic controllers
     Mv_Xk_ << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
     Mr_Xk_ << 0.0, 0.0, 0.0, 0.0, 0.0;
+    Mw_Xk_ << 0.0, 0.0, 0.0, 0.0;
 
     // Mixed synthesis, new 4x4 state model with feedback on projection and rollrate
     Mv_A_ <<     1.0000,   -0.0000,   -0.0000,    0.0000,    0.0000,    0.0000,    0.0000,   -0.0000,    0.0000,    0.0000,
@@ -200,6 +201,16 @@ void NearnessControl3D::init() {
                      0.0001,   -0.0000;
 
     Mr_C_ <<       11.4841,   -0.8545,    8.3533,   -1.4462,  -29.8040;
+
+    // Vertical - Mixed sythesis, 2x2 state model, 1 input, no modifications
+    Mw_A_ <<     0.9999,         0,         0,         0,
+                 2.0339,    0.2061,   -0.3587,   -5.3946,
+                 1.3648,   -0.2811,    0.7331,   -3.6251,
+                 0.0044,   -0.0010,    0.0042,    0.9883;
+
+    Mw_B_ <<     0.0200,    0.0298,    0.0177,    0.0000;
+
+    Mw_C_ <<    81.6559,  -23.0286,  -13.8929, -216.6187;
 
 
     // Prepare the Laplace spherical harmonic basis set
@@ -691,22 +702,26 @@ void NearnessControl3D::computeControlCommands(){
 
       if(enable_dynamic_control_){
 
-        // Complex dynamic controller
+        // Complex lateral dynamic controller
         Vector2f a1(state_est_vec_[0], -p_);
         Mv_Xkp1_ = Mv_A_*Mv_Xk_ + Mv_B_*a1;
         u_v_ = k_v_*Mv_C_*Mv_Xkp1_;
         Mv_Xk_ = Mv_Xkp1_;
-        //ROS_INFO_THROTTLE(0.5, "u_v: %f", u_v_);
 
         // Complex heading dynamic controller
         Vector2f a2(state_est_vec_[2], -r_);
         Mr_Xkp1_ = Mr_A_*Mr_Xk_ + Mr_B_*a2;
         u_r_ = Mr_C_*Mr_Xkp1_;
         Mr_Xk_ = Mr_Xkp1_;
-        // ROS_INFO_THROTTLE(0.5,"u_v: %f, u_r: %f, r: %f, psi: %f", u_v_, u_r_, r_);
 
-        u_w_ = k_w_*state_est_vec_[1];
-        // u_r_ = k_r_*state_est_vec_[2];
+        // Complex vertical dynamic controller
+        float u_z_ = state_est_vec_[1];
+        Mw_Xkp1_ = Mw_A_*Mw_Xk_ + Mw_B_*u_z_;
+        u_w_ = Mw_C_*Mw_Xkp1_;
+        Mw_Xk_ = Mw_Xkp1_;
+
+        ROS_INFO_THROTTLE(0.5,"u_v: %f, u_r: %f, u_w: %f", u_v_, u_r_, u_w_);
+
       } else {
         u_v_ = k_v_*state_est_vec_[0];
         u_w_ = k_w_*state_est_vec_[1];
