@@ -96,7 +96,7 @@ void NearnessControl3D::init() {
 
     enable_control_ = false;
     enable_analytic_shapes_ = false;
-
+    enable_dynamic_control_ = true;
     frame_id_ = "OHRAD_X3";
 
     // We want to exclude the top and bottom rings
@@ -145,13 +145,13 @@ void NearnessControl3D::init() {
 
       // Simple Cave 02 Test 3
       C_y_ = {0.0, 0.0, 0.0, -1.9544, 0.0, 0.0, 0.0, 0.0, 0.0};
-      C_z_ = {0.0, -1.9544, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-      C_theta_ = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.4658};
+      // C_z_ = {0.0, -1.9544, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+      // C_theta_ = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.4658};
 
       // Simple Tunnel 03
-      // C_y_ = {0.0, 0.0, 0.0, -1.4963, 0.0, 0.0, 0.0, 0.0, 0.0};
-      // C_z_ = {0.0, -1.4963, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-      // C_theta_ = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.1223};
+      C_y_ = {0.0, 0.0, 0.0, -1.4963, 0.0, 0.0, 0.0, 0.0, 0.0};
+      C_z_ = {0.0, -1.4963, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+      C_theta_ = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.1223};
     }
     // unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
     // generator_(seed);
@@ -164,6 +164,61 @@ void NearnessControl3D::init() {
     }
     max_dist_ = 5.0;
     min_dist_ = 0.5;
+
+    // Initialize dynamic controllers
+    Mv_Xk_ << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
+    Mr_Xk_ << 0.0, 0.0, 0.0, 0.0, 0.0;
+    Mw_Xk_ << 0.0, 0.0, 0.0, 0.0;
+
+    // Mixed synthesis, new 4x4 state model with feedback on projection and rollrate
+    Mv_A_ <<     1.0000,   -0.0000,   -0.0000,    0.0000,    0.0000,    0.0000,    0.0000,   -0.0000,    0.0000,    0.0000,
+                 0.0000,    0.9851,    0.0000,   -0.0000,   -0.0000,   -0.0000,   -0.0000,    0.0000,   -0.0000,   -0.0000,
+                 0.4686,   -0.0003,    0.7534,   -0.0367,   -0.0467,   -0.0545,   -1.1439,   -0.0031,   -0.0031,   -0.0015,
+                 0.3290,   -0.0002,    0.2845,    0.8047,   -0.1200,   -0.0770,   -0.8030,   -0.0022,   -0.0022,   -0.0010,
+                 0.0250,   -0.0000,    0.0247,    0.1443,    0.9904,   -0.0061,   -0.0610,   -0.0002,   -0.0002,   -0.0001,
+                 0.0006,   -0.0000,    0.0007,    0.0060,    0.0797,    0.9998,   -0.0016,   -0.0000,   -0.0000,   -0.0000,
+                 0.0000,   -0.0000,    0.0000,    0.0000,    0.0001,    0.0025,    1.0000,   -0.0000,   -0.0000,   -0.0000,
+                 0.1645,   -0.0001,    0.1423,   -0.0129,   -0.0164,   -0.0191,   -0.4015,    0.8293,   -0.0883,   -0.0392,
+                 0.0125,   -0.0000,    0.0124,   -0.0010,   -0.0012,   -0.0014,   -0.0305,    0.1461,    0.9928,   -0.0032,
+                 0.0003,   -0.0000,    0.0003,   -0.0000,   -0.0000,   -0.0000,   -0.0008,    0.0060,    0.0798,    0.9999;
+
+    Mv_B_ <<     0.0100,    0.0000,
+                -0.0000,    0.0099,
+                 0.0025,   -0.0000,
+                 0.0016,   -0.0000,
+                 0.0001,   -0.0000,
+                 0.0000,   -0.0000,
+                -0.0000,    0.0000,
+                 0.0008,   -0.0000,
+                 0.0000,   -0.0000,
+                 0.0000,   -0.0000;
+
+    Mv_C_ <<     3.3970,   -0.0024,    4.5351,   -0.2622,   -0.3348,  -0.3904,   -8.2916,   -0.0230,   -0.0230,   -0.0111;
+
+    // Heading - Mixed sythesis, 2x2 state model, 2 inputs
+    Mr_A_ <<         0.9999,    0.0000,    0.0000,    0.0000,    0.0000,
+                    -0.0000,    0.9891,    0.0000,    0.0000,    0.0000,
+                     1.2226,   -0.0904,    0.4649,   -0.1669,   -3.1719,
+                     1.1753,   -0.0870,    0.3851,    0.6177,   -3.0605,
+                     0.0112,   -0.0008,    0.0047,    0.0162,    0.9709;
+
+    Mr_B_ <<         0.0200,   -0.0000,
+                     0.0000,    0.0099,
+                     0.0141,   -0.0005,
+                     0.0112,   -0.0004,
+                     0.0001,   -0.0000;
+
+    Mr_C_ <<       11.4841,   -0.8545,    8.3533,   -1.4462,  -29.8040;
+
+    // Vertical - Mixed sythesis, 2x2 state model, 1 input, no modifications
+    Mw_A_ <<     0.9999,         0,         0,         0,
+                 2.0339,    0.2061,   -0.3587,   -5.3946,
+                 1.3648,   -0.2811,    0.7331,   -3.6251,
+                 0.0044,   -0.0010,    0.0042,    0.9883;
+
+    Mw_B_ <<     0.0200,    0.0298,    0.0177,    0.0000;
+
+    Mw_C_ <<    81.6559,  -23.0286,  -13.8929, -216.6187;
 
     // Prepare the Laplace spherical harmonic basis set
     generateViewingAngleVectors();
@@ -348,7 +403,9 @@ void NearnessControl3D::processPcl(){
   average_radius_ = 5.0;
   // Compute the average radius
   if(side_zone_count_ && vert_zone_count_){
-    average_radius_ = (side_zone_dist_ / side_zone_count_ + vert_zone_dist_ / vert_zone_count_) / 2.0;
+    average_lateral_radius_ = side_zone_dist_ / side_zone_count_;
+    average_vertical_radius_ = vert_zone_dist_ / vert_zone_count_;
+    average_radius_ = (average_lateral_radius_ + average_vertical_radius_) / 2.0;
     if (average_radius_ > 5.0){
       average_radius_ = 5.0;
     }
@@ -703,31 +760,54 @@ void NearnessControl3D::computeControlCommands(){
   if(enable_control_){
 
     // Enable wide-field controller
-    r_ = 1.0; // Estimated radius
+    // r_ = 1.0; // Estimated radius
     //ROS_INFO_THROTTLE(0.5,"y0: %.3f, y1: %.3f, y2: %.3f, y3: %.3f, y4: %.3f, y5: %.3f, y6: %.3f, y7: %.3f, y8: %.3f, y9: %.3f", y_full_[0], y_full_[1], y_full_[2], y_full_[3], y_full_[4], y_full_[5], y_full_[6], y_full_[7], y_full_[8], y_full_[9]);
     if(enable_wf_control_){
       u_vec_.clear();
       u_vec_ = {0.0, 0.0, 0.0};
-      if(enable_analytic_shapes_){
-        u_r_ = k_r_*(-r_/1.5564)*y_full_[4];
-        u_v_ = k_v_*(-r_/1.3478)*y_full_[6];
-        u_w_ = k_w_*(r_/1.3478)*y_full_[5];
-      } else {
-        for(int j=0; j < num_basis_shapes_; j++){
-          u_vec_[0] += C_y_[j]*y_full_[j];
-          u_vec_[1] += C_z_[j]*y_full_[j];
-          // u_vec_[2] += C_theta_[j]*y_full_[j];
-          u_vec_[2] += C_theta_[j]*y_front_half_[j];
-        }
-        u_v_ = k_v_*u_vec_[0];
-        u_w_ = k_w_*u_vec_[1];
-        u_r_ = k_r_*u_vec_[2];
+      state_est_vec_ = {0.0, 0.0, 0.0};
 
-        if(enable_radius_scaling_){
-          u_v_ *= pow(average_radius_, 2.0);
-          u_w_ *= pow(average_radius_, 2.0);
-        }
+      for(int j=0; j < num_basis_shapes_; j++){
+        state_est_vec_[0] += C_y_[j]*y_full_[j];
+        state_est_vec_[1] += C_z_[j]*y_full_[j];
+        // u_vec_[2] += C_theta_[j]*y_full_[j];
+        state_est_vec_[2] += C_theta_[j]*y_front_half_[j];
       }
+
+      if(enable_radius_scaling_){
+        state_est_vec_[0] *= pow(average_radius_, 2.0);
+        state_est_vec_[0] *= pow(average_lateral_radius_, 2.0);
+        state_est_vec_[1] *= pow(average_vertical_radius_, 2.0);
+      }
+
+      if(enable_dynamic_control_){
+
+        // Complex lateral dynamic controller
+        Vector2f a1(state_est_vec_[0], -p_);
+        Mv_Xkp1_ = Mv_A_*Mv_Xk_ + Mv_B_*a1;
+        u_v_ = Mv_C_*Mv_Xkp1_;
+        Mv_Xk_ = Mv_Xkp1_;
+
+        // Complex heading dynamic controller
+        Vector2f a2(state_est_vec_[2], -r_);
+        Mr_Xkp1_ = Mr_A_*Mr_Xk_ + Mr_B_*a2;
+        u_r_ = Mr_C_*Mr_Xkp1_;
+        Mr_Xk_ = Mr_Xkp1_;
+
+        // Complex vertical dynamic controller
+        float u_z_ = state_est_vec_[1];
+        Mw_Xkp1_ = Mw_A_*Mw_Xk_ + Mw_B_*u_z_;
+        u_w_ = Mw_C_*Mw_Xkp1_;
+        Mw_Xk_ = Mw_Xkp1_;
+
+        ROS_INFO_THROTTLE(0.5,"u_v: %f, u_r: %f, u_w: %f", u_v_, u_r_, u_w_);
+
+      } else {
+        u_v_ = k_v_*state_est_vec_[0];
+        u_w_ = k_w_*state_est_vec_[1];
+        u_r_ = k_r_*state_est_vec_[2];
+      }
+
     }
 
 
@@ -744,26 +824,9 @@ void NearnessControl3D::computeControlCommands(){
     // ROS_INFO("front_reg: %f", front_reg);
     if(enable_speed_regulation_){
       u_u_ =  forward_speed_*(1 - k_u_v_*abs(u_v_) - k_u_r_*abs(u_r_) - k_u_w_*abs(u_w_) - front_reg);
-      //u_u_ =  max_forward_speed_*(1 - k_u_v_*abs(u_v_) - k_u_r_*abs(u_r_) - front_mu_ave_);
-      // if(enable_cmd_scaling_){
-      //   u_u_ =  max_forward_speed_*(1.0 - 2*front_mu_ave_);
-      // }
     } else {
       u_u_ = forward_speed_;
     }
-
-    // u_u_ = 0.0;
-    // u_w_ = -k_w_*current_pos_.z;
-    // u_v_ = -k_v_*current_pos_.y;
-    // u_r_ = -(k_r_/50.0)*current_heading_;
-
-
-
-    // if(enable_cmd_scaling_){
-    //   // Scale lateral speed command by max lateral nearness
-    //   max_lateral_nearness_ = sat(max_lateral_nearness_, .1, 1);
-    //   u_v_ *= 1/max_lateral_nearness_;
-    // }
 
     control_commands_.linear.x = u_u_;
     control_commands_.linear.y = u_v_;
@@ -771,35 +834,6 @@ void NearnessControl3D::computeControlCommands(){
     control_commands_.angular.z = u_r_;
 
   }
-
-      // u_u_ = 0.0;
-      // u_w_ = -k_w_*current_pos_.z;
-      // u_v_ = -k_v_*current_pos_.y;
-      // u_r_ = -(k_r_/50.0)*current_heading_;
-
-      // control_commands_.linear.x = u_u_;
-      // control_commands_.linear.z = u_w_;
-      // control_commands_.linear.y = u_v_;
-      // control_commands_.angular.z = u_r_;
-
-  // if(enable_altitude_hold_){
-  //   //ROS_INFO("%f", current_pos_.z);
-  //   u_w_ = k_w_*(reference_altitude_ - current_height_agl_);
-  //   control_commands_.linear.z = u_w_;
-  // }
-
-
-
-  // if(sim_control_){
-  //   control_commands_.linear.x = joy_cmd_.linear.x;
-  //   control_commands_.linear.y = joy_cmd_.linear.y;
-  //
-  //   if(!enable_altitude_hold_){
-  //     control_commands_.linear.z = joy_cmd_.linear.z;
-  //   }
-  //
-  //   control_commands_.angular.z = joy_cmd_.angular.z;
-  // }
 
   pub_control_commands_.publish(control_commands_);
 
@@ -846,6 +880,8 @@ void NearnessControl3D::odomCb(const nav_msgs::OdometryConstPtr& odom_msg){
     tf::Quaternion vehicle_quat_tf;
     tf::quaternionMsgToTF(vehicle_quat_msg, vehicle_quat_tf);
     tf::Matrix3x3(vehicle_quat_tf).getRPY(current_roll_, current_pitch_, current_heading_);
+    p_ = current_odom_.twist.twist.angular.x;
+    r_ = current_odom_.twist.twist.angular.z;
 }
 
 void NearnessControl3D::joyconCb(const sensor_msgs::JoyConstPtr& joy_msg)

@@ -16,3 +16,8 @@ topics:
   topic   : teleop/cmd_vel
   timeout : 0.1
   priority: 100
+-
+  name    : teleop2
+  topic   : cmd_vel
+  timeout : 0.1
+  priority: 100

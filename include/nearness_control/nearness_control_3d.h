@@ -54,12 +54,15 @@
 #include <tf2_ros/transform_broadcaster.h>
 #include <geometry_msgs/TransformStamped.h>
 
+#include <Eigen/Core>
+
 #include <std_msgs/String.h>
 #include <boost/thread.hpp>
 
 #include <nearness_control/NearnessControl3DConfig.h>
 using namespace cv_bridge;
 using namespace std;
+using namespace Eigen;
 namespace nearness_3d{
 
 class NearnessControl3D {
@@ -252,6 +255,7 @@ class NearnessControl3D {
     vector<float> C_z_;
     vector<float> C_theta_;
     vector<float> u_vec_;
+    vector<float> state_est_vec_;
     double r_;
     double u_u_, u_v_, u_r_, u_w_;
     double k_v_, k_r_, k_w_, k_alt_;
@@ -260,6 +264,7 @@ class NearnessControl3D {
     geometry_msgs::Point current_pos_;
     double current_roll_, current_pitch_, current_heading_;
     double current_height_agl_;
+    double p_;
     double reference_altitude_;
     double max_forward_speed_, max_lateral_speed_;
     double max_vertical_speed_, max_yaw_rate_;
@@ -293,9 +298,32 @@ class NearnessControl3D {
     int vert_zone_count_;
 
     float average_radius_;
+    float average_lateral_radius_;
+    float average_vertical_radius_;
     bool enable_radius_scaling_;
     float max_dist_;
     float min_dist_;
+    // Dynamic Control
+    bool enable_dynamic_control_ = false;
+    float xv_kp1_, xv_k_, uv_k_;
+
+    Matrix<float, 10, 10> Mv_A_;
+    Matrix<float, 10, 2> Mv_B_;
+    Matrix<float, 1, 10> Mv_C_;
+    Matrix<float, 10, 1> Mv_Xkp1_;
+    Matrix<float, 10, 1> Mv_Xk_;
+
+    Matrix<float, 5, 5> Mr_A_;
+    Matrix<float, 5, 2> Mr_B_;
+    Matrix<float, 1, 5> Mr_C_;
+    Matrix<float, 5, 1> Mr_Xkp1_;
+    Matrix<float, 5, 1> Mr_Xk_;
+
+    Matrix<float, 4, 4> Mw_A_;
+    Matrix<float, 4, 1> Mw_B_;
+    Matrix<float, 1, 4> Mw_C_;
+    Matrix<float, 4, 1> Mw_Xkp1_;
+    Matrix<float, 4, 1> Mw_Xk_;
 
 
 }; // class SimpleNodeClass
