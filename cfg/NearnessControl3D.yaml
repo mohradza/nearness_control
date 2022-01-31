@@ -11,18 +11,18 @@ num_wf_harmonics: 5
 # General Controller Parameters
 forward_speed: 3.0
 forward_speed_min: .01
-forward_speed_max: 1.0
+forward_speed_max: 3.0
 forward_speed_lateral_gain: 0.4
 forward_speed_r_gain: 0.4
 
 lateral_speed_gain: 1.0
-lateral_speed_max: 1.0
+lateral_speed_max: 2.0
 
 vertical_speed_gain: 1.5
-vertical_speed_max: 1.0
+vertical_speed_max: 2.0
 
 yaw_rate_gain: 1.0
-yaw_rate_max: .5
+yaw_rate_max: 1.0
 
 # Altitude hold parameters
 reference_altitude: .5

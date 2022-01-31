@@ -401,10 +401,13 @@ void NearnessControl3D::processPcl(){
   }
 
   average_radius_ = 5.0;
+  average_lateral_radius_ = 5.0;
+  average_vertical_radius_ = 5.0;
   // Compute the average radius
   if(side_zone_count_ && vert_zone_count_){
     average_lateral_radius_ = side_zone_dist_ / side_zone_count_;
     average_vertical_radius_ = vert_zone_dist_ / vert_zone_count_;
+    ROS_INFO_THROTTLE(1.0,"Average lat. radius: %f. Average vert. radius: %f", average_lateral_radius_, average_vertical_radius_);
     average_radius_ = (average_lateral_radius_ + average_vertical_radius_) / 2.0;
     if (average_radius_ > 5.0){
       average_radius_ = 5.0;
@@ -775,7 +778,7 @@ void NearnessControl3D::computeControlCommands(){
       }
 
       if(enable_radius_scaling_){
-        state_est_vec_[0] *= pow(average_radius_, 2.0);
+        // state_est_vec_[0] *= pow(average_radius_, 2.0);
         state_est_vec_[0] *= pow(average_lateral_radius_, 2.0);
         state_est_vec_[1] *= pow(average_vertical_radius_, 2.0);
       }
@@ -828,10 +831,10 @@ void NearnessControl3D::computeControlCommands(){
       u_u_ = forward_speed_;
     }
 
-    control_commands_.linear.x = u_u_;
-    control_commands_.linear.y = u_v_;
-    control_commands_.linear.z = u_w_;
-    control_commands_.angular.z = u_r_;
+    control_commands_.linear.x = sat(u_u_, -max_forward_speed_, max_forward_speed_);
+    control_commands_.linear.y = sat(u_v_, -max_lateral_speed_, max_lateral_speed_);
+    control_commands_.linear.z = sat(u_w_, -max_vertical_speed_, max_vertical_speed_);
+    control_commands_.angular.z = sat(u_r_, -max_yaw_rate_, max_yaw_rate_);
 
   }
 
