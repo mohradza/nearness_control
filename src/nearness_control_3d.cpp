@@ -113,7 +113,7 @@ void NearnessControl3D::init() {
     // Set up the Cdagger matrix
     // Will be referenced as C in code
 
-    // Trained using LSE in DARPA Simple Cave World 1sudo
+    // Trained using LSE in DARPA Simple Cave World
     // Lateral Error Shapes: Full Sphere
     C_y_ = {-1.991, 0.2666, 6.4548, 0.4897, 0.3655, -1.004, -0.5274, 36.7821};
 
@@ -133,30 +133,31 @@ void NearnessControl3D::init() {
 
     if(true){
       ROS_INFO("Using observed shapes.");
-      // Simple Cave 02 Test 1
-      // C_y_ = {0.0, 0.0, 0.0, -1.9544, 0.0, 0.0, 0.0, 0.0, 0.0};
-      // C_z_ = {0.0, -1.9544, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-      // C_theta_ = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.4658};
-
-      // Simple Cave 02 Test 2
-      // C_y_ = {0.0, 0.0, 0.0, -4.3974, 0.0, 0.0, 0.0, 0.0, 0.0};
-      // C_z_ = {0.0, -4.3974, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-      // C_theta_ = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -3.2981};
 
       // Simple Cave 02 Test 3
       C_y_ = {0.0, 0.0, 0.0, -1.9544, 0.0, 0.0, 0.0, 0.0, 0.0};
-      // C_z_ = {0.0, -1.9544, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-      // C_theta_ = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.4658};
+      C_z_ = {0.0, -1.9544, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+      C_theta_ = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.4658};
 
       // Simple Tunnel 03
       C_y_ = {0.0, 0.0, 0.0, -1.4963, 0.0, 0.0, 0.0, 0.0, 0.0};
       C_z_ = {0.0, -1.4963, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
       C_theta_ = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.1223};
+
+      // Simple Tunnel 03 - Proj feedback
+      C_y_ = {0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+      C_z_ = {0.0, -1.4963, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+      C_theta_ = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.0};
+
+      // Simple Tunnel 03 - New
+      // C_y_ = {0.0, 0.0, 0.0, -2.814, 0.0, 0.0, 0.0, 0.0, 0.0};
+      // C_z_ = {0.0, -1.412, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+      // C_theta_ = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -2.11};
     }
     // unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
     // generator_(seed);
     //
-    enable_radius_scaling_ = true;
+    enable_radius_scaling_ = false;
     if(enable_radius_scaling_){
       C_y_ = {0.0, 0.0, 0.0, -0.4886, 0.0, 0.0, 0.0, 0.0, 0.0};
       C_z_ = {0.0, -0.4886, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
@@ -167,48 +168,88 @@ void NearnessControl3D::init() {
 
     // Initialize dynamic controllers
     Mv_Xk_ << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
-    Mr_Xk_ << 0.0, 0.0, 0.0, 0.0, 0.0;
+    Mr_Xk_ << 0.0, 0.0, 0.0, 0.0;
     Mw_Xk_ << 0.0, 0.0, 0.0, 0.0;
 
     // Mixed synthesis, new 4x4 state model with feedback on projection and rollrate
+    // Mv_A_ <<     1.0000,   -0.0000,   -0.0000,    0.0000,    0.0000,    0.0000,    0.0000,   -0.0000,    0.0000,    0.0000,
+    //              0.0000,    0.9851,    0.0000,   -0.0000,   -0.0000,   -0.0000,   -0.0000,    0.0000,   -0.0000,   -0.0000,
+    //              0.4686,   -0.0003,    0.7534,   -0.0367,   -0.0467,   -0.0545,   -1.1439,   -0.0031,   -0.0031,   -0.0015,
+    //              0.3290,   -0.0002,    0.2845,    0.8047,   -0.1200,   -0.0770,   -0.8030,   -0.0022,   -0.0022,   -0.0010,
+    //              0.0250,   -0.0000,    0.0247,    0.1443,    0.9904,   -0.0061,   -0.0610,   -0.0002,   -0.0002,   -0.0001,
+    //              0.0006,   -0.0000,    0.0007,    0.0060,    0.0797,    0.9998,   -0.0016,   -0.0000,   -0.0000,   -0.0000,
+    //              0.0000,   -0.0000,    0.0000,    0.0000,    0.0001,    0.0025,    1.0000,   -0.0000,   -0.0000,   -0.0000,
+    //              0.1645,   -0.0001,    0.1423,   -0.0129,   -0.0164,   -0.0191,   -0.4015,    0.8293,   -0.0883,   -0.0392,
+    //              0.0125,   -0.0000,    0.0124,   -0.0010,   -0.0012,   -0.0014,   -0.0305,    0.1461,    0.9928,   -0.0032,
+    //              0.0003,   -0.0000,    0.0003,   -0.0000,   -0.0000,   -0.0000,   -0.0008,    0.0060,    0.0798,    0.9999;
+    //
+    // Mv_B_ <<     0.0100,    0.0000,
+    //             -0.0000,    0.0099,
+    //              0.0025,   -0.0000,
+    //              0.0016,   -0.0000,
+    //              0.0001,   -0.0000,
+    //              0.0000,   -0.0000,
+    //             -0.0000,    0.0000,
+    //              0.0008,   -0.0000,
+    //              0.0000,   -0.0000,
+    //              0.0000,   -0.0000;
+    //
+    // Mv_C_ <<     3.3970,   -0.0024,    4.5351,   -0.2622,   -0.3348,  -0.3904,   -8.2916,   -0.0230,   -0.0230,   -0.0111;
+
+    // Mixed synthesis, feedback on projection instead of state est
     Mv_A_ <<     1.0000,   -0.0000,   -0.0000,    0.0000,    0.0000,    0.0000,    0.0000,   -0.0000,    0.0000,    0.0000,
-                 0.0000,    0.9851,    0.0000,   -0.0000,   -0.0000,   -0.0000,   -0.0000,    0.0000,   -0.0000,   -0.0000,
-                 0.4686,   -0.0003,    0.7534,   -0.0367,   -0.0467,   -0.0545,   -1.1439,   -0.0031,   -0.0031,   -0.0015,
-                 0.3290,   -0.0002,    0.2845,    0.8047,   -0.1200,   -0.0770,   -0.8030,   -0.0022,   -0.0022,   -0.0010,
-                 0.0250,   -0.0000,    0.0247,    0.1443,    0.9904,   -0.0061,   -0.0610,   -0.0002,   -0.0002,   -0.0001,
-                 0.0006,   -0.0000,    0.0007,    0.0060,    0.0797,    0.9998,   -0.0016,   -0.0000,   -0.0000,   -0.0000,
+                 0.0000,    0.9814,   -0.0000,   -0.0000,   -0.0000,   -0.0000,   -0.0000,    0.0000,   -0.0000,   -0.0000,
+                 1.0320,   -0.0027,    0.6303,   -0.0613,   -0.0762,   -0.0874,   -1.7328,   -0.1196,   -0.0841,   -0.0312,
+                 0.7326,   -0.0019,    0.1972,    0.7834,   -0.1446,   -0.1047,   -1.2301,   -0.0853,   -0.0600,   -0.0224,
+                 0.0578,   -0.0002,    0.0180,    0.1425,    0.9883,   -0.0084,   -0.0970,   -0.0068,   -0.0048,   -0.0018,
+                 0.0015,   -0.0000,    0.0005,    0.0059,    0.0797,    0.9998,   -0.0026,   -0.0002,   -0.0001,   -0.0000,
                  0.0000,   -0.0000,    0.0000,    0.0000,    0.0001,    0.0025,    1.0000,   -0.0000,   -0.0000,   -0.0000,
-                 0.1645,   -0.0001,    0.1423,   -0.0129,   -0.0164,   -0.0191,   -0.4015,    0.8293,   -0.0883,   -0.0392,
-                 0.0125,   -0.0000,    0.0124,   -0.0010,   -0.0012,   -0.0014,   -0.0305,    0.1461,    0.9928,   -0.0032,
-                 0.0003,   -0.0000,    0.0003,   -0.0000,   -0.0000,   -0.0000,   -0.0008,    0.0060,    0.0798,    0.9999;
+                 0.7326,   -0.0019,    0.1972,   -0.0434,   -0.0541,   -0.0620,   -1.2301,    0.7416,   -0.1506,   -0.0651,
+                 0.0578,   -0.0002,    0.0180,   -0.0034,   -0.0043,   -0.0049,   -0.0970,    0.1391,    0.9878,   -0.0053,
+                 0.0015,   -0.0000,    0.0005,   -0.0001,   -0.0001,   -0.0001,   -0.0026,    0.0058,    0.0797,    0.9999;
 
     Mv_B_ <<     0.0100,    0.0000,
                 -0.0000,    0.0099,
-                 0.0025,   -0.0000,
-                 0.0016,   -0.0000,
-                 0.0001,   -0.0000,
+                 0.0057,   -0.0000,
+                 0.0036,   -0.0000,
+                 0.0002,   -0.0000,
                  0.0000,   -0.0000,
                 -0.0000,    0.0000,
-                 0.0008,   -0.0000,
-                 0.0000,   -0.0000,
+                 0.0036,   -0.0000,
+                 0.0002,   -0.0000,
                  0.0000,   -0.0000;
 
-    Mv_C_ <<     3.3970,   -0.0024,    4.5351,   -0.2622,   -0.3348,  -0.3904,   -8.2916,   -0.0230,   -0.0230,   -0.0111;
+    Mv_C_ <<    17.0578,   -0.0447,    7.2183,   -1.0028,   -1.2506,   -1.4314,  -28.6410,   -2.0529,   -1.4733,   -0.5671;
 
     // Heading - Mixed sythesis, 2x2 state model, 2 inputs
-    Mr_A_ <<         0.9999,    0.0000,    0.0000,    0.0000,    0.0000,
-                    -0.0000,    0.9891,    0.0000,    0.0000,    0.0000,
-                     1.2226,   -0.0904,    0.4649,   -0.1669,   -3.1719,
-                     1.1753,   -0.0870,    0.3851,    0.6177,   -3.0605,
-                     0.0112,   -0.0008,    0.0047,    0.0162,    0.9709;
+    // Mr_A_ <<         0.9999,    0.0000,    0.0000,    0.0000,    0.0000,
+    //                 -0.0000,    0.9891,    0.0000,    0.0000,    0.0000,
+    //                  1.2226,   -0.0904,    0.4649,   -0.1669,   -3.1719,
+    //                  1.1753,   -0.0870,    0.3851,    0.6177,   -3.0605,
+    //                  0.0112,   -0.0008,    0.0047,    0.0162,    0.9709;
+    //
+    // Mr_B_ <<         0.0200,   -0.0000,
+    //                  0.0000,    0.0099,
+    //                  0.0141,   -0.0005,
+    //                  0.0112,   -0.0004,
+    //                  0.0001,   -0.0000;
+    //
+    // Mr_C_ <<       11.4841,   -0.8545,    8.3533,   -1.4462,  -29.8040;
 
-    Mr_B_ <<         0.0200,   -0.0000,
-                     0.0000,    0.0099,
-                     0.0141,   -0.0005,
-                     0.0112,   -0.0004,
-                     0.0001,   -0.0000;
+    // Heading - Mixed sythensis, projection version
+    Mr_A_ <<     0.9998,    0.0000,    0.0000,    0.0000,
+                 3.2299,    0.2618,   -0.0846,  -11.9417,
+                 9.3428,   -0.3726,    0.4773,  -34.5383,
+                 0.0460,   -0.0059,    0.0010,    0.8300;
 
-    Mr_C_ <<       11.4841,   -0.8545,    8.3533,   -1.4462,  -29.8040;
+    Mr_B_ <<     0.0200,
+                 0.0555,
+                 0.1386,
+                -0.0001;
+
+    Mr_C_ <<   136.8281,  -12.7069,   -3.4885, -505.8096;
+
+
 
     // Vertical - Mixed sythesis, 2x2 state model, 1 input, no modifications
     Mw_A_ <<     0.9999,         0,         0,         0,
@@ -342,6 +383,9 @@ void NearnessControl3D::processPcl(){
   side_zone_dist_ = 0.0;
   side_zone_count_ = 0;
 
+  vert_zone_dist_ = 0.0;
+  vert_zone_count_ = 0;
+
   // Convert the pcl to nearness
   pcl::PointXYZ p, mu_p;
   float dist, mu_val;
@@ -388,8 +432,10 @@ void NearnessControl3D::processPcl(){
           }
 
           if(isSideZonePoint(theta_view_vec_[i], phi_view_vec_[j])){
+            // ROS_INFO("dist: %f, theta: %f, phi: %f", dist, theta_view_vec_[i],phi_view_vec_[j]);
             side_zone_dist_ += dist;
             side_zone_count_ += 1;
+            // cloud_out_.push_back(p);
           }
 
           if(isVerticalZonePoint(theta_view_vec_[i], phi_view_vec_[j])){
@@ -406,8 +452,9 @@ void NearnessControl3D::processPcl(){
   // Compute the average radius
   if(side_zone_count_ && vert_zone_count_){
     average_lateral_radius_ = side_zone_dist_ / side_zone_count_;
+    // ROS_INFO_THROTTLE(1.0,"Side dist: %f, Count: %f", side_zone_dist_, side_zone_count_);
     average_vertical_radius_ = vert_zone_dist_ / vert_zone_count_;
-    ROS_INFO_THROTTLE(1.0,"Average lat. radius: %f. Average vert. radius: %f", average_lateral_radius_, average_vertical_radius_);
+    // ROS_INFO_THROTTLE(1.0,"Side: %f, Vert: %f", average_lateral_radius_, average_vertical_radius_);
     average_radius_ = (average_lateral_radius_ + average_vertical_radius_) / 2.0;
     if (average_radius_ > 5.0){
       average_radius_ = 5.0;
@@ -501,17 +548,19 @@ void NearnessControl3D::projectNearness(){
 }
 
 bool NearnessControl3D::isSideZonePoint(const float t, const float p){
-  float side_delta_p = M_PI / 8.0;
-  float side_delta_t = M_PI / 8.0;
+  float side_delta_p = M_PI / 16.0;
+  float side_delta_t = M_PI / 32.0;
   // Point is in the left side zone
   if(p < (-M_PI/2.0 + side_delta_p) && p > (-M_PI/2.0 - side_delta_p)){
     if(t > (M_PI/2.0 - side_delta_t) && t < (M_PI/2.0 + side_delta_t)){
+      // ROS_INFO("Left");
       return true;
     }
   }
   // Point is in the right side zone
   if(p > (M_PI/2.0 - side_delta_p) && p < (M_PI/2.0 + side_delta_p)){
     if(t > (M_PI/2.0 - side_delta_t) && t < (M_PI/2.0 + side_delta_t)){
+      // ROS_INFO("Right");
       return true;
     }
   }
@@ -781,6 +830,7 @@ void NearnessControl3D::computeControlCommands(){
         // state_est_vec_[0] *= pow(average_radius_, 2.0);
         state_est_vec_[0] *= pow(average_lateral_radius_, 2.0);
         state_est_vec_[1] *= pow(average_vertical_radius_, 2.0);
+        // state_est_vec_[2] *= pow(average_lateral_radius_, 2.0);
       }
 
       if(enable_dynamic_control_){
@@ -789,21 +839,25 @@ void NearnessControl3D::computeControlCommands(){
         Vector2f a1(state_est_vec_[0], -p_);
         Mv_Xkp1_ = Mv_A_*Mv_Xk_ + Mv_B_*a1;
         u_v_ = Mv_C_*Mv_Xkp1_;
+        u_v_ = sat(u_v_, -max_lateral_speed_, max_lateral_speed_);
         Mv_Xk_ = Mv_Xkp1_;
 
         // Complex heading dynamic controller
-        Vector2f a2(state_est_vec_[2], -r_);
-        Mr_Xkp1_ = Mr_A_*Mr_Xk_ + Mr_B_*a2;
+        // Vector2f a2(state_est_vec_[2], -r_);
+        float u_psi_ = state_est_vec_[2];
+        Mr_Xkp1_ = Mr_A_*Mr_Xk_ + Mr_B_*u_psi_;
         u_r_ = Mr_C_*Mr_Xkp1_;
+        u_r_ = sat(u_r_, -max_yaw_rate_, max_yaw_rate_);
         Mr_Xk_ = Mr_Xkp1_;
 
         // Complex vertical dynamic controller
         float u_z_ = state_est_vec_[1];
+        if(u_z_ > 1.0) u_z_ = 1.0;
+        if(u_z_ < -1.0) u_z_ = -1.0;
         Mw_Xkp1_ = Mw_A_*Mw_Xk_ + Mw_B_*u_z_;
         u_w_ = Mw_C_*Mw_Xkp1_;
+        u_w_ = sat(u_w_, -max_vertical_speed_, max_vertical_speed_);
         Mw_Xk_ = Mw_Xkp1_;
-
-        ROS_INFO_THROTTLE(0.5,"u_v: %f, u_r: %f, u_w: %f", u_v_, u_r_, u_w_);
 
       } else {
         u_v_ = k_v_*state_est_vec_[0];
@@ -821,20 +875,25 @@ void NearnessControl3D::computeControlCommands(){
     // }
 
     // Enable forward speed regulation based on Laplace spherical harmonic feedback
-    float k_u_w_ = 0.25;
+    float k_u_w_ = 0.4;
     float k_front_ = 2.0;
     float front_reg = k_front_*abs(y_full_[2]);
     // ROS_INFO("front_reg: %f", front_reg);
+    // enable_speed_regulation_ = false;
     if(enable_speed_regulation_){
-      u_u_ =  forward_speed_*(1 - k_u_v_*abs(u_v_) - k_u_r_*abs(u_r_) - k_u_w_*abs(u_w_) - front_reg);
+      // u_u_ =  forward_speed_*(1 - k_u_v_*abs(u_v_) - k_u_r_*abs(u_r_) - k_u_w_*abs(u_w_) - front_reg);
+      // u_u_ =  forward_speed_*(1 - k_u_v_*abs(u_v_) - k_u_r_*abs(u_r_) - k_u_w_*abs(u_w_));
+      u_u_ =  sat(forward_speed_*(1.0 - front_reg), -0.5, max_forward_speed_);
     } else {
       u_u_ = forward_speed_;
     }
 
-    control_commands_.linear.x = sat(u_u_, -max_forward_speed_, max_forward_speed_);
-    control_commands_.linear.y = sat(u_v_, -max_lateral_speed_, max_lateral_speed_);
-    control_commands_.linear.z = sat(u_w_, -max_vertical_speed_, max_vertical_speed_);
-    control_commands_.angular.z = sat(u_r_, -max_yaw_rate_, max_yaw_rate_);
+
+    control_commands_.linear.x = u_u_;
+    control_commands_.linear.y = u_v_;
+    control_commands_.linear.z = u_w_;
+    control_commands_.angular.z = u_r_;
+    ROS_INFO_THROTTLE(0.5,"u_u: %f, u_v: %f, u_r: %f, u_w: %f", u_u_, u_v_, u_r_, u_w_);
 
   }
 

@@ -79,7 +79,7 @@ int main(int argc, char** argv){
   ros::Rate rate(200);
   while (node.ok()){
     try{
-      listener.lookupTransform("/simple_tunnel_03", "/OHRAD_X3",
+      listener.lookupTransform("/simple_tunnel_practice_03", "/OHRAD_X3",
          ros::Time(0), transform);
     }
     catch (tf::TransformException ex){
@@ -168,35 +168,35 @@ int main(int argc, char** argv){
       robot_odom_pub.publish(odom_msg);
       cmd_vel_pub.publish(cmd_);
 
-    // body_vels.linear.x = ;
-    // body_vels.linear.y = ;
-    // body_vels.linear.z = ;
+    body_vels.linear.x = 0.0;
+    body_vels.linear.y = 0.0;
+    body_vels.linear.z = 0.0;
 
-    // Vector3f world_vels(odom_msg.twist.twist.linear.x, odom_msg.twist.twist.linear.y, odom_msg.twist.twist.linear.z);
-    // Matrix3f mat_yaw(3,3), mat_pitch(3,3), mat_roll(3,3), mat_rot(3,3);
-    //
-    // mat_yaw << cos(yaw), sin(yaw), 0.0, -sin(yaw), cos(yaw), 0.0, 0.0, 0.0, 1.0;
-    // mat_pitch << cos(pitch), 0.0, -sin(pitch), 0.0, 1.0, 0.0, sin(pitch), 0.0, cos(pitch);
-    // mat_roll << 1.0, 0.0, 0.0, 0.0, cos(roll), sin(roll), 0.0, -sin(roll), cos(roll);
-    //
-    // mat_rot = mat_yaw*mat_pitch*mat_roll;
-    //
-    // Vector3f body_vels_vec(0.0, 0.0, 0.0);
-    // body_vels_vec = mat_rot*world_vels;
-    //
-    // body_vels.linear.x = body_vels_vec[0];
-    // body_vels.linear.y = body_vels_vec[1];
-    // body_vels.linear.z = body_vels_vec[2];
-    //
+    Vector3f world_vels(odom_msg.twist.twist.linear.x, odom_msg.twist.twist.linear.y, odom_msg.twist.twist.linear.z);
+    Matrix3f mat_yaw(3,3), mat_pitch(3,3), mat_roll(3,3), mat_rot(3,3);
+
+    mat_yaw << cos(yaw), sin(yaw), 0.0, -sin(yaw), cos(yaw), 0.0, 0.0, 0.0, 1.0;
+    mat_pitch << cos(pitch), 0.0, -sin(pitch), 0.0, 1.0, 0.0, sin(pitch), 0.0, cos(pitch);
+    mat_roll << 1.0, 0.0, 0.0, 0.0, cos(roll), sin(roll), 0.0, -sin(roll), cos(roll);
+
+    mat_rot = mat_yaw*mat_pitch*mat_roll;
+
+    Vector3f body_vels_vec(0.0, 0.0, 0.0);
+    body_vels_vec = mat_rot*world_vels;
+
+    body_vels.linear.x = body_vels_vec[0];
+    body_vels.linear.y = body_vels_vec[1];
+    body_vels.linear.z = body_vels_vec[2];
+
     // odom_msg.twist.twist.linear.x = body_vels_vec[0];
     // odom_msg.twist.twist.linear.y = body_vels_vec[1];
     // odom_msg.twist.twist.linear.z = body_vels_vec[2];
-    //
-    // body_vels.angular.x = p;
-    // body_vels.angular.y = q;
-    // body_vels.angular.z = r;
-    //
-    // body_vel_pub.publish(body_vels);
+
+    body_vels.angular.x = p;
+    body_vels.angular.y = q;
+    body_vels.angular.z = r;
+
+    body_vel_pub.publish(body_vels);
 
     ros::spinOnce();
     rate.sleep();
