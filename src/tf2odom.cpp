@@ -79,7 +79,7 @@ int main(int argc, char** argv){
   ros::Rate rate(200);
   while (node.ok()){
     try{
-      listener.lookupTransform("/simple_tunnel_practice_03", "/OHRAD_X3",
+      listener.lookupTransform("/simple_tunnel_01", "/OHRAD_X3",
          ros::Time(0), transform);
     }
     catch (tf::TransformException ex){

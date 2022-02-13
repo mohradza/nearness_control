@@ -18,19 +18,21 @@ commandGenerator::commandGenerator(const ros::NodeHandle &node_handle,
 
     state_ = "init";
 
-    starting_point_.x = 0.0;
+    starting_point_.x = -3.0;
     starting_point_.y = 0.0;
     starting_point_.z = 1.5;
     starting_heading_ = 0.0;
 
     goal_point_.x = 0.0;
-    goal_point_.y = 1.0;
-    goal_point_.z = 2.5;
+    goal_point_.y = 0.0;
+    goal_point_.z = 1.5;
     goal_heading_ = 1.0;
 
     routine_ = "doublets";
     routine_ = "dynamic";
     // routine_ = "const";
+    routine_ = "swerve";
+    swerve_dur_ = 4.0;
     start_doublets_ = false;
     doublet_period_ = 8.0;
     doublet_amplitude_ = 1.0;
@@ -136,6 +138,9 @@ commandGenerator::commandGenerator(const ros::NodeHandle &node_handle,
     if(!state_.compare("init")){
       // Do nothing
       start_doublets_ = false;
+      swerve_complete_ = false;
+      start_swerve_ = false;
+      start_fwd_motion_ = false;
     } else if(!state_.compare("go_to_start")){
       // Go to the starting point
       cmd_vel_msg_.linear.x = k_u_*(starting_point_.x - current_pos_.x);
@@ -165,6 +170,19 @@ commandGenerator::commandGenerator(const ros::NodeHandle &node_handle,
         // cmd_vel_msg_.linear.z = k_w_*(starting_point_.z - current_pos_.z);
         cmd_vel_msg_.linear.y = k_v_*(starting_point_.y - current_pos_.y);
         cmd_vel_msg_.angular.z = (k_r_/50.0)*(starting_heading_ - current_heading_);
+      }
+
+      if(!routine_.compare("swerve")){
+        cmd_vel_msg_.linear.x = 1.5;
+        cmd_vel_msg_.linear.z = k_w_*(starting_point_.z - current_pos_.z);
+        cmd_vel_msg_.linear.y = k_v_*(starting_point_.y - current_pos_.y);
+        //cmd_vel_msg_.linear.y = 0.0;
+        cmd_vel_msg_.angular.z = (k_r_/50.0)*(starting_heading_ - current_heading_);
+
+        generateSwerveCommands();
+
+        ROS_INFO_THROTTLE(0.25,"x: %f, y: %f, z: %f, r: %f", cmd_vel_msg_.linear.x, cmd_vel_msg_.linear.y, cmd_vel_msg_.linear.z, cmd_vel_msg_.angular.z);
+
       }
 
       if(!routine_.compare("dynamic")){
@@ -213,6 +231,53 @@ commandGenerator::commandGenerator(const ros::NodeHandle &node_handle,
       cmd_vel_msg_.linear.x = 2.0;
     }
 
+  }
+
+  void commandGenerator::generateSwerveCommands(){
+
+
+    if(!start_fwd_motion_){
+      fwd_motion_time_ = ros::Time::now();
+      start_fwd_motion_ = true;
+      start_swerve_ = false;
+    }
+
+    float durr = (ros::Time::now() - fwd_motion_time_).toSec();
+    bool forward_motion_steady = false;
+    if(durr > 4.0){
+      forward_motion_steady = true;
+    }
+
+    if(!start_swerve_ && forward_motion_steady){
+      cmd_vel_msg_.linear.y = 0.0;
+      cmd_vel_msg_.angular.z = 0.0;
+      start_swerve_ = true;
+      swerve_complete_ = false;
+      start_swerve_time_ = ros::Time::now();
+    }
+
+    float t_elapsed = 0.0;
+    t_elapsed = (ros::Time::now() - start_swerve_time_).toSec();
+
+    float cmd = 0.0;
+    if(!swerve_complete_ && forward_motion_steady){
+      // ROS_INFO_THROTTLE(1.0, "swerving...");
+      cmd = .25*sin(2.0*M_PI/swerve_dur_ * t_elapsed);
+      // ROS_INFO("cmd: %f",cmd);
+    }
+
+
+    if(start_swerve_ && t_elapsed > swerve_dur_){
+      swerve_complete_ = true;
+    }
+
+    cmd_vel_msg_.linear.y = cmd;
+    cmd_vel_msg_.angular.z = -cmd;
+
+    if(swerve_complete_){
+      cmd_vel_msg_.linear.y = 0.0;
+      cmd_vel_msg_.angular.z = 0.0;
+    }
   }
 
   void commandGenerator::generateDoubletsCommand(){

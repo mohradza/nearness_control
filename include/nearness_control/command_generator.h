@@ -59,6 +59,7 @@ private:
    void odomCb(const nav_msgs::OdometryConstPtr& odom_msg);
    void generateCommandVel();
    void generateDoubletsCommand();
+   void generateSwerveCommands();
 
    ros::Subscriber sub_state_;
    ros::Subscriber sub_odom_;
@@ -69,6 +70,13 @@ private:
 
    bool start_doublets_;
    ros::Time start_doublets_time_;
+
+   bool start_swerve_;
+   ros::Time start_swerve_time_;
+   bool swerve_complete_;
+   double swerve_dur_;
+   bool start_fwd_motion_;
+   ros::Time fwd_motion_time_;
 
    double doublet_period_;
    double doublet_amplitude_;
@@ -105,6 +113,8 @@ private:
    Matrix<float, 1, 4> Mw_C_;
    Matrix<float, 4, 1> Mw_Xkp1_;
    Matrix<float, 4, 1> Mw_Xk_;
+
+
 };
 } // end namespace
 
