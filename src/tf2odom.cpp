@@ -17,9 +17,25 @@ void cmdCallback(const geometry_msgs::TwistConstPtr& cmd_msg){
   cmd_ = *cmd_msg;
 }
 
-geometry_msgs::Vector3 angular_velocities_;
+Vector3f angular_velocities_;
+Vector3f linear_accelerations_;
 void imuCallback(const sensor_msgs::ImuConstPtr& imu_msg){
-  angular_velocities_ = imu_msg->angular_velocity;
+
+  Matrix3f mat_pitch(3,3), mat_roll(3,3), mat_rot(3,3);
+
+  float pitch = M_PI;
+  float roll = M_PI;
+
+  mat_pitch << cos(pitch), 0.0, -sin(pitch), 0.0, 1.0, 0.0, sin(pitch), 0.0, cos(pitch);
+  mat_roll << 1.0, 0.0, 0.0, 0.0, cos(roll), sin(roll), 0.0, -sin(roll), cos(roll);
+
+  // Do a 3-2 rotation to correct sensor signal signs
+  mat_rot = mat_pitch*mat_roll;
+
+  Vector3f ang_vels(imu_msg->angular_velocity.x, imu_msg->angular_velocity.y, imu_msg->angular_velocity.z);
+  angular_velocities_ = mat_rot*ang_vels;
+  Vector3f lin_accels(imu_msg->linear_acceleration.x, imu_msg->linear_acceleration.y, imu_msg->linear_acceleration.z);
+  linear_accelerations_ = mat_rot*lin_accels;
 }
 
 int main(int argc, char** argv){
@@ -140,15 +156,20 @@ int main(int argc, char** argv){
       double roll_dot, pitch_dot, yaw_dot;
       m.getRPY(roll, pitch, yaw);
 
-      if (roll > M_PI/2){
-        roll -= M_PI;
-      } else if( roll < -M_PI/2){
-        roll += M_PI;
-      }
+      // ROS_INFO_THROTTLE(0.5,"roll: %f, pitch: %f, heading: %f", roll, pitch, yaw);
 
-      roll_dot = angular_velocities_.x;
-      pitch_dot = angular_velocities_.y;
-      yaw_dot = angular_velocities_.z;
+      // if (roll > M_PI/2){
+      //   roll -= M_PI;
+      // } else if( roll < -M_PI/2){
+      //   roll += M_PI;
+      // }
+
+      roll_dot = angular_velocities_[0];
+      pitch_dot = angular_velocities_[1];
+      yaw_dot = angular_velocities_[2];
+
+      // ROS_INFO_THROTTLE(0.5,"roll: %f, pitch: %f, heading: %f", roll_dot, pitch_dot, yaw_dot);
+
       p = roll_dot - sin(pitch)*yaw_dot;
       q = cos(roll)*pitch_dot + sin(roll)*cos(pitch)*yaw_dot;
       r = -sin(roll)*pitch_dot + cos(roll)*cos(pitch)*yaw_dot;
@@ -161,9 +182,11 @@ int main(int argc, char** argv){
       odom_msg.twist.twist.angular.y = q;
       odom_msg.twist.twist.angular.z = r;
 
-      odom_msg.twist.covariance[0] = angular_velocities_.x;
-      odom_msg.twist.covariance[1] = angular_velocities_.y;
-      odom_msg.twist.covariance[2] = angular_velocities_.z;
+      odom_msg.twist.covariance[0] = angular_velocities_[0];
+      odom_msg.twist.covariance[1] = angular_velocities_[1];
+      odom_msg.twist.covariance[2] = angular_velocities_[2];
+
+
 
       robot_odom_pub.publish(odom_msg);
       cmd_vel_pub.publish(cmd_);
@@ -180,9 +203,21 @@ int main(int argc, char** argv){
     mat_roll << 1.0, 0.0, 0.0, 0.0, cos(roll), sin(roll), 0.0, -sin(roll), cos(roll);
 
     mat_rot = mat_yaw*mat_pitch*mat_roll;
-
     Vector3f body_vels_vec(0.0, 0.0, 0.0);
     body_vels_vec = mat_rot*world_vels;
+
+    mat_pitch << cos(-pitch), 0.0, -sin(-pitch), 0.0, 1.0, 0.0, sin(-pitch), 0.0, cos(-pitch);
+    mat_roll << 1.0, 0.0, 0.0, 0.0, cos(-roll), sin(-roll), 0.0, -sin(-roll), cos(-roll);
+    mat_rot = mat_roll*mat_pitch;
+    Vector3f v1_accel_vec(0.0, 0.0, 0.0);
+    Vector3f body_accels(linear_accelerations_[0], linear_accelerations_[1], linear_accelerations_[2]);
+    // ROS_INFO_THROTTLE(0.5,"x: %f, y: %f, z: %f", body_accels[0], body_accels[1], body_accels[2]);
+    v1_accel_vec = mat_rot*body_accels;
+    // ROS_INFO_THROTTLE(0.5,"x: %f, y: %f, z: %f", v1_accel_vec[0], v1_accel_vec[1], v1_accel_vec[2]);
+
+    odom_msg.twist.covariance[3] = v1_accel_vec[0];
+    odom_msg.twist.covariance[4] = v1_accel_vec[1];
+    odom_msg.twist.covariance[5] = v1_accel_vec[2];
 
     body_vels.linear.x = body_vels_vec[0];
     body_vels.linear.y = body_vels_vec[1];

@@ -18,20 +18,21 @@ commandGenerator::commandGenerator(const ros::NodeHandle &node_handle,
 
     state_ = "init";
 
-    starting_point_.x = -3.0;
+    starting_point_.x = 4.0;
     starting_point_.y = 0.0;
     starting_point_.z = 1.5;
     starting_heading_ = 0.0;
 
     goal_point_.x = 0.0;
-    goal_point_.y = 0.0;
+    goal_point_.y = 0.5;
     goal_point_.z = 1.5;
     goal_heading_ = 1.0;
 
     routine_ = "doublets";
     routine_ = "dynamic";
     // routine_ = "const";
-    routine_ = "swerve";
+    routine_ = "double_const";
+    // routine_ = "swerve";
     swerve_dur_ = 4.0;
     start_doublets_ = false;
     doublet_period_ = 8.0;
@@ -164,6 +165,20 @@ commandGenerator::commandGenerator(const ros::NodeHandle &node_handle,
         // cmd_vel_msg_.angular.z = 0.5;
       }
 
+      if(!routine_.compare("double_const")){
+        cmd_vel_msg_.linear.x = 1.5;
+        cmd_vel_msg_.linear.x = k_u_*(starting_point_.x - current_pos_.x);
+        cmd_vel_msg_.linear.z = k_w_*(starting_point_.z - current_pos_.z);
+        cmd_vel_msg_.linear.y = k_v_*(starting_point_.y - current_pos_.y);
+        //cmd_vel_msg_.linear.y = 0.0;
+        cmd_vel_msg_.angular.z = (k_r_/50.0)*(starting_heading_ - current_heading_);
+
+        generateDoubleConstCommands();
+
+        ROS_INFO_THROTTLE(0.25,"x: %f, y: %f, z: %f, r: %f", cmd_vel_msg_.linear.x, cmd_vel_msg_.linear.y, cmd_vel_msg_.linear.z, cmd_vel_msg_.angular.z);
+
+      }
+
       if(!routine_.compare("doublets")){
         generateDoubletsCommand();
         cmd_vel_msg_.linear.x = k_u_*(starting_point_.x - current_pos_.x);
@@ -184,6 +199,8 @@ commandGenerator::commandGenerator(const ros::NodeHandle &node_handle,
         ROS_INFO_THROTTLE(0.25,"x: %f, y: %f, z: %f, r: %f", cmd_vel_msg_.linear.x, cmd_vel_msg_.linear.y, cmd_vel_msg_.linear.z, cmd_vel_msg_.angular.z);
 
       }
+
+
 
       if(!routine_.compare("dynamic")){
         cmd_vel_msg_.linear.x = k_u_*(starting_point_.x - current_pos_.x);
@@ -229,6 +246,35 @@ commandGenerator::commandGenerator(const ros::NodeHandle &node_handle,
 
     if(cmd_vel_msg_.linear.x > 2.0){
       cmd_vel_msg_.linear.x = 2.0;
+    }
+
+  }
+
+  void commandGenerator::generateDoubleConstCommands(){
+    if(!start_fwd_motion_){
+      fwd_motion_time_ = ros::Time::now();
+      start_fwd_motion_ = true;
+      start_swerve_ = false;
+    }
+
+    float durr = (ros::Time::now() - fwd_motion_time_).toSec();
+    bool forward_motion_steady = false;
+    if(durr > 3.0){
+      forward_motion_steady = true;
+    }
+
+    if(forward_motion_steady){
+      cmd_vel_msg_.linear.x = 1.5;
+      cmd_vel_msg_.linear.x = k_u_*(starting_point_.x - current_pos_.x);
+      cmd_vel_msg_.linear.z = k_w_*(starting_point_.z - current_pos_.z);
+      cmd_vel_msg_.linear.y = 0.5;
+      // cmd_vel_msg_.linear.y = k_v_*(goal_point_.y - current_pos_.y);
+      // cmd_vel_msg_.linear.y = 0.0;
+
+      //cmd_vel_msg_.linear.y = 0.0;
+      // cmd_vel_msg_.angular.z = .5;
+      cmd_vel_msg_.angular.z = (k_r_/50.0)*(starting_heading_ - current_heading_);
+
     }
 
   }

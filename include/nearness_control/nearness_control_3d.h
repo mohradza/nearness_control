@@ -325,6 +325,11 @@ class NearnessControl3D {
     Matrix<float, 4, 1> Mw_Xkp1_;
     Matrix<float, 4, 1> Mw_Xk_;
 
+    Matrix<float, 8, 8> Mc_A_;
+    Matrix<float, 8, 2> Mc_B_;
+    Matrix<float, 2, 8> Mc_C_;
+    Matrix<float, 8, 1> Mc_Xkp1_;
+    Matrix<float, 8, 1> Mc_Xk_;
 
 }; // class SimpleNodeClass
 

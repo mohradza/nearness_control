@@ -60,6 +60,7 @@ private:
    void generateCommandVel();
    void generateDoubletsCommand();
    void generateSwerveCommands();
+   void generateDoubleConstCommands();
 
    ros::Subscriber sub_state_;
    ros::Subscriber sub_odom_;

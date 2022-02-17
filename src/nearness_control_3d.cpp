@@ -170,6 +170,7 @@ void NearnessControl3D::init() {
     Mv_Xk_ << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
     Mr_Xk_ << 0.0, 0.0, 0.0, 0.0;
     Mw_Xk_ << 0.0, 0.0, 0.0, 0.0;
+    Mc_Xk_ << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
 
     // Mixed synthesis, new 4x4 state model with feedback on projection and rollrate
     // Mv_A_ <<     1.0000,   -0.0000,   -0.0000,    0.0000,    0.0000,    0.0000,    0.0000,   -0.0000,    0.0000,    0.0000,
@@ -261,6 +262,32 @@ void NearnessControl3D::init() {
 
     Mw_C_ <<    81.6559,  -23.0286,  -13.8929, -216.6187;
 
+
+    // Combined lateral
+    Mc_A_ <<     3.4667,   -5.3507,    1.4831,    0.7993,   -8.5278,   20.1677,   10.8740,   -1.7123,
+                -1.4649,    3.4769,   -0.8365,   -0.9076,    3.8495,   -9.9224,   -5.6524,    1.1406,
+                 7.4493,  -14.2083,    3.5829,   -3.3938,  -27.8849,   55.7133,   26.7345,   -1.3620,
+                 0.5438,   -1.1080,   -0.5648,   -2.2066,   -4.7498,    4.6238,    0.7502,    1.4694,
+                -2.0412,    4.0802,   -0.9292,    0.0933,    8.1139,  -15.9628,   -7.7233,    0.6402,
+                -2.7442,    5.2667,   -1.3876,   -0.3988,    9.0022,  -19.8075,  -10.3038,    1.2893,
+                 1.3131,   -2.3513,    0.6127,   -0.0608,   -4.4639,    9.8075,    5.1591,   -0.4446,
+                 2.6021,   -4.6340,   -0.3115,   -5.9837,  -13.8406,   19.1873,    6.5650,    2.8737;
+
+
+    Mc_B_ <<       -0.0082,    0.0725,
+                   -0.0193,    0.0104,
+                    0.0478,    0.0435,
+                    0.0302,   -0.0593,
+                   -0.0501,    0.0360,
+                   -0.0243,   -0.0305,
+                   -0.0123,    0.0784,
+                   -0.0237,    0.0514;
+
+
+    Mc_C_ <<     0.1080,   -0.2073,    0.0338,   -0.0678,   -0.4224,    0.8140,    0.3805,   -0.0109,
+                 0.1863,   -0.3583,    0.0679,   -0.0853,   -0.6989,    1.3956,    0.6687,   -0.0391;
+
+    Mc_C_ *= 1e4;
     // Prepare the Laplace spherical harmonic basis set
     generateViewingAngleVectors();
     generateProjectionShapes();
@@ -836,19 +863,27 @@ void NearnessControl3D::computeControlCommands(){
       if(enable_dynamic_control_){
 
         // Complex lateral dynamic controller
-        Vector2f a1(state_est_vec_[0], -p_);
-        Mv_Xkp1_ = Mv_A_*Mv_Xk_ + Mv_B_*a1;
-        u_v_ = Mv_C_*Mv_Xkp1_;
-        u_v_ = sat(u_v_, -max_lateral_speed_, max_lateral_speed_);
-        Mv_Xk_ = Mv_Xkp1_;
+        // Vector2f a1(state_est_vec_[0], -p_);
+        // Mv_Xkp1_ = Mv_A_*Mv_Xk_ + Mv_B_*a1;
+        // u_v_ = Mv_C_*Mv_Xkp1_;
+        // u_v_ = sat(u_v_, -max_lateral_speed_, max_lateral_speed_);
+        // Mv_Xk_ = Mv_Xkp1_;
+        //
+        // // Complex heading dynamic controller
+        // // Vector2f a2(state_est_vec_[2], -r_);
+        // float u_psi_ = state_est_vec_[2];
+        // Mr_Xkp1_ = Mr_A_*Mr_Xk_ + Mr_B_*u_psi_;
+        // u_r_ = Mr_C_*Mr_Xkp1_;
+        // u_r_ = sat(u_r_, -max_yaw_rate_, max_yaw_rate_);
+        // Mr_Xk_ = Mr_Xkp1_;
 
-        // Complex heading dynamic controller
-        // Vector2f a2(state_est_vec_[2], -r_);
-        float u_psi_ = state_est_vec_[2];
-        Mr_Xkp1_ = Mr_A_*Mr_Xk_ + Mr_B_*u_psi_;
-        u_r_ = Mr_C_*Mr_Xkp1_;
-        u_r_ = sat(u_r_, -max_yaw_rate_, max_yaw_rate_);
-        Mr_Xk_ = Mr_Xkp1_;
+        Vector2f a(-state_est_vec_[0], state_est_vec_[2]);
+        Vector2f u_c(0.0, 0.0);
+        Mc_Xkp1_ = Mc_A_*Mc_Xk_ + Mc_B_*a;
+        u_c = Mc_C_*Mc_Xkp1_;
+        u_v_ = 0.5*sat(u_c[0], -max_lateral_speed_, max_lateral_speed_);
+        u_r_ = 0.5*sat(u_c[1], -max_yaw_rate_, max_yaw_rate_);
+        Mc_Xk_ = Mc_Xkp1_;
 
         // Complex vertical dynamic controller
         float u_z_ = state_est_vec_[1];
