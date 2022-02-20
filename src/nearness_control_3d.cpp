@@ -109,16 +109,10 @@ void NearnessControl3D::init() {
     // Set up the Cdagger matrix
     // Will be referenced as C in code
 
-    // Trained using LSE in DARPA Simple Cave World
-    // Lateral Error Shapes: Full Sphere
-    C_y_ = {-1.991, 0.2666, 6.4548, 0.4897, 0.3655, -1.004, -0.5274, 36.7821};
-
-    // Vertical Error Shapes: Full Sphere
-    C_z_ = {0.0, -1.25, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-
-    // Angle Error Shapes : Full Sphere
-    C_theta_ = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -.05, 5.25};
-
+    // Simple Tunnel 03 - Proj feedback
+    C_y_ = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+    C_z_ = {0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+    C_theta_ = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0};
 
     enable_radius_scaling_ = false;
     if(enable_radius_scaling_){
