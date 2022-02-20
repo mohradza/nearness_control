@@ -9,16 +9,16 @@ num_wf_harmonics: 5
 
 
 # General Controller Parameters
-forward_speed: 2.0
+forward_speed: 1.5
 forward_speed_min: .01
-forward_speed_max: 3.0
+forward_speed_max: 2.0
 forward_speed_lateral_gain: 0.4
 forward_speed_r_gain: 0.8
 
 lateral_speed_gain: 1.0
 lateral_speed_max: 2.5
 
-vertical_speed_gain: 1.5
+vertical_speed_gain: 1.0
 vertical_speed_max: 1.0
 
 yaw_rate_gain: 1.0

@@ -307,11 +307,11 @@ class NearnessControl3D {
     bool enable_dynamic_control_ = false;
     float xv_kp1_, xv_k_, uv_k_;
 
-    Matrix<float, 10, 10> Mv_A_;
-    Matrix<float, 10, 2> Mv_B_;
-    Matrix<float, 1, 10> Mv_C_;
-    Matrix<float, 10, 1> Mv_Xkp1_;
-    Matrix<float, 10, 1> Mv_Xk_;
+    Matrix<float, 6, 6> Mv_A_;
+    Matrix<float, 6, 1> Mv_B_;
+    Matrix<float, 1, 6> Mv_C_;
+    Matrix<float, 6, 1> Mv_Xkp1_;
+    Matrix<float, 6, 1> Mv_Xk_;
 
     Matrix<float, 4, 4> Mr_A_;
     Matrix<float, 4, 1> Mr_B_;
@@ -330,6 +330,8 @@ class NearnessControl3D {
     Matrix<float, 2, 8> Mc_C_;
     Matrix<float, 8, 1> Mc_Xkp1_;
     Matrix<float, 8, 1> Mc_Xk_;
+
+    ros::Time last_pcl_time_;
 
 }; // class SimpleNodeClass
 

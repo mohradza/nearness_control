@@ -11,10 +11,17 @@
 using namespace Eigen;
 
 bool new_cmd_;
-geometry_msgs::Twist cmd_;
-void cmdCallback(const geometry_msgs::TwistConstPtr& cmd_msg){
+geometry_msgs::TwistStamped cmd_;
+void cmdCallback(const geometry_msgs::TwistStampedConstPtr& cmd_msg){
   new_cmd_ = true;
   cmd_ = *cmd_msg;
+}
+
+nav_msgs::Odometry odom_;
+bool new_odom_;
+ros::Time last_time;
+void odomCallback(const nav_msgs::OdometryConstPtr& msg){
+  odom_ = *msg;
 }
 
 Vector3f angular_velocities_;
@@ -49,9 +56,10 @@ int main(int argc, char** argv){
   ros::Publisher body_vel_pub =
         node.advertise<geometry_msgs::Twist>("body_velocity/ground_truth", 10);
   ros::Publisher cmd_vel_pub =
-    node.advertise<geometry_msgs::Twist>("cmd_vel/ground_truth", 10);
+    node.advertise<geometry_msgs::TwistStamped>("cmd_vel/ground_truth", 10);
 
-  ros::Subscriber cmd_sub = nh.subscribe("cmd_vel", 1, cmdCallback);
+    ros::Subscriber cmd_sub = nh.subscribe("cmd_vel", 1, cmdCallback);
+    // ros::Subscriber odom_sub = nh.subscribe("ground_truth/odom", 1, odomCallback);
 
   ros::Subscriber imu_sub = nh.subscribe("imu/data", 1, imuCallback);
 
@@ -92,45 +100,48 @@ int main(int argc, char** argv){
   // tf::StampedTransform transform;
   tf::StampedTransform transform;
 
-  ros::Rate rate(200);
+  ros::Rate rate(500);
   while (node.ok()){
-    try{
-      listener.lookupTransform("/simple_tunnel_01", "/OHRAD_X3",
-         ros::Time(0), transform);
-    }
-    catch (tf::TransformException ex){
-      //ROS_ERROR("%s",ex.what());
-      // ros::Duration(0.01).sleep();
-    }
+    // try{
+    //   listener.lookupTransform("/simple_tunnel_01", "/OHRAD_X3",
+    //      ros::Time(0), transform);
+    // }
+    // catch (tf::TransformException ex){
+    //   //ROS_ERROR("%s",ex.what());
+    //   // ros::Duration(0.01).sleep();
+    // }
 
-    odom_msg.header.stamp = ros::Time::now();
-    dt = (odom_msg.header.stamp - last_odom_time).toSec();
+    // odom_msg.header.stamp = ros::Time::now();
+    odom_msg = odom_;
+    // odom_msg.header.stamp = ros::Time::now();
+    // dt = (odom_msg.header.stamp - last_odom_time).toSec();
+
     // dt = 0.02;
 
     // if(dt < 0.0099){
     //   ROS_INFO("dt: %f", dt);
     // }
 
-    last_odom_time = odom_msg.header.stamp;
+    // last_odom_time = odom_msg.header.stamp;
 
-      odom_msg.pose.pose.position.x = transform.getOrigin().x();
-      odom_msg.pose.pose.position.y = transform.getOrigin().y();
-      odom_msg.pose.pose.position.z = transform.getOrigin().z();
-
-      float vx, vy, vz, vx_filt, vy_filt, vz_filt;
-      // ROS_INFO("last_x_pos: %f, current_pos: %f, dt: %f", last_x_pos,odom_msg.pose.pose.position.x, dt);
-
-      vx = (odom_msg.pose.pose.position.x - last_x_pos)/dt;
-      vy = (odom_msg.pose.pose.position.y - last_y_pos)/dt;
-      vz = (odom_msg.pose.pose.position.z - last_z_pos)/dt;
-
-      last_x_pos = odom_msg.pose.pose.position.x;
-      last_y_pos = odom_msg.pose.pose.position.y;
-      last_z_pos = odom_msg.pose.pose.position.z;
-
-      odom_msg.twist.twist.linear.x = vx;
-      odom_msg.twist.twist.linear.y = vy;
-      odom_msg.twist.twist.linear.z = vz;
+      // odom_msg.pose.pose.position.x = transform.getOrigin().x();
+      // odom_msg.pose.pose.position.y = transform.getOrigin().y();
+      // odom_msg.pose.pose.position.z = transform.getOrigin().z();
+      //
+      // float vx, vy, vz, vx_filt, vy_filt, vz_filt;
+      // // ROS_INFO("last_x_pos: %f, current_pos: %f, dt: %f", last_x_pos,odom_msg.pose.pose.position.x, dt);
+      //
+      // vx = (odom_msg.pose.pose.position.x - last_x_pos)/dt;
+      // vy = (odom_msg.pose.pose.position.y - last_y_pos)/dt;
+      // vz = (odom_msg.pose.pose.position.z - last_z_pos)/dt;
+      //
+      // last_x_pos = odom_msg.pose.pose.position.x;
+      // last_y_pos = odom_msg.pose.pose.position.y;
+      // last_z_pos = odom_msg.pose.pose.position.z;
+      //
+      // odom_msg.twist.twist.linear.x = vx;
+      // odom_msg.twist.twist.linear.y = vy;
+      // odom_msg.twist.twist.linear.z = vz;
       // ROS_INFO("vx: %f, last_xv_filt: %f", vx, last_x_vel_filt);
 
       // vx_filt = (1.0-alpha_vel)*vx + alpha_vel*last_x_vel_filt;
@@ -148,7 +159,7 @@ int main(int argc, char** argv){
 
 
 
-      tf::quaternionTFToMsg(transform.getRotation().normalize(), odom_msg.pose.pose.orientation);
+      // tf::quaternionTFToMsg(transform.getRotation().normalize(), odom_msg.pose.pose.orientation);
       tf::Quaternion quat(odom_msg.pose.pose.orientation.x, odom_msg.pose.pose.orientation.y, odom_msg.pose.pose.orientation.z, odom_msg.pose.pose.orientation.w);
       tf::Matrix3x3 m(quat);
       double roll, pitch, yaw;
@@ -158,57 +169,54 @@ int main(int argc, char** argv){
 
       // ROS_INFO_THROTTLE(0.5,"roll: %f, pitch: %f, heading: %f", roll, pitch, yaw);
 
-      // if (roll > M_PI/2){
-      //   roll -= M_PI;
-      // } else if( roll < -M_PI/2){
-      //   roll += M_PI;
-      // }
+      if (roll > M_PI/2){
+        roll -= M_PI;
+      } else if( roll < -M_PI/2){
+        roll += M_PI;
+      }
 
-      roll_dot = angular_velocities_[0];
-      pitch_dot = angular_velocities_[1];
-      yaw_dot = angular_velocities_[2];
+      // roll_dot = angular_velocities_[0];
+      // pitch_dot = angular_velocities_[1];
+      // yaw_dot = angular_velocities_[2];
 
       // ROS_INFO_THROTTLE(0.5,"roll: %f, pitch: %f, heading: %f", roll_dot, pitch_dot, yaw_dot);
 
-      p = roll_dot - sin(pitch)*yaw_dot;
-      q = cos(roll)*pitch_dot + sin(roll)*cos(pitch)*yaw_dot;
-      r = -sin(roll)*pitch_dot + cos(roll)*cos(pitch)*yaw_dot;
+      // p = roll_dot - sin(pitch)*yaw_dot;
+      // q = cos(roll)*pitch_dot + sin(roll)*cos(pitch)*yaw_dot;
+      // r = -sin(roll)*pitch_dot + cos(roll)*cos(pitch)*yaw_dot;
 
       // last_roll = roll;
       // last_pitch = pitch;
       // last_yaw = yaw;
 
-      odom_msg.twist.twist.angular.x = p;
-      odom_msg.twist.twist.angular.y = q;
-      odom_msg.twist.twist.angular.z = r;
+      // odom_msg.twist.twist.angular.x = p;
+      // odom_msg.twist.twist.angular.y = q;
+      // odom_msg.twist.twist.angular.z = r;
+      //
+      // odom_msg.twist.covariance[0] = angular_velocities_[0];
+      // odom_msg.twist.covariance[1] = angular_velocities_[1];
+      // odom_msg.twist.covariance[2] = angular_velocities_[2];
 
-      odom_msg.twist.covariance[0] = angular_velocities_[0];
-      odom_msg.twist.covariance[1] = angular_velocities_[1];
-      odom_msg.twist.covariance[2] = angular_velocities_[2];
 
-
-
-      robot_odom_pub.publish(odom_msg);
-      cmd_vel_pub.publish(cmd_);
-
-    body_vels.linear.x = 0.0;
-    body_vels.linear.y = 0.0;
-    body_vels.linear.z = 0.0;
-
-    Vector3f world_vels(odom_msg.twist.twist.linear.x, odom_msg.twist.twist.linear.y, odom_msg.twist.twist.linear.z);
+    // body_vels.linear.x = 0.0;
+    // body_vels.linear.y = 0.0;
+    // body_vels.linear.z = 0.0;
+    //
+    // Vector3f world_vels(odom_msg.twist.twist.linear.x, odom_msg.twist.twist.linear.y, odom_msg.twist.twist.linear.z);
     Matrix3f mat_yaw(3,3), mat_pitch(3,3), mat_roll(3,3), mat_rot(3,3);
-
-    mat_yaw << cos(yaw), sin(yaw), 0.0, -sin(yaw), cos(yaw), 0.0, 0.0, 0.0, 1.0;
-    mat_pitch << cos(pitch), 0.0, -sin(pitch), 0.0, 1.0, 0.0, sin(pitch), 0.0, cos(pitch);
-    mat_roll << 1.0, 0.0, 0.0, 0.0, cos(roll), sin(roll), 0.0, -sin(roll), cos(roll);
-
-    mat_rot = mat_yaw*mat_pitch*mat_roll;
-    Vector3f body_vels_vec(0.0, 0.0, 0.0);
-    body_vels_vec = mat_rot*world_vels;
+    //
+    // mat_yaw << cos(yaw), sin(yaw), 0.0, -sin(yaw), cos(yaw), 0.0, 0.0, 0.0, 1.0;
+    // mat_pitch << cos(pitch), 0.0, -sin(pitch), 0.0, 1.0, 0.0, sin(pitch), 0.0, cos(pitch);
+    // mat_roll << 1.0, 0.0, 0.0, 0.0, cos(roll), sin(roll), 0.0, -sin(roll), cos(roll);
+    //
+    // mat_rot = mat_yaw*mat_pitch*mat_roll;
+    // Vector3f body_vels_vec(0.0, 0.0, 0.0);
+    // body_vels_vec = mat_rot*world_vels;
 
     mat_pitch << cos(-pitch), 0.0, -sin(-pitch), 0.0, 1.0, 0.0, sin(-pitch), 0.0, cos(-pitch);
     mat_roll << 1.0, 0.0, 0.0, 0.0, cos(-roll), sin(-roll), 0.0, -sin(-roll), cos(-roll);
     mat_rot = mat_roll*mat_pitch;
+
     Vector3f v1_accel_vec(0.0, 0.0, 0.0);
     Vector3f body_accels(linear_accelerations_[0], linear_accelerations_[1], linear_accelerations_[2]);
     // ROS_INFO_THROTTLE(0.5,"x: %f, y: %f, z: %f", body_accels[0], body_accels[1], body_accels[2]);
@@ -219,19 +227,26 @@ int main(int argc, char** argv){
     odom_msg.twist.covariance[4] = v1_accel_vec[1];
     odom_msg.twist.covariance[5] = v1_accel_vec[2];
 
-    body_vels.linear.x = body_vels_vec[0];
-    body_vels.linear.y = body_vels_vec[1];
-    body_vels.linear.z = body_vels_vec[2];
+    if(new_odom_){
+      robot_odom_pub.publish(odom_msg);
 
-    // odom_msg.twist.twist.linear.x = body_vels_vec[0];
-    // odom_msg.twist.twist.linear.y = body_vels_vec[1];
-    // odom_msg.twist.twist.linear.z = body_vels_vec[2];
-
-    body_vels.angular.x = p;
-    body_vels.angular.y = q;
-    body_vels.angular.z = r;
-
-    body_vel_pub.publish(body_vels);
+      new_odom_ = false;
+    }
+    cmd_.header.stamp = odom_msg.header.stamp;
+    cmd_vel_pub.publish(cmd_);
+    // body_vels.linear.x = body_vels_vec[0];
+    // body_vels.linear.y = body_vels_vec[1];
+    // body_vels.linear.z = body_vels_vec[2];
+    //
+    // // odom_msg.twist.twist.linear.x = body_vels_vec[0];
+    // // odom_msg.twist.twist.linear.y = body_vels_vec[1];
+    // // odom_msg.twist.twist.linear.z = body_vels_vec[2];
+    //
+    // body_vels.angular.x = p;
+    // body_vels.angular.y = q;
+    // body_vels.angular.z = r;
+    //
+    // body_vel_pub.publish(body_vels);
 
     ros::spinOnce();
     rate.sleep();

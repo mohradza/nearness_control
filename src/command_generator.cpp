@@ -15,6 +15,7 @@ commandGenerator::commandGenerator(const ros::NodeHandle &node_handle,
 
     // PUBLISHERS
     pub_cmd_vel_ = nh_.advertise<geometry_msgs::Twist>("cmd_vel_out", 10);
+    pub_cmd_vel_stamped_ = nh_.advertise<geometry_msgs::TwistStamped>("cmd_vel_out_stamped", 10);
 
     state_ = "init";
 
@@ -24,9 +25,9 @@ commandGenerator::commandGenerator(const ros::NodeHandle &node_handle,
     starting_heading_ = 0.0;
 
     goal_point_.x = 0.0;
-    goal_point_.y = 0.5;
-    goal_point_.z = 1.5;
-    goal_heading_ = 1.0;
+    goal_point_.y = 0.0;
+    goal_point_.z = 2.5;
+    goal_heading_ = 1.5707;
 
     routine_ = "doublets";
     routine_ = "dynamic";
@@ -44,11 +45,12 @@ commandGenerator::commandGenerator(const ros::NodeHandle &node_handle,
     k_r_ = 0.5;
 
     xv_k_ = 0.0;
-
+    c1_ = .2807;
+    c2_ = .3743;
 
     // Mv_Xk_ << 0.0, 0.0, 0.0, 0.0, 0.0;
     Mv_Xk_ << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
-    Mr_Xk_ << 0.0, 0.0, 0.0, 0.0, 0.0;
+    Mr_Xk_ << 0.0, 0.0, 0.0, 0.0;
     Mw_Xk_ << 0.0, 0.0, 0.0, 0.0;
 
   // Lateral - Mixed synthesis, 4x4 state model, 2 inputs
@@ -77,29 +79,26 @@ commandGenerator::commandGenerator(const ros::NodeHandle &node_handle,
   Mv_C_ <<     3.3970,   -0.0024,    4.5351,   -0.2622,   -0.3348,  -0.3904,   -8.2916,   -0.0230,   -0.0230,   -0.0111;
 
   // Heading - Mixed sythesis, 2x2 state model, 2 inputs, no modifications
-  Mr_A_ <<         0.9999,    0.0000,    0.0000,    0.0000,    0.0000,
-                  -0.0000,    0.9891,    0.0000,    0.0000,    0.0000,
-                   1.2226,   -0.0904,    0.4649,   -0.1669,   -3.1719,
-                   1.1753,   -0.0870,    0.3851,    0.6177,   -3.0605,
-                   0.0112,   -0.0008,    0.0047,    0.0162,    0.9709;
+  Mr_A_ <<   0.9997,   -0.0000,   -0.0000,   -0.0000,
+             6.3379,    0.1678,   -0.3967,  -10.4494,
+             4.9941,   -0.1875,    0.4815,   -8.2398,
+             0.0341,   -0.0017,    0.0068,    0.9437;
 
-  Mr_B_ <<         0.0200,   -0.0000,
-                   0.0000,    0.0099,
-                   0.0141,   -0.0005,
-                   0.0112,   -0.0004,
-                   0.0001,   -0.0000;
+  Mr_B_ <<        0.0200,    0.0453, 0.0269,  0.0000;
 
-  Mr_C_ <<     11.4841,   -0.8545,    8.3533,   -1.4462,  -29.8040;
+  Mr_C_ <<       183.0103,  -13.1084,  -11.1293, -301.7216;
 
   // Vertical - Mixed sythesis, 2x2 state model, 1 input, no modifications
-  Mw_A_ <<     0.9999,         0,         0,         0,
-               2.0339,    0.2061,   -0.3587,   -5.3946,
-               1.3648,   -0.2811,    0.7331,   -3.6251,
-               0.0044,   -0.0010,    0.0042,    0.9883;
+  Mw_A_ <<         0.9998,         0,         0,         0,
+                   3.0284,    0.1595,   -0.2818,   -7.3599,
+                   2.0391,   -0.3156,    0.7805,   -4.9580,
+                   0.0034,   -0.0006,    0.0022,    0.9918;
+
 
   Mw_B_ <<     0.0200,    0.0298,    0.0177,    0.0000;
 
-  Mw_C_ <<    81.6559,  -23.0286,  -13.8929, -216.6187;
+  Mw_C_ <<      132.8314,  -28.3276,  -12.0377, -322.7989
+;
 
 
   }
@@ -124,6 +123,12 @@ commandGenerator::commandGenerator(const ros::NodeHandle &node_handle,
   void commandGenerator::publishControlCommands(){
     generateCommandVel();
     pub_cmd_vel_.publish(cmd_vel_msg_);
+
+    // Publish a stamped message for time keeping
+    geometry_msgs::TwistStamped cmd_vel_stamped_msg;
+    cmd_vel_stamped_msg.header.stamp = ros::Time::now();
+    cmd_vel_stamped_msg.twist = cmd_vel_msg_;
+    pub_cmd_vel_stamped_.publish(cmd_vel_stamped_msg);
   }
 
   void commandGenerator::generateCommandVel(){
@@ -148,8 +153,7 @@ commandGenerator::commandGenerator(const ros::NodeHandle &node_handle,
       cmd_vel_msg_.linear.z = k_w_*(starting_point_.z - current_pos_.z);
       cmd_vel_msg_.linear.y = k_v_*(starting_point_.y - current_pos_.y);
       cmd_vel_msg_.angular.z = (k_r_/50.0)*(starting_heading_ - current_heading_);
-
-
+      ROS_INFO_THROTTLE(0.25,"x: %f, y: %f, z: %f, r: %f", cmd_vel_msg_.linear.x, cmd_vel_msg_.linear.y, cmd_vel_msg_.linear.z, cmd_vel_msg_.angular.z);
 
     } else if(!state_.compare("standby")){
       // Do nothing, just wait
@@ -167,7 +171,7 @@ commandGenerator::commandGenerator(const ros::NodeHandle &node_handle,
 
       if(!routine_.compare("double_const")){
         cmd_vel_msg_.linear.x = 1.5;
-        cmd_vel_msg_.linear.x = k_u_*(starting_point_.x - current_pos_.x);
+        // cmd_vel_msg_.linear.x = k_u_*(starting_point_.x - current_pos_.x);
         cmd_vel_msg_.linear.z = k_w_*(starting_point_.z - current_pos_.z);
         cmd_vel_msg_.linear.y = k_v_*(starting_point_.y - current_pos_.y);
         //cmd_vel_msg_.linear.y = 0.0;
@@ -259,21 +263,35 @@ commandGenerator::commandGenerator(const ros::NodeHandle &node_handle,
 
     float durr = (ros::Time::now() - fwd_motion_time_).toSec();
     bool forward_motion_steady = false;
-    if(durr > 3.0){
+    if(durr > 8.0){
       forward_motion_steady = true;
     }
 
     if(forward_motion_steady){
       cmd_vel_msg_.linear.x = 1.5;
-      cmd_vel_msg_.linear.x = k_u_*(starting_point_.x - current_pos_.x);
-      cmd_vel_msg_.linear.z = k_w_*(starting_point_.z - current_pos_.z);
-      cmd_vel_msg_.linear.y = 0.5;
-      // cmd_vel_msg_.linear.y = k_v_*(goal_point_.y - current_pos_.y);
+      // cmd_vel_msg_.linear.x = k_u_*(starting_point_.x - current_pos_.x);
+      // cmd_vel_msg_.linear.z = k_w_*(starting_point_.z - current_pos_.z);
+      u_z_ = (goal_point_.z - current_pos_.z)*c2_;
+
+      Mw_Xkp1_ = Mw_A_*Mw_Xk_ + Mw_B_*u_z_;
+      u_w_ = Mw_C_*Mw_Xkp1_;
+      Mw_Xk_ = Mw_Xkp1_;
+      // ROS_INFO("u_w: %f, ", u_w_);
+      cmd_vel_msg_.linear.z = u_w_;
+      // cmd_vel_msg_.linear.z = 0.5;
+      // cmd_vel_msg_.linear.y = 0.5;
+      cmd_vel_msg_.linear.y = k_v_*(goal_point_.y - current_pos_.y);
       // cmd_vel_msg_.linear.y = 0.0;
 
       //cmd_vel_msg_.linear.y = 0.0;
       // cmd_vel_msg_.angular.z = .5;
       cmd_vel_msg_.angular.z = (k_r_/50.0)*(starting_heading_ - current_heading_);
+      // float e_r = (goal_heading_ - current_heading_)*c1_;
+      // Mr_Xkp1_ = Mr_A_*Mr_Xk_ + Mr_B_*e_r;
+      // u_r_ = Mr_C_*Mr_Xkp1_;
+      // Mr_Xk_ = Mr_Xkp1_;
+      // // ROS_INFO("u_r: %f, psi: %f", u_r_, u_psi);
+      // cmd_vel_msg_.angular.z = u_r_;
 
     }
 
