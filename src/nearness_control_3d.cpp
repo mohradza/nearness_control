@@ -129,48 +129,61 @@ void NearnessControl3D::init() {
     Mw_Xk_ << 0.0, 0.0, 0.0, 0.0;
     Mc_Xk_ << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
 
+    // 50hz model
     // Lateral - Mixed synthesis, projection version with new model
-    Mv_A_ <<         0.9996,         0,         0,         0,         0,         0,
-                     7.6756,    0.2236,   -0.4151,   -0.5936,   -1.0715,  -29.1348,
-                     5.9983,   -0.1283,    0.5194,   -0.5800,   -0.8829,  -22.7714,
-                     0.5849,   -0.0157,    0.1163,    0.9459,   -0.0844,   -2.2203,
-                     0.0172,   -0.0005,    0.0052,    0.0784,    0.9975,   -0.0654,
-                     0.0000,   -0.0000,    0.0000,    0.0001,    0.0025,    1.0000;
+    // Mv_A_ <<         0.9996,         0,         0,         0,         0,         0,
+    //                  7.6756,    0.2236,   -0.4151,   -0.5936,   -1.0715,  -29.1348,
+    //                  5.9983,   -0.1283,    0.5194,   -0.5800,   -0.8829,  -22.7714,
+    //                  0.5849,   -0.0157,    0.1163,    0.9459,   -0.0844,   -2.2203,
+    //                  0.0172,   -0.0005,    0.0052,    0.0784,    0.9975,   -0.0654,
+    //                  0.0000,   -0.0000,    0.0000,    0.0001,    0.0025,    1.0000;
+    // Mv_B_ <<        0.0200, 0.1112, 0.0731, 0.0043, 0.0001, 0.0000;
+    // Mv_C_ <<        0.2828,   -0.0107,   -0.0146,   -0.0210,   -0.0381,   -1.0733;
+    // Mv_C_ *= 1e3;
+    //
+    // // Heading - Mixed sythensis, projection version with new model
+    // Mr_A_ <<         0.9999,    0.0000,    0.0000,    0.0000,
+    //                  4.1504,    0.2350,   -0.3828,  -10.5831,
+    //                  3.0972,   -0.1106,    0.5083,   -7.9036,
+    //                  0.0187,   -0.0008,    0.0072,    0.9524;
+    // Mr_B_ <<         0.0200, 0.0582, 0.0373, 0.0001;
+    // Mr_C_ <<     139.2399,   -8.7243,  -12.4138, -355.0898;
+    //
+    // // Vertical - Mixed sythesis, 2x2 state model, 1 input, no modifications
+    // Mw_A_ <<        0.9999,    0.0000,    0.0000,    0.0000,
+    //                 2.3976,    0.2311,   -0.1560,   -4.5968,
+    //                 3.1621,   -0.5144,    0.7646,   -6.0649,
+    //                 0.0049,   -0.0009,    0.0021,    0.9907;
+    // Mw_B_ <<         0.0200, 0.0330, 0.0389, 0.0000;
+    // Mw_C_ <<       78.6214,  -17.2273,   -4.9615, -150.7364;
 
-
-    Mv_B_ <<        0.0200,
-                    0.1112,
-                    0.0731,
-                    0.0043,
-                    0.0001,
-                    0.0000;
-
-    Mv_C_ <<        0.2828,   -0.0107,   -0.0146,   -0.0210,   -0.0381,   -1.0733;
+    // 10hz model
+    // Lateral - Mixed synthesis, projection version with new model
+    Mv_A_ <<  0.9981,         0,         0,         0,         0,         0,
+              2.0412,    0.0528,   -0.2010,   -0.2612,   -0.4296,   -7.7748,
+              6.4777,    0.0270,   -0.1694,   -1.0669,   -1.2556,  -24.6354,
+              5.3906,   -0.0436,    0.1789,    0.3458,   -0.8861,  -20.4777,
+              0.9735,   -0.0128,    0.0638,    0.2929,    0.8476,   -3.6970,
+              0.0036,   -0.0001,    0.0003,    0.0021,    0.0119,    0.9862;
+    Mv_B_ <<  0.0999,    0.5016,    0.6738,    0.2434,    0.0291,    0.0001;
+    Mv_C_ <<  0.2828,   -0.0107,   -0.0146,   -0.0210,   -0.0381,   -1.0733;
     Mv_C_ *= 1e3;
 
     // Heading - Mixed sythensis, projection version with new model
-    Mr_A_ <<         0.9999,    0.0000,    0.0000,    0.0000,
-                     4.1504,    0.2350,   -0.3828,  -10.5831,
-                     3.0972,   -0.1106,    0.5083,   -7.9036,
-                     0.0187,   -0.0008,    0.0072,    0.9524;
-
-    Mr_B_ <<         0.0200, 0.0582, 0.0373, 0.0001;
-
-    Mr_C_ <<     139.2399,   -8.7243,  -12.4138, -355.0898;
+    Mr_A_ <<   0.9999,    0.0000,    0.0000,    0.0000,
+               4.1504,    0.2350,   -0.3828,  -10.5831,
+               3.0972,   -0.1106,    0.5083,   -7.9036,
+               0.0187,   -0.0008,    0.0072,    0.9524;
+    Mr_B_ <<   0.0200,    0.0582,    0.0373,    0.0001;
+    Mr_C_ << 139.2399,   -8.7243,  -12.4138, -355.0898;
 
     // Vertical - Mixed sythesis, 2x2 state model, 1 input, no modifications
-    Mw_A_ <<        0.9999,    0.0000,    0.0000,    0.0000,
-                    2.3976,    0.2311,   -0.1560,   -4.5968,
-                    3.1621,   -0.5144,    0.7646,   -6.0649,
-                    0.0049,   -0.0009,    0.0021,    0.9907;
-
-
-    Mw_B_ <<         0.0200,
-                     0.0330,
-                     0.0389,
-                     0.0000;
-
-    Mw_C_ <<       78.6214,  -17.2273,   -4.9615, -150.7364;
+    Mw_A_ <<   0.9996,    0.0000,    0.0000,    0.0000,
+               1.7728,    0.1060,   -0.1395,   -3.3989,
+               6.3121,   -0.3233,    0.3998,  -12.1131,
+               0.0550,   -0.0053,    0.0078,    0.8945;
+    Mw_B_ <<   0.1000,    0.2087,    0.4397,    0.0022;
+    Mw_C_ <<  78.6214,  -17.2273,   -4.9615, -150.7364;
 
 
     // Prepare the Laplace spherical harmonic basis set
@@ -331,6 +344,7 @@ void NearnessControl3D::pclCb(const sensor_msgs::PointCloud2ConstPtr& pcl_msg){
     y_full_.push_back(0.0);
     y_front_half_.push_back(0.0);
     for (int i = 0; i < last_index_; i++){
+      // Pull angles out for conveniance
       phi = viewing_angle_mat_[i][1];
       theta = viewing_angle_mat_[i][0];
 
@@ -340,7 +354,6 @@ void NearnessControl3D::pclCb(const sensor_msgs::PointCloud2ConstPtr& pcl_msg){
       } else {
         increment = 0.0;
       }
-
       y_full_[j] += increment;
 
       // Front half only for steering
@@ -397,8 +410,8 @@ void NearnessControl3D::pclCb(const sensor_msgs::PointCloud2ConstPtr& pcl_msg){
     u_w_ = sat(u_w_, -max_vertical_speed_, max_vertical_speed_);
     Mw_Xk_ = Mw_Xkp1_;
 
-    ROS_INFO_THROTTLE(0.5,"u_y: %f, u_psi: %f, u_z: %f", u_y, u_psi, u_z);
-    float k_front_ = 2.0;
+    // ROS_INFO_THROTTLE(0.5,"u_y: %f, u_psi: %f, u_z: %f", u_y, u_psi, u_z);
+    float k_front_ = 4.0;
     float front_reg = k_front_*abs(y_full_[2]);
     if(enable_speed_regulation_){
       u_u_ =  sat(forward_speed_*(1.0 - front_reg), -0.5, max_forward_speed_);
@@ -416,7 +429,7 @@ void NearnessControl3D::pclCb(const sensor_msgs::PointCloud2ConstPtr& pcl_msg){
   control_commands_.linear.y = u_v_;
   control_commands_.linear.z = u_w_;
   control_commands_.angular.z = u_r_;
-  ROS_INFO_THROTTLE(0.5,"u_u: %f, u_v: %f, u_r: %f, u_w: %f", u_u_, u_v_, u_r_, u_w_);
+  ROS_INFO_THROTTLE(0.25,"u_u: %f, u_v: %f, u_r: %f, u_w: %f", u_u_, u_v_, u_r_, u_w_);
   pub_control_commands_.publish(control_commands_);
 
   // float process_dt = (ros::Time::now() - process_start_time).toSec();
