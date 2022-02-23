@@ -14,7 +14,7 @@ forward_speed_min: .01
 forward_speed_max: 2.0
 forward_speed_lateral_gain: 0.4
 forward_speed_r_gain: 0.8
-forward_speed_obst_gain: 0.25
+forward_speed_obst_gain: 0.5
 
 lateral_speed_gain: -1.0
 lateral_speed_max: 2.5
