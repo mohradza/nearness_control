@@ -92,6 +92,7 @@ class NearnessControl3D {
     bool isSideZonePoint(const float t, const float p);
     bool isVerticalZonePoint(const float t, const float p);
     void checkFrontZone(const pcl::PointXYZ p);
+    void resetCommands();
 
  private:
     // public ros node handle
@@ -337,6 +338,7 @@ class NearnessControl3D {
     double front_x_lim_, front_y_lim_, front_z_lim_;
     vector<pcl::PointXYZ> safety_zone_points_;
     vector<float> safety_zone_distances_;
+    double k_front_;
 
 }; // class SimpleNodeClass
 

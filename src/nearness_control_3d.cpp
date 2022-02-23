@@ -53,7 +53,7 @@ void NearnessControl3D::init() {
     pnh_.param("enable_sf_control", enable_sf_control_, false);
     pnh_.param("enable_altitude_hold", enable_altitude_hold_, false);
     pnh_.param("enable_speed_regulation", enable_speed_regulation_, false);
-    pnh_.param("enable_command_scaling", enable_cmd_scaling_, false);
+    pnh_.param("enable_radius_scaling", enable_radius_scaling_, false);
     pnh_.param("use_observed_shapes", use_observed_shapes_, true);
 
     pnh_.param("num_rings", num_rings_, 64);
@@ -68,6 +68,7 @@ void NearnessControl3D::init() {
     // pnh_.param("forward_speed_min", min_forward_speed_, .5);
     pnh_.param("forward_speed_lateral_gain", k_u_v_, .1);
     pnh_.param("forward_speed_r_gain", k_u_r_, .1);
+    pnh_.param("forward_speed_obst_gain", k_front_, .25);
 
     // Lateral speed params
     pnh_.param("lateral_speed_gain", k_v_, -0.1);
@@ -89,13 +90,8 @@ void NearnessControl3D::init() {
     pnh_.param("small_field_vertical_speed_gain", sf_k_w_, 1.0);
     pnh_.param("small_field_lateral_speed_gain", sf_k_v_, 1.0);
 
-    // max_forward_speed_ = 1.0;
-    // max_lateral_speed_ = 1.0;
-    // max_vertical_speed_ = 1.0;
-    // max_yaw_rate_ = 1.0;
 
     enable_control_ = false;
-    enable_analytic_shapes_ = false;
     enable_dynamic_control_ = true;
     frame_id_ = "OHRAD_X3";
 
@@ -114,13 +110,7 @@ void NearnessControl3D::init() {
     C_z_ = {0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
     C_theta_ = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0};
 
-    enable_radius_scaling_ = false;
-    if(enable_radius_scaling_){
-      C_y_ = {0.0, 0.0, 0.0, -0.4886, 0.0, 0.0, 0.0, 0.0, 0.0};
-      C_z_ = {0.0, -0.4886, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-      C_theta_ = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.4658};
-    }
-    max_dist_ = 5.0;
+    max_dist_ = 100.0;
     min_dist_ = 0.5;
 
     // Initialize dynamic controllers
@@ -294,9 +284,8 @@ void NearnessControl3D::enableControlCb(const std_msgs::Bool msg){
 
 void NearnessControl3D::pclCb(const sensor_msgs::PointCloud2ConstPtr& pcl_msg){
 
-  new_pcl_ = true;
+  // new_pcl_ = true;
   // ros::Time process_start_time = ros::Time::now();
-
 
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_in (new pcl::PointCloud<pcl::PointXYZ>);
   pcl::fromROSMsg (*pcl_msg, *cloud_in);
@@ -347,56 +336,46 @@ void NearnessControl3D::pclCb(const sensor_msgs::PointCloud2ConstPtr& pcl_msg){
         dist = 1000;
       }
 
-      if(dist > max_dist_){
-        dist = max_dist_;
-      }
-      if(dist < min_dist_){
-        dist = min_dist_;
-      }
-
       mu_val = 1.0/dist;
       mu_meas_.push_back(mu_val);
 
-
-      if(isSideZonePoint(theta_view_vec_[i], phi_view_vec_[j])){
-        // ROS_INFO("dist: %f, theta: %f, phi: %f", dist, theta_view_vec_[i],phi_view_vec_[j]);
-        side_zone_dist_ += dist;
-        side_zone_count_ += 1;
-        // cloud_out_.push_back(p);
+      if(enable_radius_scaling_){
+        if(dist > 5.0){
+          dist = 5.0;
+        }
+        if(isSideZonePoint(theta_view_vec_[i], phi_view_vec_[j])){
+          // ROS_INFO("dist: %f, theta: %f, phi: %f", dist, theta_view_vec_[i],phi_view_vec_[j]);
+          side_zone_dist_ += dist;
+          side_zone_count_ += 1;
+          // cloud_out_.push_back(p);
+        }
+        if(isVerticalZonePoint(theta_view_vec_[i], phi_view_vec_[j])){
+          // ROS_INFO("dist: %f, theta: %f, phi: %f", dist, theta_view_vec_[i],phi_view_vec_[j]);
+          vert_zone_dist_ += dist;
+          vert_zone_count_ += 1;
+        }
       }
-
-      if(isVerticalZonePoint(theta_view_vec_[i], phi_view_vec_[j])){
-        // ROS_INFO("dist: %f, theta: %f, phi: %f", dist, theta_view_vec_[i],phi_view_vec_[j]);
-        vert_zone_dist_ += dist;
-        vert_zone_count_ += 1;
-      }
-
 
     } // End inner for loop
   } // End outer for loop
 
-  average_radius_ = 2.5;
-  average_lateral_radius_ = 2.7;
-  average_vertical_radius_ = 1.75;
-  // Compute the average radius
-  if(side_zone_count_ && vert_zone_count_){
-    average_lateral_radius_ = side_zone_dist_ / side_zone_count_;
-    // ROS_INFO_THROTTLE(1.0,"Side dist: %f, Count: %f", side_zone_dist_, side_zone_count_);
-    average_vertical_radius_ = vert_zone_dist_ / vert_zone_count_;
-    ROS_INFO_THROTTLE(1.0,"Side: %f, Vert: %f", average_lateral_radius_, average_vertical_radius_);
-    average_radius_ = (average_lateral_radius_ + average_vertical_radius_) / 2.0;
-    if (average_radius_ > 5.0){
-      average_radius_ = 5.0;
+  if(enable_radius_scaling_){
+    average_lateral_radius_ = 2.7;
+    average_vertical_radius_ = 1.75;
+    // Compute the average radius
+    if(side_zone_count_ && vert_zone_count_){
+      average_lateral_radius_ = side_zone_dist_ / side_zone_count_;
+      average_vertical_radius_ = vert_zone_dist_ / vert_zone_count_;
+      ROS_INFO_THROTTLE(2.0,"Side: %f, Vert: %f", average_lateral_radius_, average_vertical_radius_);
+    } else {
+      ROS_INFO_THROTTLE(1.0, "Missing zone counts: side: %d, vert: %d", side_zone_count_, vert_zone_count_);
     }
-  } else {
-    ROS_INFO_THROTTLE(1.0, "Missing zone counts: side: %d, vert: %d", side_zone_count_, vert_zone_count_);
-    // average_radius_ = 2.0;
   }
+
 
   // Project measured nearness onto different shapes
   y_full_.clear();
   y_front_half_.clear();
-
   float increment;
 
   for(int j = 0; j < num_basis_shapes_; j++){
@@ -423,25 +402,11 @@ void NearnessControl3D::pclCb(const sensor_msgs::PointCloud2ConstPtr& pcl_msg){
     } // End inner for loop
   } // End outer for loop
 
-
-
   // Compute control:
-  control_commands_.linear.x = 0.0;
-  control_commands_.linear.y = 0.0;
-  control_commands_.linear.z = 0.0;
-
-  control_commands_.angular.x = 0.0;
-  control_commands_.angular.y = 0.0;
-  control_commands_.angular.z = 0.0;
-
-  u_u_ = 0.0;
-  u_w_ = 0.0;
-  u_v_ = 0.0;
-  u_r_ = 0.0;
+  resetCommands();
 
   if(enable_control_){
     // ros::Time now1 = ros::Time::now();
-    u_vec_.clear();
     u_vec_ = {0.0, 0.0, 0.0};
     state_est_vec_ = {0.0, 0.0, 0.0};
 
@@ -456,7 +421,6 @@ void NearnessControl3D::pclCb(const sensor_msgs::PointCloud2ConstPtr& pcl_msg){
     Mv_Xkp1_ = Mv_A_*Mv_Xk_ + Mv_B_*u_y;
     u_v_ = Mv_C_*Mv_Xkp1_;
     u_v_ = sat(u_v_, -max_lateral_speed_, max_lateral_speed_);
-    u_v_ *= average_lateral_radius_/2.7;
     Mv_Xk_ = Mv_Xkp1_;
     //
     // // Complex heading dynamic controller
@@ -464,7 +428,6 @@ void NearnessControl3D::pclCb(const sensor_msgs::PointCloud2ConstPtr& pcl_msg){
     Mr_Xkp1_ = Mr_A_*Mr_Xk_ + Mr_B_*u_psi;
     u_r_ = Mr_C_*Mr_Xkp1_;
     u_r_ = sat(u_r_, -max_yaw_rate_, max_yaw_rate_);
-    u_r_ *= average_lateral_radius_/2.7;
     Mr_Xk_ = Mr_Xkp1_;
 
     // Complex vertical dynamic controller
@@ -472,17 +435,17 @@ void NearnessControl3D::pclCb(const sensor_msgs::PointCloud2ConstPtr& pcl_msg){
     Mw_Xkp1_ = Mw_A_*Mw_Xk_ + Mw_B_*u_z;
     u_w_ = Mw_C_*Mw_Xkp1_;
     u_w_ = sat(u_w_, -max_vertical_speed_, max_vertical_speed_);
-    u_w_ *= average_vertical_radius_/1.75;
     Mw_Xk_ = Mw_Xkp1_;
 
-    // ROS_INFO_THROTTLE(0.5,"u_y: %f, u_psi: %f, u_z: %f", u_y, u_psi, u_z);
-    float k_front_ = 0.5;
-    // float front_reg = k_front_*abs(y_full_[2]);
-    float front_reg = 0.0;
+    if(enable_radius_scaling_){
+      u_v_ *= average_lateral_radius_/2.7;
+      u_r_ *= average_lateral_radius_/2.7;
+      u_w_ *= average_vertical_radius_/1.75;
+    }
+
+    float front_reg;
     if(enable_speed_regulation_){
-      // u_u_ =  sat(forward_speed_*(1.0 - front_reg), -0.5, max_forward_speed_);
       // Need to process the safety zone points for speed regulation
-      // ROS_INFO("size; %f", safety_zone_distances_.size());
       if(safety_zone_distances_.size()){
         // Find the closest point and use that for speed reg
         float min_val = *min_element(safety_zone_distances_.begin(), safety_zone_distances_.end());
@@ -510,7 +473,6 @@ void NearnessControl3D::pclCb(const sensor_msgs::PointCloud2ConstPtr& pcl_msg){
 
   // float process_dt = (ros::Time::now() - process_start_time).toSec();
   // ROS_INFO("process dt: %f", process_dt);
-
 
 }
 
@@ -778,6 +740,22 @@ void NearnessControl3D::reconstructWideFieldNearness(){
     recon_wf_mu_pcl_msg_.header.stamp = ros::Time::now();
     pub_recon_wf_mu_.publish(recon_wf_mu_pcl_msg_);
   }
+}
+
+void NearnessControl3D::resetCommands(){
+  control_commands_.linear.x = 0.0;
+  control_commands_.linear.y = 0.0;
+  control_commands_.linear.z = 0.0;
+
+  control_commands_.angular.x = 0.0;
+  control_commands_.angular.y = 0.0;
+  control_commands_.angular.z = 0.0;
+
+  u_u_ = 0.0;
+  u_w_ = 0.0;
+  u_v_ = 0.0;
+  u_r_ = 0.0;
+
 }
 
 void NearnessControl3D::computeSmallFieldNearness(){
