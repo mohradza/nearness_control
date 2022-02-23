@@ -190,6 +190,11 @@ void NearnessControl3D::init() {
     generateViewingAngleVectors();
     generateProjectionShapes();
 
+    // Front zone limits
+    front_x_lim_ = 1.5;
+    front_y_lim_ = 0.6;
+    front_z_lim_ = 0.25;
+
     geometry_msgs::Point origin_point;
     origin_point.x = 0.0;
     origin_point.y = 0.0;
@@ -314,6 +319,10 @@ void NearnessControl3D::pclCb(const sensor_msgs::PointCloud2ConstPtr& pcl_msg){
   pcl::PointXYZ p, mu_p;
   float dist, mu_val;
   int index = 0;
+  float phi, theta;
+
+  safety_zone_points_.clear();
+  safety_zone_distances_.clear();
 
   // Exclude the first and last rings, because they don't contain much information
   for(int i = 1; i < num_rings_-1; i++){
@@ -323,22 +332,72 @@ void NearnessControl3D::pclCb(const sensor_msgs::PointCloud2ConstPtr& pcl_msg){
       index = i*num_ring_points_ + (num_ring_points_-1-j);
       p = new_cloud_.points[index];
       dist = sqrt(pow(p.x,2) + pow(p.y,2) + pow(p.z,2));
+      // Pull angles out for conveniance
+      // phi = viewing_angle_mat_[index][1];
+      // theta = viewing_angle_mat_[index][0];
+
+      if(dist < 2.0 && dist > 0.27){
+        // if(p.z < front_z_lim_ && p.z > -front_z_lim_){
+        //   ROS_INFO("Possible zone point -- x: %f, y: %f, z: %f", p.x, p.y, p.z);
+        // }
+        checkFrontZone(p);
+      }
 
       if(dist < 0.3){
         dist = 1000;
+      }
+
+      if(dist > max_dist_){
+        dist = max_dist_;
+      }
+      if(dist < min_dist_){
+        dist = min_dist_;
       }
 
       mu_val = 1.0/dist;
       mu_meas_.push_back(mu_val);
 
 
+      if(isSideZonePoint(theta_view_vec_[i], phi_view_vec_[j])){
+        // ROS_INFO("dist: %f, theta: %f, phi: %f", dist, theta_view_vec_[i],phi_view_vec_[j]);
+        side_zone_dist_ += dist;
+        side_zone_count_ += 1;
+        // cloud_out_.push_back(p);
+      }
+
+      if(isVerticalZonePoint(theta_view_vec_[i], phi_view_vec_[j])){
+        // ROS_INFO("dist: %f, theta: %f, phi: %f", dist, theta_view_vec_[i],phi_view_vec_[j]);
+        vert_zone_dist_ += dist;
+        vert_zone_count_ += 1;
+      }
+
+
     } // End inner for loop
   } // End outer for loop
+
+  average_radius_ = 2.5;
+  average_lateral_radius_ = 2.7;
+  average_vertical_radius_ = 1.75;
+  // Compute the average radius
+  if(side_zone_count_ && vert_zone_count_){
+    average_lateral_radius_ = side_zone_dist_ / side_zone_count_;
+    // ROS_INFO_THROTTLE(1.0,"Side dist: %f, Count: %f", side_zone_dist_, side_zone_count_);
+    average_vertical_radius_ = vert_zone_dist_ / vert_zone_count_;
+    ROS_INFO_THROTTLE(1.0,"Side: %f, Vert: %f", average_lateral_radius_, average_vertical_radius_);
+    average_radius_ = (average_lateral_radius_ + average_vertical_radius_) / 2.0;
+    if (average_radius_ > 5.0){
+      average_radius_ = 5.0;
+    }
+  } else {
+    ROS_INFO_THROTTLE(1.0, "Missing zone counts: side: %d, vert: %d", side_zone_count_, vert_zone_count_);
+    // average_radius_ = 2.0;
+  }
 
   // Project measured nearness onto different shapes
   y_full_.clear();
   y_front_half_.clear();
-  float phi, theta, increment;
+
+  float increment;
 
   for(int j = 0; j < num_basis_shapes_; j++){
     y_full_.push_back(0.0);
@@ -360,10 +419,13 @@ void NearnessControl3D::pclCb(const sensor_msgs::PointCloud2ConstPtr& pcl_msg){
       if( phi < M_PI/2 && phi > -M_PI/2){
         y_front_half_[j] += increment;
       }
+
     } // End inner for loop
   } // End outer for loop
 
-  // COmpute control:
+
+
+  // Compute control:
   control_commands_.linear.x = 0.0;
   control_commands_.linear.y = 0.0;
   control_commands_.linear.z = 0.0;
@@ -394,6 +456,7 @@ void NearnessControl3D::pclCb(const sensor_msgs::PointCloud2ConstPtr& pcl_msg){
     Mv_Xkp1_ = Mv_A_*Mv_Xk_ + Mv_B_*u_y;
     u_v_ = Mv_C_*Mv_Xkp1_;
     u_v_ = sat(u_v_, -max_lateral_speed_, max_lateral_speed_);
+    u_v_ *= average_lateral_radius_/2.7;
     Mv_Xk_ = Mv_Xkp1_;
     //
     // // Complex heading dynamic controller
@@ -401,6 +464,7 @@ void NearnessControl3D::pclCb(const sensor_msgs::PointCloud2ConstPtr& pcl_msg){
     Mr_Xkp1_ = Mr_A_*Mr_Xk_ + Mr_B_*u_psi;
     u_r_ = Mr_C_*Mr_Xkp1_;
     u_r_ = sat(u_r_, -max_yaw_rate_, max_yaw_rate_);
+    u_r_ *= average_lateral_radius_/2.7;
     Mr_Xk_ = Mr_Xkp1_;
 
     // Complex vertical dynamic controller
@@ -408,13 +472,26 @@ void NearnessControl3D::pclCb(const sensor_msgs::PointCloud2ConstPtr& pcl_msg){
     Mw_Xkp1_ = Mw_A_*Mw_Xk_ + Mw_B_*u_z;
     u_w_ = Mw_C_*Mw_Xkp1_;
     u_w_ = sat(u_w_, -max_vertical_speed_, max_vertical_speed_);
+    u_w_ *= average_vertical_radius_/1.75;
     Mw_Xk_ = Mw_Xkp1_;
 
     // ROS_INFO_THROTTLE(0.5,"u_y: %f, u_psi: %f, u_z: %f", u_y, u_psi, u_z);
-    float k_front_ = 4.0;
-    float front_reg = k_front_*abs(y_full_[2]);
+    float k_front_ = 0.5;
+    // float front_reg = k_front_*abs(y_full_[2]);
+    float front_reg = 0.0;
     if(enable_speed_regulation_){
-      u_u_ =  sat(forward_speed_*(1.0 - front_reg), -0.5, max_forward_speed_);
+      // u_u_ =  sat(forward_speed_*(1.0 - front_reg), -0.5, max_forward_speed_);
+      // Need to process the safety zone points for speed regulation
+      // ROS_INFO("size; %f", safety_zone_distances_.size());
+      if(safety_zone_distances_.size()){
+        // Find the closest point and use that for speed reg
+        float min_val = *min_element(safety_zone_distances_.begin(), safety_zone_distances_.end());
+        // ROS_INFO_THROTTLE(1.0,"SAFETY VIOLATION, MIN DIST: %f", min_val);
+        front_reg = k_front_*(1/min_val);
+        u_u_ = sat(forward_speed_*(1.0 - front_reg), -0.5, max_forward_speed_);
+      } else {
+        u_u_ = forward_speed_;
+      }
     } else {
       u_u_ = forward_speed_;
     }
@@ -423,7 +500,6 @@ void NearnessControl3D::pclCb(const sensor_msgs::PointCloud2ConstPtr& pcl_msg){
     // ROS_INFO("control dt: %f", control_dt);
 
   }
-
 
   control_commands_.linear.x = u_u_;
   control_commands_.linear.y = u_v_;
@@ -436,6 +512,25 @@ void NearnessControl3D::pclCb(const sensor_msgs::PointCloud2ConstPtr& pcl_msg){
   // ROS_INFO("process dt: %f", process_dt);
 
 
+}
+
+void NearnessControl3D::checkFrontZone(const pcl::PointXYZ p){
+  // If the point exists inside our front safety zone, add it to
+  // the collection of current safety zone violation points
+  if(p.z < front_z_lim_ && p.z > -front_z_lim_){
+    if(p.x > 0.0 && p.x < front_x_lim_){
+      if(p.y < front_y_lim_ && p.y > -front_y_lim_){
+        // ROS_INFO("Zone point -- x: %f, y: %f, z: %f", p.x, p.y, p.z);
+        // The point violates the safety zone
+        // Need to consider it for speed regulation.
+        safety_zone_points_.push_back(p);
+
+        // Really we just need the raw distance
+        safety_zone_distances_.push_back(sqrt(pow(p.x,2) + pow(p.y,2) + pow(p.z,2)));
+
+      }
+    }
+  }
 }
 
 void NearnessControl3D::processPcl(){

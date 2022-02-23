@@ -91,7 +91,7 @@ class NearnessControl3D {
     bool isObstructedPoint(const float t, const float p);
     bool isSideZonePoint(const float t, const float p);
     bool isVerticalZonePoint(const float t, const float p);
-
+    void checkFrontZone(const pcl::PointXYZ p);
 
  private:
     // public ros node handle
@@ -332,6 +332,11 @@ class NearnessControl3D {
     Matrix<float, 8, 1> Mc_Xk_;
 
     ros::Time last_pcl_time_;
+
+    // Front speed regulation
+    double front_x_lim_, front_y_lim_, front_z_lim_;
+    vector<pcl::PointXYZ> safety_zone_points_;
+    vector<float> safety_zone_distances_;
 
 }; // class SimpleNodeClass
 
