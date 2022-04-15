@@ -14,7 +14,6 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   std_msgs
   message_generation
-  cv_bridge
   tf2_ros
   pcl_conversions
   pcl_ros
@@ -24,7 +23,6 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 ## System dependencies are found with CMake's conventions
-find_package(OpenCV REQUIRED)
 find_package(Boost REQUIRED COMPONENTS thread)
 find_package(Eigen3 REQUIRED)
 
@@ -47,16 +45,12 @@ generate_messages(
    std_msgs
 )
 
-generate_dynamic_reconfigure_options(
-	cfg/NearnessControl.cfg
-  cfg/NearnessControl3D.cfg
-)
 
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES nearness_control
-  CATKIN_DEPENDS roscpp sensor_msgs std_msgs cv_bridge message_runtime tf2_ros pcl_ros geometry_msgs visualization_msgs
-  DEPENDS OpenCV
+  CATKIN_DEPENDS roscpp sensor_msgs std_msgs message_runtime tf2_ros pcl_ros geometry_msgs visualization_msgs
+  DEPENDS 
 )
 
 ###########
@@ -69,19 +63,18 @@ include_directories(
   include
   ${catkin_INCLUDE_DIRS}
   ${Boost_INCLUDE_DIRS}
-  ${OpenCV_INCLUDE_DIRS}
   ${Eigen3_INCLUDE_DIRS}
 )
 
-add_library(nearness_control src/nearness_control.cpp)
-add_dependencies(nearness_control ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_generate_messages_cpp)
-target_link_libraries(nearness_control ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${OpenCV_LIBS})
+#add_library(nearness_control src/nearness_control.cpp)
+#add_dependencies(nearness_control ${PROJECT_NAME}_generate_messages_cpp)
+#target_link_libraries(nearness_control ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${OpenCV_LIBS})
 
-add_executable(nearness_control_node src/nearness_control_node.cpp)
-target_link_libraries(nearness_control_node nearness_control ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${OpenCV_LIBS})
+#add_executable(nearness_control_node src/nearness_control_node.cpp)
+#target_link_libraries(nearness_control_node nearness_control ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${OpenCV_LIBS})
 
 add_library(nearness_control_3d src/nearness_control_3d.cpp)
-add_dependencies(nearness_control_3d ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_generate_messages_cpp)
+add_dependencies(nearness_control_3d ${PROJECT_NAME}_generate_messages_cpp)
 target_link_libraries(nearness_control_3d ${catkin_LIBRARIES} ${Boost_LIBRARIES})
 
 add_executable(nearness_control_3d_node src/nearness_control_3d_node.cpp)

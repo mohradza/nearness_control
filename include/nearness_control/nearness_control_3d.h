@@ -2,7 +2,6 @@
 #define NEARNESS_CONTROL_3D_H
 
 #include <ros/ros.h>
-#include <dynamic_reconfigure/server.h>
 #include <iostream>
 #include <random>
 
@@ -12,7 +11,6 @@
 #endif
 #include <boost/circular_buffer.hpp>
 
-
 #include <std_msgs/Bool.h>
 #include <std_msgs/Header.h>
 #include <std_msgs/Float32MultiArray.h>
@@ -21,7 +19,6 @@
 #include <geometry_msgs/Twist.h>
 #include <geometry_msgs/Pose.h>
 #include <sensor_msgs/Joy.h>
-#include <sensor_msgs/Image.h>
 #include <sensor_msgs/Imu.h>
 #include <sensor_msgs/LaserScan.h>
 #include <sensor_msgs/PointCloud2.h>
@@ -163,7 +160,6 @@ class NearnessControl3D {
     int num_excluded_rings_;
     int num_basis_shapes_;
     int last_index_;
-    int num_wf_harmonics_;
 
     nav_msgs::Odometry current_odom_;
 
@@ -172,14 +168,6 @@ class NearnessControl3D {
     vector<float> y_bottom_half_;
     std_msgs::Float32MultiArray y_projections_msg_;
     nearness_control_msgs::ProjectionWithOdomMsg y_projections_with_odom_msg_;
-
-    vector<float> recon_wf_mu_vec_;
-    pcl::PointCloud<pcl::PointXYZ> recon_wf_mu_pcl_;
-    sensor_msgs::PointCloud2 recon_wf_mu_pcl_msg_;
-
-    vector<float> sf_mu_;
-    pcl::PointCloud<pcl::PointXYZ> sf_mu_pcl_;
-    sensor_msgs::PointCloud2 sf_mu_pcl_msg_;
 
     pcl::PointCloud<pcl::PointXYZI> Y00_;
     pcl::PointCloud<pcl::PointXYZI> Y0p1_;
@@ -232,8 +220,7 @@ class NearnessControl3D {
     vector<float> state_est_vec_;
     double r_;
     double u_u_, u_v_, u_r_, u_w_;
-    double k_v_, k_r_, k_w_, k_alt_;
-    double k_u_v_, k_u_r_;
+    double k_v_, k_r_, k_w_;
     geometry_msgs::Twist control_commands_;
     geometry_msgs::Point current_pos_;
     double current_roll_, current_pitch_, current_heading_;
@@ -243,8 +230,6 @@ class NearnessControl3D {
     double max_forward_speed_, max_lateral_speed_;
     double max_vertical_speed_, max_yaw_rate_;
     double forward_speed_;
-    double front_mu_ave_;
-    double max_lateral_nearness_;
 
     visualization_msgs::Marker u_cmd_marker_;
     visualization_msgs::Marker v_cmd_marker_;
@@ -255,6 +240,7 @@ class NearnessControl3D {
     // Sensor noise
     std::default_random_engine generator_;
     double noise_std_dev_;
+    bool add_noise_;
 
     float side_zone_dist_;
     int side_zone_count_;
@@ -304,8 +290,8 @@ class NearnessControl3D {
     vector<float> safety_zone_distances_;
     double k_front_;
 
-}; // class SimpleNodeClass
+}; // class
 
-}  // namespace demo
+}  // namespace
 
-#endif  // DEMO_SIMPLE_CLASS_NODE_HPP
+#endif

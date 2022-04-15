@@ -46,17 +46,16 @@ void NearnessControl3D::init() {
     pnh_.param("enable_speed_regulation", enable_speed_regulation_, false);
     pnh_.param("enable_radius_scaling", enable_radius_scaling_, false);
 
+    // Sensor params
     pnh_.param("num_rings", num_rings_, 64);
     pnh_.param("num_ring_points", num_ring_points_, 360);
     pnh_.param("num_basis_shapes", num_basis_shapes_, 9);
+    pnh_.param("enable_sensor_noise", add_noise_, false);
     pnh_.param("noise_std_dev", noise_std_dev_, 0.03);
 
     // Forward speed params
     pnh_.param("forward_speed", forward_speed_, .5);
     pnh_.param("forward_speed_max", max_forward_speed_, .5);
-    // pnh_.param("forward_speed_min", min_forward_speed_, .5);
-    pnh_.param("forward_speed_lateral_gain", k_u_v_, .1);
-    pnh_.param("forward_speed_r_gain", k_u_r_, .1);
     pnh_.param("forward_speed_obst_gain", k_front_, .25);
 
     // Lateral speed params
@@ -67,10 +66,9 @@ void NearnessControl3D::init() {
     pnh_.param("vertical_speed_gain", k_w_, -0.1);
     pnh_.param("vertical_speed_max", max_vertical_speed_, 1.0);
 
-    // Turn rate Parameters
+    // Yaw rate Parameters
     pnh_.param("yaw_rate_gain", k_r_, -0.1);
     pnh_.param("yaw_rate_max", max_yaw_rate_, 1.0);
-
 
     frame_id_ = "OHRAD_X3";
 
@@ -181,6 +179,18 @@ void NearnessControl3D::generateViewingAngleVectors(){
 }
 
 void NearnessControl3D::generateCommandMarkers(){
+  // Create the command marker origins
+  geometry_msgs::Point origin_point;
+  origin_point.x = 0.0;
+  origin_point.y = 0.0;
+  origin_point.z = 0.0;
+
+  geometry_msgs::Quaternion origin_quat;
+  origin_quat.x = 0.0;
+  origin_quat.y = 0.0;
+  origin_quat.z = 0.0;
+  origin_quat.w = 1.0;
+
   u_cmd_marker_.type = 0;
   u_cmd_marker_.id = 0;
   u_cmd_marker_.color.a = 1.0;
@@ -220,6 +230,17 @@ void NearnessControl3D::enableControlCb(const std_msgs::Bool msg){
   enable_control_ = msg.data;
 }
 
+void NearnessControl3D::odomCb(const nav_msgs::OdometryConstPtr& odom_msg){
+    current_odom_ = *odom_msg;
+    current_pos_ = current_odom_.pose.pose.position;
+    //current_odom_.pose.pose.position.z = current_height_agl_;
+    geometry_msgs::Quaternion vehicle_quat_msg = current_odom_.pose.pose.orientation;
+    tf::Quaternion vehicle_quat_tf;
+    tf::quaternionMsgToTF(vehicle_quat_msg, vehicle_quat_tf);
+    tf::Matrix3x3(vehicle_quat_tf).getRPY(current_roll_, current_pitch_, current_heading_);
+    p_ = current_odom_.twist.twist.angular.x;
+    r_ = current_odom_.twist.twist.angular.z;
+}
 
 void NearnessControl3D::pclCb(const sensor_msgs::PointCloud2ConstPtr& pcl_msg){
 
