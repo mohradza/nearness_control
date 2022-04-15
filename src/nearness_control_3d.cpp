@@ -240,6 +240,9 @@ void NearnessControl3D::pclCb(const sensor_msgs::PointCloud2ConstPtr& pcl_msg){
   pcl_header_ =  pcl_msg->header;
 
   mu_meas_.clear();
+  cloud_out_.clear();
+  mu_cloud_out_.clear();
+
   side_zone_dist_ = 0.0;
   side_zone_count_ = 0;
   vert_zone_dist_ = 0.0;
@@ -288,13 +291,19 @@ void NearnessControl3D::pclCb(const sensor_msgs::PointCloud2ConstPtr& pcl_msg){
           // ROS_INFO("dist: %f, theta: %f, phi: %f", dist, theta_view_vec_[i],phi_view_vec_[j]);
           side_zone_dist_ += dist;
           side_zone_count_ += 1;
-          // cloud_out_.push_back(p);
         }
         if(isVerticalZonePoint(theta_view_vec_[i], phi_view_vec_[j])){
           // ROS_INFO("dist: %f, theta: %f, phi: %f", dist, theta_view_vec_[i],phi_view_vec_[j]);
           vert_zone_dist_ += dist;
           vert_zone_count_ += 1;
         }
+      }
+
+      // Convert back to cartesian for viewing
+      if(enable_debug_){
+          mu_p = {mu_val*sin(theta_view_vec_[i])*cos(phi_view_vec_[j]), mu_val*sin(theta_view_vec_[i])*sin(phi_view_vec_[j]), mu_val*cos(theta_view_vec_[i]) };
+          mu_cloud_out_.push_back(mu_p);
+          cloud_out_.push_back(p);
       }
 
     } // End inner for loop
@@ -410,6 +419,15 @@ void NearnessControl3D::pclCb(const sensor_msgs::PointCloud2ConstPtr& pcl_msg){
   ROS_INFO_THROTTLE(0.25,"u_u: %f, u_v: %f, u_r: %f, u_w: %f", u_u_, u_v_, u_r_, u_w_);
 
   if(enable_debug_){
+    // Publish pcl outs
+    pcl::toROSMsg(cloud_out_, pcl_out_msg_);
+    pcl_out_msg_.header = pcl_header_;
+    pub_pcl_.publish(pcl_out_msg_);
+
+    pcl::toROSMsg(mu_cloud_out_, mu_out_msg_);
+    mu_out_msg_.header = pcl_header_;
+    pub_mu_pcl_.publish(mu_out_msg_);
+
     // Publish control command markers for visualization
     // Forward speed marker
     ros::Time time_now = ros::Time::now();
