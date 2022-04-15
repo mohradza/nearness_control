@@ -76,17 +76,11 @@ class NearnessControl3D {
     // FUNCTIONS //
     void pclCb(const sensor_msgs::PointCloud2ConstPtr& pcl_msg);
     void odomCb(const nav_msgs::OdometryConstPtr& odom_msg);
-    void joyconCb(const sensor_msgs::JoyConstPtr& joy_msg);
     void enableControlCb(const std_msgs::Bool msg);
     void generateViewingAngleVectors();
     void generateProjectionShapes();
+    void generateCommandMarkers();
     void publishProjectionShapes();
-    void processPcl();
-    void projectNearness();
-    void reconstructWideFieldNearness();
-    void computeSmallFieldNearness();
-    void computeControlCommands();
-    void computeSFControlCommands();
     bool newPcl();
     bool isObstructedPoint(const float t, const float p);
     bool isSideZonePoint(const float t, const float p);
@@ -104,13 +98,12 @@ class NearnessControl3D {
     // SUBSCRIBERS //
     ros::Subscriber sub_pcl_;
     ros::Subscriber sub_odom_;
-    ros::Subscriber sub_joy_;
     ros::Subscriber sub_enable_control_;
 
+    // PUBLISHERS
     ros::Publisher pub_pcl_;
     ros::Publisher pub_mu_pcl_;
-    ros::Publisher pub_mu_pcl2_;
-    ros::Publisher pub_dist_pcl_;
+
     ros::Publisher pub_Y00_;
     ros::Publisher pub_Y0p1_;
     ros::Publisher pub_Yp1p1_;
@@ -124,23 +117,9 @@ class NearnessControl3D {
     ros::Publisher pub_theta_projection_shape_;
     ros::Publisher pub_z_projection_shape_;
     ros::Publisher pub_y_projections_with_odom_;
-    ros::Publisher pub_recon_wf_mu_;
-    ros::Publisher pub_sf_mu_;
-    ros::Publisher pub_sf_thresh_;
-    ros::Publisher pub_sf_filtered_;
-    ros::Publisher pub_sf_cluster1_;
-    ros::Publisher pub_sf_clusters_;
+
     ros::Publisher pub_control_commands_;
     ros::Publisher pub_cmd_markers_;
-
-    // DYNAMIC RECONFIGURE //
-    boost::mutex connect_mutex_;
-    boost::recursive_mutex config_mutex_;
-    typedef nearness_control::NearnessControl3DConfig Config;
-    typedef dynamic_reconfigure::Server<Config> ReconfigureServer;
-    boost::shared_ptr<ReconfigureServer> reconfigure_server_;
-    Config config_;
-    void configCb(Config &config, uint32_t level);
 
     // FUNCTIONS //
     float sgn(double v);
@@ -150,16 +129,11 @@ class NearnessControl3D {
     int fact(int n);
 
     bool enable_debug_;
-    bool enable_altitude_hold_;
-    bool enable_control_;
-    bool enable_wf_control_;
-    bool enable_sf_control_;
+    bool enable_control_ = false;
     bool enable_speed_regulation_;
     bool enable_cmd_scaling_;
-    bool enable_analytic_shapes_;
     double test_ring_;
-    bool new_pcl_;
-    bool half_projections_;
+    bool new_pcl_ = false;
 
     // GLOBAL VARIABLES //
     float phi_start_;
@@ -179,7 +153,6 @@ class NearnessControl3D {
     pcl::PointCloud<pcl::PointXYZ> new_cloud_;
     pcl::PointCloud<pcl::PointXYZ> cloud_out_;
     pcl::PointCloud<pcl::PointXYZ> mu_cloud_out_;
-    pcl::PointCloud<pcl::PointXYZ> recon_wf_cloud_out_;
     std::vector<float> mu_meas_;
     int pcl_width_;
     int pcl_height_;
@@ -279,16 +252,7 @@ class NearnessControl3D {
     visualization_msgs::Marker r_cmd_marker_;
     visualization_msgs::MarkerArray cmd_markers_;
 
-    // Small field commands
-    float sf_w_cmd_;
-    float sf_v_cmd_;
-    double sf_k_v_, sf_k_w_, sf_k_angle_, sf_k_mu_;
-
-    // Joystick
-    geometry_msgs::Twist joy_cmd_;
-    bool sim_control_;
-    bool use_observed_shapes_;
-
+    // Sensor noise
     std::default_random_engine generator_;
     double noise_std_dev_;
 
