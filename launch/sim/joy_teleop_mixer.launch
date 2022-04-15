@@ -1,8 +1,6 @@
 <?xml version="1.0"?>
 
 <launch>
-  <arg name="name" default="OHRAD_X3"/>
-  <group ns="$(arg name)">
 
     <include file="$(find nearness_control)/launch/sim/sim_teleop.launch"/>
 
@@ -12,11 +10,10 @@
 
       <param name="max_forward_speed" value="1.5"/>
       <param name="max_lateral_speed" value="1.5"/>
-      <param name="max_vertical_speed" value=".25"/>
+      <param name="max_vertical_speed" value=".5"/>
       <param name="max_yaw_rate" value=".5"/>
 
     </node>
 
-  </group>
 
 </launch>

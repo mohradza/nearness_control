@@ -1,11 +1,9 @@
 <launch>
 
   <arg name="enable_debug"                 default="true"/>
-  <arg name="enable_teleop"                default = "0"/>
+  <arg name="enable_teleop"                default = "1"/>
 
   <group ns="OHRAD_X3">
-    <!-- Launch the config file, which contains controller gains and other relevant parameters -->
-    <rosparam file="$(find nearness_control)/cfg/NearnessControl3D.yaml" command="load" ns="nearness_control_3d_node"/>
 
     <include file="$(find nearness_control)/launch/thesis/3d_nearness_control.launch">
         <arg name="enable_debug"  value="$(arg enable_debug)"/>
@@ -14,7 +12,7 @@
 
     <include file="$(find nearness_control)/launch/sim/tf2odom.launch"/>
 
-    <include file="$(find nearness_control)/launch/sim/sim_teleop.launch" if="$(arg enable_teleop)"/>
+    <include file="$(find nearness_control)/launch/sim/joy_teleop_mixer.launch" if="$(arg enable_teleop)"/>
 
   </group>
 

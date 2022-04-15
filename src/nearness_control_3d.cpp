@@ -59,7 +59,7 @@ void NearnessControl3D::init() {
     pnh_.param("forward_speed_obst_gain", k_front_, .25);
 
     // Lateral speed params
-    pnh_.param("lateral_speed_gain", k_v_, -0.1);
+    pnh_.param("lateral_speed_gain", k_v_, -1.0);
     pnh_.param("lateral_speed_max", max_lateral_speed_, 1.0);
 
     // Vertical speed params
@@ -409,15 +409,16 @@ void NearnessControl3D::pclCb(const sensor_msgs::PointCloud2ConstPtr& pcl_msg){
     } else {
       u_u_ = forward_speed_;
     }
+    control_commands_.linear.x = u_u_;
+    control_commands_.linear.y = u_v_;
+    control_commands_.linear.z = u_w_;
+    control_commands_.angular.z = u_r_;
+    pub_control_commands_.publish(control_commands_);
 
   }
 
-  control_commands_.linear.x = u_u_;
-  control_commands_.linear.y = u_v_;
-  control_commands_.linear.z = u_w_;
-  control_commands_.angular.z = u_r_;
+
   ROS_INFO_THROTTLE(0.25,"u_u: %f, u_v: %f, u_r: %f, u_w: %f", u_u_, u_v_, u_r_, u_w_);
-  pub_control_commands_.publish(control_commands_);
 
   if(enable_debug_){
     // Publish control command markers for visualization

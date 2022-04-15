@@ -18,6 +18,6 @@ topics:
   priority: 100
 -
   name    : teleop2
-  topic   : cmd_vel
+  topic   : joy_vel
   timeout : 0.1
   priority: 100
