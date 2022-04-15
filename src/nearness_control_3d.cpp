@@ -128,17 +128,6 @@ void NearnessControl3D::init() {
     front_y_lim_ = 0.6;
     front_z_lim_ = 0.25;
 
-    geometry_msgs::Point origin_point;
-    origin_point.x = 0.0;
-    origin_point.y = 0.0;
-    origin_point.z = 0.0;
-
-    geometry_msgs::Quaternion origin_quat;
-    origin_quat.x = 0.0;
-    origin_quat.y = 0.0;
-    origin_quat.z = 0.0;
-    origin_quat.w = 1.0;
-
     // Initialize command markers
     generateCommandMarkers();
 
@@ -275,6 +264,11 @@ void NearnessControl3D::pclCb(const sensor_msgs::PointCloud2ConstPtr& pcl_msg){
       index = i*num_ring_points_ + (num_ring_points_-1-j);
       p = new_cloud_.points[index];
       dist = sqrt(pow(p.x,2) + pow(p.y,2) + pow(p.z,2));
+
+      if(dist < 2.0 && dist > 0.27){
+        checkFrontZone(p);
+      }
+
       if(add_noise_){
         dist += noise(generator_);
       }
@@ -282,11 +276,6 @@ void NearnessControl3D::pclCb(const sensor_msgs::PointCloud2ConstPtr& pcl_msg){
       if(dist < 0.3){
         dist = 1000;
       }
-
-      if(dist < 2.0 && dist > 0.27){
-        checkFrontZone(p);
-      }
-
 
       mu_val = 1.0/dist;
       mu_meas_.push_back(mu_val);
