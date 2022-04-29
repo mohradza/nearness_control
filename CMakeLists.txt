@@ -50,7 +50,7 @@ catkin_package(
   INCLUDE_DIRS include
   LIBRARIES nearness_control
   CATKIN_DEPENDS roscpp sensor_msgs std_msgs message_runtime tf2_ros pcl_ros geometry_msgs visualization_msgs
-  DEPENDS 
+  DEPENDS
 )
 
 ###########
@@ -84,14 +84,12 @@ add_library(control_mixer_node src/control_mixer_node.cpp)
 target_link_libraries(control_mixer_node ${catkin_LIBRARIES} ${Boost_LIBRARIES})
 
 add_executable(control_mixer src/control_mixer.cpp)
-#add_dependencies(control_mixer ${PROJECT_NAME}_gencfg )
 target_link_libraries(control_mixer control_mixer_node ${catkin_LIBRARIES} ${Boost_LIBRARIES})
 
 add_library(joy_teleop_mixer_node src/joy_teleop_mixer_node.cpp)
 target_link_libraries(joy_teleop_mixer_node ${catkin_LIBRARIES} ${Boost_LIBRARIES})
 
 add_executable(joy_teleop_mixer src/joy_teleop_mixer.cpp)
-#add_dependencies(joy_teleop_mixer ${PROJECT_NAME}_gencfg )
 target_link_libraries(joy_teleop_mixer joy_teleop_mixer_node ${catkin_LIBRARIES} ${Boost_LIBRARIES})
 
 add_executable(tf2odom src/tf2odom.cpp)
@@ -101,5 +99,10 @@ add_library(command_generator_node src/command_generator_node.cpp)
 target_link_libraries(command_generator_node ${catkin_LIBRARIES} ${Boost_LIBRARIES})
 
 add_executable(command_generator src/command_generator.cpp)
-#add_dependencies(command_generator ${PROJECT_NAME}_gencfg )
 target_link_libraries(command_generator command_generator_node ${catkin_LIBRARIES} ${Boost_LIBRARIES})
+
+add_library(data_collector_node src/data_collector_node.cpp)
+target_link_libraries(data_collector_node ${catkin_LIBRARIES} ${Boost_LIBRARIES})
+
+add_executable(data_collector src/data_collector.cpp)
+target_link_libraries(data_collector data_collector_node ${catkin_LIBRARIES} ${Boost_LIBRARIES})
