@@ -8,7 +8,11 @@ int main(int argc, char** argv) {
     ros::NodeHandle nh_private("~");
     data_collector::dataCollector data_collector_node(nh, nh_private);
 
+    ros::Rate loop_rate(500);
+
     while(ros::ok()){
-      ros::spin();
+
+      ros::spinOnce();
+      loop_rate.sleep();
     }
 }

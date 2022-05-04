@@ -12,13 +12,13 @@ dataCollector::dataCollector(const ros::NodeHandle &node_handle,
     // SUBSCRIBERS
     sub_cmds_ = nh_.subscribe("cmd_vel", 1, &dataCollector::cmdCb, this);
     sub_imu_ = nh_.subscribe("imu", 1, &dataCollector::imuCb, this);
-    sub_odom_ = nh_.subscribe("odometry", 1, &dataCollector::odomCb, this);
+    sub_odom_ = nh_.subscribe("odometry", 20, &dataCollector::odomCb, this);
 
     // PUBLISHERS
     pub_synced_odom_ = nh_.advertise<nav_msgs::Odometry>("synced_odom", 100);
     pub_synced_cmds_ = nh_.advertise<geometry_msgs::TwistStamped>("synced_cmds", 100);
 
-    publish_rate_ = 50;
+    publish_rate_ = 125.0;
     publish_period_s_ = 1.0/publish_rate_;
     last_publish_time_ = ros::Time::now();
     first_pass_ = true;
@@ -36,6 +36,8 @@ dataCollector::dataCollector(const ros::NodeHandle &node_handle,
 
     //  if (cmpf(pub_dt_s_, publish_period_s_, 0.00001)){
       if (pub_dt_s_ >= publish_period_s_){
+
+        // ROS_INFO("period: %f, dt: %f", publish_period_s_, pub_dt_s_);
 
         current_odom_ = *odom_msg;
         current_odom_.pose.pose.orientation = imu_orientation_;

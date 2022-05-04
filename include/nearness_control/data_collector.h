@@ -77,6 +77,7 @@ private:
    ros::Time sim_time_;
    float pub_dt_s_;
    bool first_pass_;
+   bool have_new_odom_;
 
 };
 } // end namespace
