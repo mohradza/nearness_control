@@ -26,12 +26,12 @@ commandGenerator::commandGenerator(const ros::NodeHandle &node_handle,
 
     goal_point_.x = 0.0;
     goal_point_.y = 0.0;
-    goal_point_.z = 2.5;
-    goal_heading_ = 1.5707;
+    goal_point_.z = 1.5;
+    goal_heading_ = 0.0;
 
     routine_ = "doublets";
     routine_ = "dynamic";
-    // routine_ = "const";
+    routine_ = "const";
     routine_ = "double_const";
     // routine_ = "swerve";
     swerve_dur_ = 4.0;
@@ -161,13 +161,13 @@ commandGenerator::commandGenerator(const ros::NodeHandle &node_handle,
 
       if(!routine_.compare("const")){
         // cmd_vel_msg_.linear.x = k_u_*(starting_point_.x - current_pos_.x);
-        cmd_vel_msg_.linear.x = 1.5;
+        cmd_vel_msg_.linear.x = 0.5;
 
         cmd_vel_msg_.linear.y = k_v_*(starting_point_.y - current_pos_.y);
-        // cmd_vel_msg_.linear.y = 2.0;
+        // cmd_vel_msg_.linear.y = 0.5;
 
         cmd_vel_msg_.linear.z = k_w_*(starting_point_.z - current_pos_.z);
-        // cmd_vel_msg_.linear.z = 2.0;
+        // cmd_vel_msg_.linear.z = 0.5;
 
         cmd_vel_msg_.angular.z = (k_r_/50.0)*(starting_heading_ - current_heading_);
         // cmd_vel_msg_.angular.z = 0.5;
@@ -176,8 +176,8 @@ commandGenerator::commandGenerator(const ros::NodeHandle &node_handle,
       if(!routine_.compare("double_const")){
         cmd_vel_msg_.linear.x = 1.5;
         // cmd_vel_msg_.linear.x = k_u_*(starting_point_.x - current_pos_.x);
-        cmd_vel_msg_.linear.z = k_w_*(starting_point_.z - current_pos_.z);
-        cmd_vel_msg_.linear.y = k_v_*(starting_point_.y - current_pos_.y);
+        cmd_vel_msg_.linear.z = k_w_*(goal_point_.z - current_pos_.z);
+        cmd_vel_msg_.linear.y = k_v_*(goal_point_.y - current_pos_.y);
         //cmd_vel_msg_.linear.y = 0.0;
         cmd_vel_msg_.angular.z = (k_r_/50.0)*(starting_heading_ - current_heading_);
 
@@ -267,29 +267,27 @@ commandGenerator::commandGenerator(const ros::NodeHandle &node_handle,
 
     float durr = (ros::Time::now() - fwd_motion_time_).toSec();
     bool forward_motion_steady = false;
-    if(durr > 8.0){
+    if(durr > 10.0){
       forward_motion_steady = true;
     }
 
     if(forward_motion_steady){
       cmd_vel_msg_.linear.x = 1.5;
       // cmd_vel_msg_.linear.x = k_u_*(starting_point_.x - current_pos_.x);
-      // cmd_vel_msg_.linear.z = k_w_*(starting_point_.z - current_pos_.z);
-      u_z_ = (goal_point_.z - current_pos_.z)*c2_;
 
-      Mw_Xkp1_ = Mw_A_*Mw_Xk_ + Mw_B_*u_z_;
-      u_w_ = Mw_C_*Mw_Xkp1_;
-      Mw_Xk_ = Mw_Xkp1_;
-      // ROS_INFO("u_w: %f, ", u_w_);
-      cmd_vel_msg_.linear.z = u_w_;
-      // cmd_vel_msg_.linear.z = 0.5;
-      // cmd_vel_msg_.linear.y = 0.5;
+      // Mw_Xkp1_ = Mw_A_*Mw_Xk_ + Mw_B_*u_z_;
+      // u_w_ = Mw_C_*Mw_Xkp1_;
+      // Mw_Xk_ = Mw_Xkp1_;
+
       cmd_vel_msg_.linear.y = k_v_*(goal_point_.y - current_pos_.y);
       // cmd_vel_msg_.linear.y = 0.0;
 
-      //cmd_vel_msg_.linear.y = 0.0;
+      // cmd_vel_msg_.linear.z = k_w_*(goal_point_.z - current_pos_.z);
+      cmd_vel_msg_.linear.z = 0.5;
+
+      cmd_vel_msg_.angular.z = (k_r_/50.0)*(goal_heading_ - current_heading_);
       // cmd_vel_msg_.angular.z = .5;
-      cmd_vel_msg_.angular.z = (k_r_/50.0)*(starting_heading_ - current_heading_);
+
       // float e_r = (goal_heading_ - current_heading_)*c1_;
       // Mr_Xkp1_ = Mr_A_*Mr_Xk_ + Mr_B_*e_r;
       // u_r_ = Mr_C_*Mr_Xkp1_;

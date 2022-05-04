@@ -11,7 +11,7 @@ dataCollector::dataCollector(const ros::NodeHandle &node_handle,
   void dataCollector::init(){
     // SUBSCRIBERS
     sub_cmds_ = nh_.subscribe("cmd_vel", 1, &dataCollector::cmdCb, this);
-    sub_imu_ = nh_.subscribe("imu", 1, &dataCollector::imuCb, this);
+    // sub_imu_ = nh_.subscribe("imu", 1, &dataCollector::imuCb, this);
     sub_odom_ = nh_.subscribe("odometry", 20, &dataCollector::odomCb, this);
 
     // PUBLISHERS
@@ -40,28 +40,28 @@ dataCollector::dataCollector(const ros::NodeHandle &node_handle,
         // ROS_INFO("period: %f, dt: %f", publish_period_s_, pub_dt_s_);
 
         current_odom_ = *odom_msg;
-        current_odom_.pose.pose.orientation = imu_orientation_;
-        current_odom_.twist.twist = ang_vels_;
+        // current_odom_.pose.pose.orientation = imu_orientation_;
+        // current_odom_.twist.twist = ang_vels_;
 
-        tf::Quaternion quat(odom_msg->pose.pose.orientation.x, odom_msg->pose.pose.orientation.y, odom_msg->pose.pose.orientation.z, odom_msg->pose.pose.orientation.w);
-        tf::Matrix3x3 m(quat);
-        double roll, pitch, yaw;
-        m.getRPY(roll, pitch, yaw);
-
-        // Convert world vels to body
-        Vector3f world_vels(odom_msg->twist.twist.linear.x, odom_msg->twist.twist.linear.y, odom_msg->twist.twist.linear.z);
-        Matrix3f mat_yaw(3,3), mat_pitch(3,3), mat_roll(3,3), mat_rot(3,3);
-
-        mat_yaw << cos(yaw), sin(yaw), 0.0, -sin(yaw), cos(yaw), 0.0, 0.0, 0.0, 1.0;
-        mat_pitch << cos(pitch), 0.0, -sin(pitch), 0.0, 1.0, 0.0, sin(pitch), 0.0, cos(pitch);
-        mat_roll << 1.0, 0.0, 0.0, 0.0, cos(roll), sin(roll), 0.0, -sin(roll), cos(roll);
-
-        mat_rot = mat_yaw*mat_pitch*mat_roll;
-        Vector3f body_vels_vec(0.0, 0.0, 0.0);
-        body_vels_vec = mat_rot*world_vels;
-        current_odom_.twist.twist.linear.x = body_vels_vec[0];
-        current_odom_.twist.twist.linear.y = body_vels_vec[1];
-        current_odom_.twist.twist.linear.z = body_vels_vec[2];
+        // tf::Quaternion quat(odom_msg->pose.pose.orientation.x, odom_msg->pose.pose.orientation.y, odom_msg->pose.pose.orientation.z, odom_msg->pose.pose.orientation.w);
+        // tf::Matrix3x3 m(quat);
+        // double roll, pitch, yaw;
+        // m.getRPY(roll, pitch, yaw);
+        //
+        // // Convert world vels to body
+        // Vector3f world_vels(odom_msg->twist.twist.linear.x, odom_msg->twist.twist.linear.y, odom_msg->twist.twist.linear.z);
+        // Matrix3f mat_yaw(3,3), mat_pitch(3,3), mat_roll(3,3), mat_rot(3,3);
+        //
+        // mat_yaw << cos(yaw), sin(yaw), 0.0, -sin(yaw), cos(yaw), 0.0, 0.0, 0.0, 1.0;
+        // mat_pitch << cos(pitch), 0.0, -sin(pitch), 0.0, 1.0, 0.0, sin(pitch), 0.0, cos(pitch);
+        // mat_roll << 1.0, 0.0, 0.0, 0.0, cos(roll), sin(roll), 0.0, -sin(roll), cos(roll);
+        //
+        // mat_rot = mat_yaw*mat_pitch*mat_roll;
+        // Vector3f body_vels_vec(0.0, 0.0, 0.0);
+        // body_vels_vec = mat_rot*world_vels;
+        // current_odom_.twist.twist.linear.x = body_vels_vec[0];
+        // current_odom_.twist.twist.linear.y = body_vels_vec[1];
+        // current_odom_.twist.twist.linear.z = body_vels_vec[2];
 
         current_cmds_.header.stamp = current_odom_.header.stamp;
 
