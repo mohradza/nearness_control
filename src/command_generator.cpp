@@ -97,8 +97,7 @@ commandGenerator::commandGenerator(const ros::NodeHandle &node_handle,
 
   Mw_B_ <<     0.0200,    0.0298,    0.0177,    0.0000;
 
-  Mw_C_ <<      132.8314,  -28.3276,  -12.0377, -322.7989
-;
+  Mw_C_ <<      132.8314,  -28.3276,  -12.0377, -322.7989;
 
 
   }
@@ -161,10 +160,15 @@ commandGenerator::commandGenerator(const ros::NodeHandle &node_handle,
       // Start the test routine
 
       if(!routine_.compare("const")){
-        cmd_vel_msg_.linear.x = k_u_*(starting_point_.x - current_pos_.x);
-        // cmd_vel_msg_.linear.z = k_w_*(starting_point_.z - current_pos_.z);
-        cmd_vel_msg_.linear.z = 2.0;
+        // cmd_vel_msg_.linear.x = k_u_*(starting_point_.x - current_pos_.x);
+        cmd_vel_msg_.linear.x = 1.5;
+
         cmd_vel_msg_.linear.y = k_v_*(starting_point_.y - current_pos_.y);
+        // cmd_vel_msg_.linear.y = 2.0;
+
+        cmd_vel_msg_.linear.z = k_w_*(starting_point_.z - current_pos_.z);
+        // cmd_vel_msg_.linear.z = 2.0;
+
         cmd_vel_msg_.angular.z = (k_r_/50.0)*(starting_heading_ - current_heading_);
         // cmd_vel_msg_.angular.z = 0.5;
       }

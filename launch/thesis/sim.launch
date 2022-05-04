@@ -1,18 +1,20 @@
 <launch>
 
   <arg name="enable_debug"                 default="true"/>
-  <arg name="enable_teleop"                default = "1"/>
+  <arg name="enable_teleop"                default = "0"/>
 
   <group ns="OHRAD_X3">
 
-    <include file="$(find nearness_control)/launch/thesis/3d_nearness_control.launch">
+    <!-- <include file="$(find nearness_control)/launch/thesis/3d_nearness_control.launch">
         <arg name="enable_debug"  value="$(arg enable_debug)"/>
         <remap from="nearness_control_3d/cmd_vel" to="nav_vel"/>
-    </include>
+    </include> -->
 
-    <include file="$(find nearness_control)/launch/sim/tf2odom.launch"/>
+    <include file="$(find nearness_control)/launch/sim/command_generator.launch"/>
 
     <include file="$(find nearness_control)/launch/sim/joy_teleop_mixer.launch" if="$(arg enable_teleop)"/>
+
+    <include file="$(find nearness_control)/launch/sim/data_collector.launch"/>
 
   </group>
 

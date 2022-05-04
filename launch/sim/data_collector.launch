@@ -2,16 +2,10 @@
 
 <launch>
 
-  <arg name="name" default="OHRAD_X3"/>
-
-  <group ns="$(arg name)">
-
     <node name="data_collector_node" type="data_collector" pkg="nearness_control" output="screen">
       <remap from="data_collector/odometry" to="ground_truth/odom"/>
       <remap from="data_collector/imu" to="imu/data"/>
       <remap from="data_collector/cmd_vel" to="cmd_vel"/>
     </node>
-
-  </group>
 
 </launch>
