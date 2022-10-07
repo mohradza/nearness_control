@@ -8,7 +8,6 @@ project(nearness_control)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  dynamic_reconfigure
   roscpp
   rospy
   sensor_msgs
@@ -24,10 +23,6 @@ find_package(catkin REQUIRED COMPONENTS
 
 ## System dependencies are found with CMake's conventions
 find_package(Eigen3 REQUIRED)
-
-if(cv_bridge_VERSION VERSION_GREATER "1.12.0")
-  add_compile_options(-std=c++11)
-endif()
 
 ## Generate messages in the 'msg' folder
 add_message_files(
