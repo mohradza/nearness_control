@@ -1,3 +1,5 @@
+#include <tf/tf.h>
+
 #include <nearness_control/nearness_control_3d.h>
 
 namespace {
