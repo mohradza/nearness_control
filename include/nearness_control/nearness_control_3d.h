@@ -7,7 +7,10 @@
 #include <Eigen/Core>
 #include <geometry_msgs/Twist.h>
 #include <nav_msgs/Odometry.h>
+#include <pcl/segmentation/extract_clusters.h>
+
 #include <pcl_conversions/pcl_conversions.h>
+
 #include <ros/ros.h>
 #include <std_msgs/Bool.h>
 #include <std_msgs/Float32MultiArray.h>
@@ -16,7 +19,6 @@
 
 #include <nearness_control/projection_shape_generator.h>
 
-// using namespace cv_bridge;
 using namespace Eigen;
 namespace nearness_3d {
 
@@ -51,6 +53,11 @@ private:
   void projectNearness();
   void resetCommands();
   void generateWFControlCommands();
+  void generateSFControlCommands();
+  void mixControlCommands();
+  void reconstructWFNearness();
+  void generateSFNearness();
+  void computeSFControl();
   void publishPCLOuts();
   void publishCommandMarkers();
 
@@ -72,6 +79,8 @@ private:
   ros::Publisher pub_y_projection_shape_;
   ros::Publisher pub_theta_projection_shape_;
   ros::Publisher pub_z_projection_shape_;
+  ros::Publisher pub_recon_wf_mu_;
+  ros::Publisher pub_sf_mu_;
 
   ros::Publisher pub_control_commands_;
   ros::Publisher pub_cmd_markers_;
@@ -81,6 +90,7 @@ private:
   // NODE PARAMETERS
   // Enable switches
   bool enable_debug_;
+  bool enable_sf_control_;
   bool enable_speed_regulation_;
   bool enable_radius_scaling_;
   bool add_noise_;
@@ -107,6 +117,13 @@ private:
   // Yaw rate params
   double max_yaw_rate_;
   double k_r_;
+
+  // Small-field controller params
+  int num_wf_harmonics_;
+  double sf_k_theta_;
+  double sf_k_phi_;
+  double sf_k_d_;
+  double sf_k_0_;
 
   // OTHER VARIABLES
   bool enable_control_ = false;
@@ -208,6 +225,26 @@ private:
   double front_x_lim_, front_y_lim_, front_z_lim_;
   std::vector<pcl::PointXYZ> safety_zone_points_;
   std::vector<float> safety_zone_distances_;
+
+  // Wide-field reconstruction
+  std::vector<float> recon_wf_mu_vec_;
+  pcl::PointCloud<pcl::PointXYZ> recon_wf_mu_pcl_;
+  sensor_msgs::PointCloud2 recon_wf_mu_pcl_msg_;
+
+  // SF Signal processing
+  std::vector<float> sf_mu_;
+  pcl::PointCloud<pcl::PointXYZ> sf_mu_pcl_;
+  pcl::PointCloud<pcl::PointXYZ> sf_d_pcl_;
+  pcl::PointCloud<pcl::PointXYZ> sf_d_pcl_filtered_;
+  sensor_msgs::PointCloud2 sf_mu_pcl_msg_;
+
+  // SF Controller
+  std::vector<std::vector<float>> cluster_locs_;
+  int num_clusters_;
+  std::vector<float> cluster_d_;
+
+  float sf_u_v_;
+  float sf_u_w_;
 
 }; // class
 

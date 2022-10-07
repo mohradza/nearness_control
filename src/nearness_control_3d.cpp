@@ -24,6 +24,19 @@ float sat(float num, float min_val, float max_val) {
   }
 }
 
+std::vector<float> getVectorStats(std::vector<float> vec) {
+  double sum = accumulate(begin(vec), end(vec), 0.0);
+  double m = sum / vec.size();
+
+  double accum = 0.0;
+  std::for_each(begin(vec), end(vec),
+                [&](const double d) { accum += (d - m) * (d - m); });
+
+  double stdev = sqrt(accum / (vec.size() - 1));
+  std::vector<float> stats{float(m), float(stdev)};
+  return stats;
+}
+
 } // namespace
 
 namespace nearness_3d {
@@ -45,6 +58,9 @@ void NearnessControl3D::init() {
   // pcl publishers for debugging
   pub_pcl_ = nh_.advertise<sensor_msgs::PointCloud2>("pcl_out", 1);
   pub_mu_pcl_ = nh_.advertise<sensor_msgs::PointCloud2>("mu_pcl_out", 1);
+  pub_recon_wf_mu_ =
+      nh_.advertise<sensor_msgs::PointCloud2>("reconstructed_wf_nearness", 1);
+  pub_sf_mu_ = nh_.advertise<sensor_msgs::PointCloud2>("sf_nearness", 1);
 
   // Publish control commands (MAIN OUTPUT)
   pub_control_commands_ =
@@ -56,6 +72,7 @@ void NearnessControl3D::init() {
 
   // Import parameters
   pnh_.param("enable_debug", enable_debug_, false);
+  pnh_.param("enable_sf_control", enable_sf_control_, false);
   pnh_.param("enable_speed_regulation", enable_speed_regulation_, false);
   pnh_.param("enable_radius_scaling", enable_radius_scaling_, false);
   pnh_.param("enable_sensor_noise", add_noise_, false);
@@ -79,12 +96,18 @@ void NearnessControl3D::init() {
   pnh_.param("vertical_speed_gain", k_w_, -0.1);
   pnh_.param("vertical_speed_max", max_vertical_speed_, 1.0);
 
-  // Yaw rate Parameters
+  // Yaw rate params
   pnh_.param("yaw_rate_gain", k_r_, -0.1);
   pnh_.param("yaw_rate_max", max_yaw_rate_, 1.0);
 
+  // Small-field conroller params
+  pnh_.param("small_field_theta_gain", sf_k_theta_, 1.0);
+  pnh_.param("small_field_phi_gain", sf_k_phi_, 1.0);
+  pnh_.param("small_field_distance_gain", sf_k_d_, 1.0);
+  pnh_.param("small_field_signal_gain", sf_k_0_, 1.0);
+
   // Front zone limits
-  // TODO: Make these into parameters
+  // TODO: Make these into paramets
   front_x_lim_ = 1.5;
   front_y_lim_ = 0.6;
   front_z_lim_ = 0.25;
@@ -231,6 +254,10 @@ void NearnessControl3D::pclCb(const sensor_msgs::PointCloud2ConstPtr &pcl_msg) {
   resetCommands();
   if (enable_control_) {
     generateWFControlCommands();
+    if (enable_sf_control_) {
+      generateSFControlCommands();
+    }
+    mixControlCommands();
     pub_control_commands_.publish(control_commands_);
   }
 
@@ -538,7 +565,173 @@ void NearnessControl3D::generateWFControlCommands() {
     u_r_ *= average_lateral_radius_ / 2.7;
     u_w_ *= average_vertical_radius_ / 1.75;
   }
+}
 
+void NearnessControl3D::generateSFControlCommands() {
+  reconstructWFNearness();
+  generateSFNearness();
+  computeSFControl();
+}
+
+void NearnessControl3D::reconstructWFNearness() {
+
+  recon_wf_mu_vec_.clear();
+  std::vector<float> zeros(last_index_, 0.0);
+  recon_wf_mu_vec_ = zeros;
+  for (int j = 0; j < num_wf_harmonics_; j++) {
+    for (int i = 0; i < last_index_; i++) {
+      recon_wf_mu_vec_[i] += y_full_[j] * shapes_vec_[j][i];
+    }
+  }
+
+  pcl::PointXYZ recon_mu_p;
+  recon_wf_mu_pcl_.clear();
+
+  if (enable_debug_) {
+    // Turn reconstructed wf back into pointcloud for viewing
+    float theta, phi;
+    for (int i = 0; i < last_index_; i++) {
+      theta = viewing_angle_mat_[i][0];
+      phi = viewing_angle_mat_[i][1];
+
+      recon_mu_p = {recon_wf_mu_vec_[i] * sin(theta) * cos(phi),
+                    recon_wf_mu_vec_[i] * sin(theta) * sin(phi),
+                    recon_wf_mu_vec_[i] * cos(theta)};
+      recon_wf_mu_pcl_.push_back(recon_mu_p);
+    }
+
+    pcl::toROSMsg(recon_wf_mu_pcl_, recon_wf_mu_pcl_msg_);
+    recon_wf_mu_pcl_msg_.header.frame_id = frame_id_;
+    recon_wf_mu_pcl_msg_.header.stamp = ros::Time::now();
+    pub_recon_wf_mu_.publish(recon_wf_mu_pcl_msg_);
+  }
+}
+
+void NearnessControl3D::generateSFNearness() {
+
+  sf_mu_.clear();
+  float diff, theta, phi;
+  pcl::PointXYZ sf_mu_p, sf_d_p;
+  sf_mu_pcl_.clear();
+  sf_d_pcl_.clear();
+
+  for (int i = 0; i < last_index_; i++) {
+    diff = mu_meas_[i] - recon_wf_mu_vec_[i];
+    sf_mu_.push_back(diff);
+
+    theta = viewing_angle_mat_[i][0];
+    phi = viewing_angle_mat_[i][1];
+    diff = abs(diff);
+    sf_mu_p = {diff * sin(theta) * cos(phi), diff * sin(theta) * sin(phi),
+               diff * cos(theta)};
+    sf_d_p = {(1 / diff) * sin(theta) * cos(phi),
+              (1 / diff) * sin(theta) * sin(phi), (1 / diff) * cos(theta)};
+    sf_mu_pcl_.push_back(sf_mu_p);
+    sf_d_pcl_.push_back(sf_d_p);
+  }
+  if (enable_debug_) {
+    pcl::toROSMsg(sf_mu_pcl_, sf_mu_pcl_msg_);
+    sf_mu_pcl_msg_.header.frame_id = frame_id_;
+    sf_mu_pcl_msg_.header.stamp = ros::Time::now();
+    pub_sf_mu_.publish(sf_mu_pcl_msg_);
+  }
+}
+
+void NearnessControl3D::computeSFControl() {
+
+  // Iterate through SF Pcl and get stats for dynamic threshold
+  std::vector<float> sf_stats = getVectorStats(sf_mu_);
+
+  // Create a dynamic threshold for mu
+  float dyn_thresh = 3 * sf_stats[1];
+
+  // Remove any point that is below the threshold
+  // It is easier to deal with distance from this point out...
+  // so we will only collect filtered distance
+  sf_d_pcl_filtered_.clear();
+  std::vector<std::vector<float>> viewing_angle_mat_filtered;
+  std::vector<float> sf_d_filtered;
+  for (int i = 0; i < last_index_; i++) {
+    if (sf_mu_[i] >= dyn_thresh) {
+      sf_d_pcl_filtered_.push_back(sf_d_pcl_[i]);
+      sf_d_filtered.push_back(1 / sf_mu_[i]);
+      viewing_angle_mat_filtered.push_back(viewing_angle_mat_[i]);
+    }
+  }
+
+  // Cluster the peaks
+  // Use Euclidean cluster segmentation
+  // pcl::PointCloud<pcl::PointXYZ> * xyz_cloud_filtered = new
+  // pcl::PointCloud<pcl::PointXYZ>;
+  pcl::PointCloud<pcl::PointXYZ> *xyz_cloud_filtered;
+  *xyz_cloud_filtered = sf_d_pcl_filtered_;
+  pcl::PointCloud<pcl::PointXYZ>::Ptr xyzCloudPtrFiltered(xyz_cloud_filtered);
+
+  pcl::search::KdTree<pcl::PointXYZ>::Ptr tree(
+      new pcl::search::KdTree<pcl::PointXYZ>);
+  tree->setInputCloud(xyzCloudPtrFiltered);
+
+  std::vector<pcl::PointIndices> cluster_indices;
+  pcl::EuclideanClusterExtraction<pcl::PointXYZ> ec;
+  // Specify cluster parameters
+  ec.setClusterTolerance(10); // cm
+  ec.setMinClusterSize(5);    // Should help with noise
+  ec.setMaxClusterSize(last_index_);
+  ec.setSearchMethod(tree);
+  ec.setInputCloud(xyzCloudPtrFiltered);
+  // Extract and store indices
+  ec.extract(cluster_indices);
+
+  // Determine cluster average viewing angles
+  // cout << cluster_indices.size() << endl;
+  // cout << cluster_indices[0].indices.size() << endl;
+  num_clusters_ = cluster_indices.size();
+  int index = 0;
+  float theta_ave, phi_ave, d_ave;
+  int num_cluster_points;
+  cluster_locs_.clear();
+  cluster_d_.clear();
+  for (int i = 0; i < num_clusters_; i++) {
+    theta_ave = 0.0;
+    phi_ave = 0.0;
+    num_cluster_points = cluster_indices[i].indices.size();
+    for (int j = 0; j < num_clusters_; j++) {
+      index = cluster_indices[i].indices[j];
+      theta_ave += viewing_angle_mat_filtered[index][0];
+      phi_ave += viewing_angle_mat_filtered[index][1];
+      d_ave += sf_d_filtered[index];
+    }
+    cluster_locs_.push_back(
+        {theta_ave / num_cluster_points, phi_ave / num_cluster_points});
+    cluster_d_.push_back(d_ave / num_cluster_points);
+  }
+
+  // Generate control commands: yawrate, lateral speed, vertical speed
+  float vert_sign, horiz_sign, cluster_theta, cluster_phi;
+  sf_u_w_ = 0.0;
+  sf_u_v_ = 0.0;
+  for (int i = 0; i < num_clusters_; i++) {
+    vert_sign = 1.0;
+    horiz_sign = 1.0;
+    cluster_theta = cluster_locs_[i][0];
+    cluster_phi = cluster_locs_[i][1];
+    if ((M_PI / 2 - cluster_theta) <= 0.0) {
+      vert_sign = -1;
+    }
+    if (cluster_phi <= 0.0) {
+      vert_sign = -1;
+    }
+
+    sf_u_w_ += sf_k_0_ * vert_sign *
+               exp(-sf_k_theta_ * abs(M_PI / 2 - cluster_theta)) *
+               exp(-sf_k_d_ / cluster_d_[i]);
+    sf_u_v_ += sf_k_0_ * vert_sign *
+               exp(-sf_k_theta_ * abs(M_PI / 2 - cluster_phi)) *
+               exp(-sf_k_d_ / cluster_d_[i]);
+  }
+}
+
+void NearnessControl3D::mixControlCommands() {
   float front_reg;
   if (enable_speed_regulation_) {
     // Need to process the safety zone points for speed regulation
@@ -554,6 +747,7 @@ void NearnessControl3D::generateWFControlCommands() {
   } else {
     u_u_ = forward_speed_;
   }
+
   control_commands_.linear.x = u_u_;
   control_commands_.linear.y = u_v_;
   control_commands_.linear.z = u_w_;
@@ -561,6 +755,4 @@ void NearnessControl3D::generateWFControlCommands() {
   ROS_INFO_THROTTLE(0.25, "u_u: %f, u_v: %f, u_r: %f, u_w: %f", u_u_, u_v_,
                     u_r_, u_w_);
 }
-
-// end of class
 } // namespace nearness_3d
