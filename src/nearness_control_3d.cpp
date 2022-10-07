@@ -703,7 +703,7 @@ void NearnessControl3D::computeSFControl() {
   sf_u_w_ = 0.0;
   sf_u_v_ = 0.0;
   for (int i = 0; i < num_clusters_; i++) {
-    vert_sign = sgn((M_PI / 2 - cluster_theta);
+    vert_sign = sgn((M_PI / 2 - cluster_theta));
     horiz_sign = sgn(cluster_phi);
     cluster_theta = cluster_locs_[i][0];
     cluster_phi = cluster_locs_[i][1];
@@ -732,6 +732,12 @@ void NearnessControl3D::mixControlCommands() {
     }
   } else {
     u_u_ = forward_speed_;
+  }
+
+  if (enable_sf_control_) {
+    u_v_ += sf_u_v_;
+    u_w_ += sf_u_w_;
+    ROS_INFO_THROTTLE(0.25, "sf_u_v: %f, sf_u_w: %f", sf_u_v_, sf_u_w_);
   }
 
   control_commands_.linear.x = u_u_;
