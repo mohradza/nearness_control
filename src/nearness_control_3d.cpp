@@ -103,8 +103,10 @@ void NearnessControl3D::init() {
   // Small-field conroller params
   pnh_.param("small_field_theta_gain", sf_k_theta_, 1.0);
   pnh_.param("small_field_phi_gain", sf_k_phi_, 1.0);
-  pnh_.param("small_field_distance_gain", sf_k_d_, 1.0);
-  pnh_.param("small_field_signal_gain", sf_k_0_, 1.0);
+  pnh_.param("small_field_lateral_distance_gain", sf_k_v_d_, 1.0);
+  pnh_.param("small_field_vertical_distance_gain", sf_k_w_d_, 1.0);
+  pnh_.param("small_field_lateral_signal_gain", sf_k_v_0_, 1.0);
+  pnh_.param("small_field_vertical_signal_gain", sf_k_w_0_, 1.0);
 
   // Front zone limits
   // TODO: Make these into paramets
@@ -708,12 +710,12 @@ void NearnessControl3D::computeSFControl() {
     cluster_theta = cluster_locs_[i][0];
     cluster_phi = cluster_locs_[i][1];
 
-    sf_u_w_ += sf_k_0_ * vert_sign *
+    sf_u_v_ += sf_k_v_0_ * vert_sign *
+               exp(-sf_k_phi_ * abs(M_PI / 2 - cluster_phi)) *
+               exp(-sf_k_v_d_ / cluster_d_[i]);
+    sf_u_w_ += sf_k_w_0_ * vert_sign *
                exp(-sf_k_theta_ * abs(M_PI / 2 - cluster_theta)) *
-               exp(-sf_k_d_ / cluster_d_[i]);
-    sf_u_v_ += sf_k_0_ * vert_sign *
-               exp(-sf_k_theta_ * abs(M_PI / 2 - cluster_phi)) *
-               exp(-sf_k_d_ / cluster_d_[i]);
+               exp(-sf_k_w_d_ / cluster_d_[i]);
   }
 }
 

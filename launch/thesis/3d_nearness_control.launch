@@ -1,10 +1,11 @@
 <launch>
 
-  <arg name="enable_debug"                 default="true"/>
-  <arg name="enable_speed_regulation"      default="true"/>
-  <arg name="enable_radius_scaling"        default="true"/>
-  <arg name="enable_sensor_noise"          default="true"/>
-  <arg name="vehicle_name"                 default="OHRAD_X3"/>
+  <arg name="enable_debug"                default="true"/>
+  <arg name="enable_speed_regulation"     default="true"/>
+  <arg name="enable_radius_scaling"       default="true"/>
+  <arg name="enable_sensor_noise"         default="true"/>
+  <arg name="enable_sf_control"           default="false"/>
+  <arg name="vehicle_name"                default="OHRAD_X3"/>
 
   <!-- Launch the config file, which contains controller gains and other relevant parameters -->
   <rosparam file="$(find nearness_control)/cfg/NearnessControl3D.yaml" command="load" ns="nearness_control_3d"/>
@@ -22,6 +23,7 @@
 
       <!-- Enable switches -->
       <param name="enable_debug"             type="bool"       value="$(arg enable_debug)"/>
+      <param name="enable_sf_control"        type="bool"       value="$(arg enable_sf_control)"/>
       <param name="enable_speed_regulation"  type="bool"       value="$(arg enable_speed_regulation)"/>
       <param name="enable_radius_scaling"    type="bool"       value="$(arg enable_radius_scaling)"/>
       <param name="enable_sensor_noise"      type="bool"       value="$(arg enable_sensor_noise)"/>

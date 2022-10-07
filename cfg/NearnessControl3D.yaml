@@ -20,3 +20,11 @@ vertical_speed_max: 2.0
 # Yaw rate params
 yaw_rate_gain: -1.0
 yaw_rate_max: 0.6
+
+# Small-field controller params
+small_field_theta_gain: 1.0
+small_field_phi_gain: 1.0
+small_field_lateral_distance_gain: 1.0
+small_field_vertical_distance_gain: 1.0
+small_field_lateral_signal_gain: 1.0
+small_field_vertical_signal_gain: 1.0

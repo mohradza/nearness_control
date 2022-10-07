@@ -123,8 +123,10 @@ private:
   int num_wf_harmonics_;
   double sf_k_theta_;
   double sf_k_phi_;
-  double sf_k_d_;
-  double sf_k_0_;
+  double sf_k_v_d_;
+  double sf_k_w_d_;
+  double sf_k_v_0_;
+  double sf_k_w_0_;
 
   // OTHER VARIABLES
   bool enable_control_ = false;
