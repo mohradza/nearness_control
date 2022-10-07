@@ -78,33 +78,56 @@ private:
 
   ProjectionShapeGenerator shape_generator_;
 
+  // NODE PARAMETERS
   // Enable switches
   bool enable_debug_;
-  bool enable_control_ = false;
   bool enable_speed_regulation_;
   bool enable_radius_scaling_;
+  bool add_noise_;
 
-  // ROS Parameters
+  // Spherical depth sensor params
+  int num_rings_;
+  int num_ring_points_;
+  int num_basis_shapes_;
+  double noise_std_dev_;
+
+  // Forward speed params
+  double forward_speed_;
+  double max_forward_speed_;
+  double k_front_;
+
+  // Lateral speed params
+  double k_v_;
+  double max_lateral_speed_;
+
+  // Vertical speed params
+  double k_w_;
+  double max_vertical_speed_;
+
+  // Yaw rate params
+  double max_yaw_rate_;
+  double k_r_;
+
+  // OTHER VARIABLES
+  bool enable_control_ = false;
   std::string frame_id_;
 
+  // Sensor viewing vectors
   float dtheta_, dphi_;
   std::vector<float> phi_view_vec_;
   std::vector<float> theta_view_vec_;
   std::vector<std::vector<float>> viewing_angle_mat_;
 
+  // Helper vars for output debug
   sensor_msgs::PointCloud2 pcl_out_msg_;
   sensor_msgs::PointCloud2 mu_out_msg_;
-
   pcl::PointCloud<pcl::PointXYZ> new_cloud_;
   pcl::PointCloud<pcl::PointXYZ> cloud_out_;
   pcl::PointCloud<pcl::PointXYZ> mu_cloud_out_;
   std::vector<float> mu_meas_;
   std_msgs::Header pcl_header_;
 
-  int num_ring_points_;
-  int num_rings_;
   int num_excluded_rings_;
-  int num_basis_shapes_;
   int last_index_;
 
   nav_msgs::Odometry current_odom_;
@@ -116,10 +139,6 @@ private:
 
   std::vector<std::vector<float>> shapes_vec_;
 
-  std::vector<float> y_projection_shape_vec_;
-  std::vector<float> theta_projection_shape_vec_;
-  std::vector<float> z_projection_shape_vec_;
-
   // Control
   std::vector<float> C_y_;
   std::vector<float> C_z_;
@@ -128,16 +147,13 @@ private:
   std::vector<float> state_est_vec_;
   double r_;
   double u_u_, u_v_, u_r_, u_w_;
-  double k_v_, k_r_, k_w_;
   geometry_msgs::Twist control_commands_;
   geometry_msgs::Point current_pos_;
   double current_roll_, current_pitch_, current_heading_;
   double current_height_agl_;
   double p_;
-  double max_forward_speed_, max_lateral_speed_;
-  double max_vertical_speed_, max_yaw_rate_;
-  double forward_speed_;
 
+  // Control visualization
   visualization_msgs::Marker u_cmd_marker_;
   visualization_msgs::Marker v_cmd_marker_;
   visualization_msgs::Marker w_cmd_marker_;
@@ -146,20 +162,18 @@ private:
 
   // Sensor noise
   std::default_random_engine generator_;
-  double noise_std_dev_;
-  bool add_noise_;
 
+  // Radius scaling
   float side_zone_dist_;
   int side_zone_count_;
-
   float vert_zone_dist_;
   int vert_zone_count_;
-
   float average_radius_;
   float average_lateral_radius_;
   float average_vertical_radius_;
   float max_dist_;
   float min_dist_;
+
   // Dynamic Control
   bool enable_dynamic_control_ = false;
   float xv_kp1_, xv_k_, uv_k_;
@@ -194,7 +208,6 @@ private:
   double front_x_lim_, front_y_lim_, front_z_lim_;
   std::vector<pcl::PointXYZ> safety_zone_points_;
   std::vector<float> safety_zone_distances_;
-  double k_front_;
 
 }; // class
 

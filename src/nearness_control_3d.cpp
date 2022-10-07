@@ -58,12 +58,12 @@ void NearnessControl3D::init() {
   pnh_.param("enable_debug", enable_debug_, false);
   pnh_.param("enable_speed_regulation", enable_speed_regulation_, false);
   pnh_.param("enable_radius_scaling", enable_radius_scaling_, false);
+  pnh_.param("enable_sensor_noise", add_noise_, false);
 
   // Sensor params
   pnh_.param("num_rings", num_rings_, 64);
   pnh_.param("num_ring_points", num_ring_points_, 360);
   pnh_.param("num_basis_shapes", num_basis_shapes_, 9);
-  pnh_.param("enable_sensor_noise", add_noise_, false);
   pnh_.param("noise_std_dev", noise_std_dev_, 0.03);
 
   // Forward speed params
