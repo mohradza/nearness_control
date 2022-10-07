@@ -72,10 +72,12 @@ include_directories(
 
 #add_executable(nearness_control_node src/nearness_control_node.cpp)
 #target_link_libraries(nearness_control_node nearness_control ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${OpenCV_LIBS})
+add_library(projection_shape_generator src/projection_shape_generator.cpp)
+target_link_libraries(projection_shape_generator ${catkin_LIBRARIES})
 
 add_library(nearness_control_3d src/nearness_control_3d.cpp)
 add_dependencies(nearness_control_3d ${PROJECT_NAME}_generate_messages_cpp)
-target_link_libraries(nearness_control_3d ${catkin_LIBRARIES} ${Boost_LIBRARIES})
+target_link_libraries(nearness_control_3d projection_shape_generator ${catkin_LIBRARIES} ${Boost_LIBRARIES})
 
 add_executable(nearness_control_3d_node src/nearness_control_3d_node.cpp)
 target_link_libraries(nearness_control_3d_node nearness_control_3d ${catkin_LIBRARIES} ${Boost_LIBRARIES})
@@ -106,3 +108,5 @@ target_link_libraries(data_collector_node ${catkin_LIBRARIES} ${Boost_LIBRARIES}
 
 add_executable(data_collector src/data_collector.cpp)
 target_link_libraries(data_collector data_collector_node ${catkin_LIBRARIES} ${Boost_LIBRARIES})
+
+
