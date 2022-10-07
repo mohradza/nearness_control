@@ -57,6 +57,7 @@ private:
   void mixControlCommands();
   void reconstructWFNearness();
   void generateSFNearness();
+  void thresholdAndClusterSFNearness();
   void computeSFControl();
   void publishPCLOuts();
   void publishCommandMarkers();
@@ -233,6 +234,9 @@ private:
 
   // SF Signal processing
   std::vector<float> sf_mu_;
+  std::vector<int> sf_diff_index_;
+  std::vector<pcl::PointXYZ> distance_scan_pcl_;
+  std::vector<float> sf_d_filtered_;
   pcl::PointCloud<pcl::PointXYZ> sf_mu_pcl_;
   pcl::PointCloud<pcl::PointXYZ> sf_d_pcl_;
   pcl::PointCloud<pcl::PointXYZ> sf_d_pcl_filtered_;
@@ -242,7 +246,7 @@ private:
   std::vector<std::vector<float>> cluster_locs_;
   int num_clusters_;
   std::vector<float> cluster_d_;
-
+  pcl::EuclideanClusterExtraction<pcl::PointXYZ> ece_;
   float sf_u_v_;
   float sf_u_w_;
 
