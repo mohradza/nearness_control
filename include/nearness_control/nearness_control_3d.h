@@ -36,6 +36,7 @@ public:
 private:
   // Init functions
   void initRobustController();
+  void importControllerMatrices();
   void generateSphericalHarmonics();
   void generateCommandMarkers();
 
@@ -146,7 +147,7 @@ private:
   std::vector<float> u_vec_;
   std::vector<float> state_est_vec_;
   double r_;
-  double u_u_, u_v_, u_r_, u_w_;
+  float u_u_, u_v_, u_r_, u_w_;
   geometry_msgs::Twist control_commands_;
   geometry_msgs::Point current_pos_;
   double current_roll_, current_pitch_, current_heading_;
@@ -178,29 +179,23 @@ private:
   bool enable_dynamic_control_ = false;
   float xv_kp1_, xv_k_, uv_k_;
 
-  Matrix<float, 6, 6> Mv_A_;
-  Matrix<float, 6, 1> Mv_B_;
-  Matrix<float, 1, 6> Mv_C_;
-  Matrix<float, 6, 1> Mv_Xkp1_;
-  Matrix<float, 6, 1> Mv_Xk_;
+  MatrixXf Mv_A_;
+  VectorXf Mv_B_;
+  VectorXf Mv_C_;
+  VectorXf Mv_Xk_;
+  VectorXf Mv_Xkp1_;
 
-  Matrix<float, 4, 4> Mr_A_;
-  Matrix<float, 4, 1> Mr_B_;
-  Matrix<float, 1, 4> Mr_C_;
-  Matrix<float, 4, 1> Mr_Xkp1_;
-  Matrix<float, 4, 1> Mr_Xk_;
+  MatrixXf Mr_A_;
+  VectorXf Mr_B_;
+  VectorXf Mr_C_;
+  VectorXf Mr_Xk_;
+  VectorXf Mr_Xkp1_;
 
-  Matrix<float, 4, 4> Mw_A_;
-  Matrix<float, 4, 1> Mw_B_;
-  Matrix<float, 1, 4> Mw_C_;
-  Matrix<float, 4, 1> Mw_Xkp1_;
-  Matrix<float, 4, 1> Mw_Xk_;
-
-  Matrix<float, 8, 8> Mc_A_;
-  Matrix<float, 8, 2> Mc_B_;
-  Matrix<float, 2, 8> Mc_C_;
-  Matrix<float, 8, 1> Mc_Xkp1_;
-  Matrix<float, 8, 1> Mc_Xk_;
+  MatrixXf Mw_A_;
+  VectorXf Mw_B_;
+  VectorXf Mw_C_;
+  VectorXf Mw_Xk_;
+  VectorXf Mw_Xkp1_;
 
   ros::Time last_pcl_time_;
 

@@ -112,33 +112,69 @@ void NearnessControl3D::init() {
 
 } // End of init
 
+void NearnessControl3D::importControllerMatrices() {}
+
 void NearnessControl3D::initRobustController() {
-  Mv_Xk_ << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
-  Mr_Xk_ << 0.0, 0.0, 0.0, 0.0;
-  Mw_Xk_ << 0.0, 0.0, 0.0, 0.0;
-  Mc_Xk_ << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
+  std::vector<double> in_vec;
+  std::vector<float> in_vec_f;
+  std::vector<double> default_vec;
 
   // 10hz model
   // Lateral - Mixed synthesis, projection version with new model
-  Mv_A_ << 0.9981, 0, 0, 0, 0, 0, 2.0412, 0.0528, -0.2010, -0.2612, -0.4296,
-      -7.7748, 6.4777, 0.0270, -0.1694, -1.0669, -1.2556, -24.6354, 5.3906,
-      -0.0436, 0.1789, 0.3458, -0.8861, -20.4777, 0.9735, -0.0128, 0.0638,
-      0.2929, 0.8476, -3.6970, 0.0036, -0.0001, 0.0003, 0.0021, 0.0119, 0.9862;
-  Mv_B_ << 0.0999, 0.5016, 0.6738, 0.2434, 0.0291, 0.0001;
-  Mv_C_ << 0.2828, -0.0107, -0.0146, -0.0210, -0.0381, -1.0733;
-  Mv_C_ *= 1e3;
+  constexpr int Mvsize = 6;
+
+  Mv_Xk_ = Eigen::VectorXf::Zero(Mvsize);
+  Mv_Xkp1_ = Mv_Xk_;
+
+  pnh_.param("Mv_A", in_vec, default_vec);
+  in_vec_f = std::vector<float>(in_vec.begin(), in_vec.end());
+  Mv_A_ = Eigen::Map<Eigen::Matrix<float, Mvsize, Mvsize, RowMajor>>(
+      in_vec_f.data());
+
+  pnh_.param("Mv_B", in_vec, default_vec);
+  in_vec_f = std::vector<float>(in_vec.begin(), in_vec.end());
+  Mv_B_ = Eigen::Map<VectorXf>(in_vec_f.data(), in_vec_f.size());
+
+  pnh_.param("Mv_C", in_vec, default_vec);
+  in_vec_f = std::vector<float>(in_vec.begin(), in_vec.end());
+  Mv_C_ = Eigen::Map<VectorXf>(in_vec_f.data(), in_vec_f.size());
 
   // Heading - Mixed sythensis, projection version with new model
-  Mr_A_ << 0.9999, 0.0000, 0.0000, 0.0000, 4.1504, 0.2350, -0.3828, -10.5831,
-      3.0972, -0.1106, 0.5083, -7.9036, 0.0187, -0.0008, 0.0072, 0.9524;
-  Mr_B_ << 0.0200, 0.0582, 0.0373, 0.0001;
-  Mr_C_ << 139.2399, -8.7243, -12.4138, -355.0898;
+  constexpr int Mrsize = 4;
+
+  Mr_Xk_ = Eigen::VectorXf::Zero(Mrsize);
+  Mr_Xkp1_ = Mr_Xk_;
+
+  pnh_.param("Mr_A", in_vec, default_vec);
+  in_vec_f = std::vector<float>(in_vec.begin(), in_vec.end());
+  Mr_A_ = Eigen::Map<Eigen::Matrix<float, Mrsize, Mrsize, RowMajor>>(
+      in_vec_f.data());
+
+  pnh_.param("Mr_B", in_vec, default_vec);
+  in_vec_f = std::vector<float>(in_vec.begin(), in_vec.end());
+  Mr_B_ = Eigen::Map<VectorXf>(in_vec_f.data(), in_vec_f.size());
+
+  pnh_.param("Mr_C", in_vec, default_vec);
+  in_vec_f = std::vector<float>(in_vec.begin(), in_vec.end());
+  Mr_C_ = Eigen::Map<VectorXf>(in_vec_f.data(), in_vec_f.size());
 
   // Vertical - Mixed sythesis, 2x2 state model, 1 input, no modifications
-  Mw_A_ << 0.9996, 0.0000, 0.0000, 0.0000, 1.7728, 0.1060, -0.1395, -3.3989,
-      6.3121, -0.3233, 0.3998, -12.1131, 0.0550, -0.0053, 0.0078, 0.8945;
-  Mw_B_ << 0.1000, 0.2087, 0.4397, 0.0022;
-  Mw_C_ << 78.6214, -17.2273, -4.9615, -150.7364;
+  constexpr int Mwsize = 4;
+  Mw_Xk_ = Eigen::VectorXf::Zero(Mrsize);
+  Mw_Xkp1_ = Mr_Xk_;
+
+  pnh_.param("Mw_A", in_vec, default_vec);
+  in_vec_f = std::vector<float>(in_vec.begin(), in_vec.end());
+  Mw_A_ = Eigen::Map<Eigen::Matrix<float, Mwsize, Mwsize, RowMajor>>(
+      in_vec_f.data());
+
+  pnh_.param("Mw_B", in_vec, default_vec);
+  in_vec_f = std::vector<float>(in_vec.begin(), in_vec.end());
+  Mr_B_ = Eigen::Map<VectorXf>(in_vec_f.data(), in_vec_f.size());
+
+  pnh_.param("Mw_C", in_vec, default_vec);
+  in_vec_f = std::vector<float>(in_vec.begin(), in_vec.end());
+  Mw_C_ = Eigen::Map<VectorXf>(in_vec_f.data(), in_vec_f.size());
 }
 
 void NearnessControl3D::generateSphericalHarmonics() {
@@ -502,7 +538,6 @@ void NearnessControl3D::resetCommands() {
 }
 
 void NearnessControl3D::generateWFControlCommands() {
-  // ros::Time now1 = ros::Time::now();
   u_vec_ = {0.0, 0.0, 0.0};
   state_est_vec_ = {0.0, 0.0, 0.0};
 
@@ -515,21 +550,21 @@ void NearnessControl3D::generateWFControlCommands() {
   // Complex lateral dynamic controller
   float u_y = k_v_ * state_est_vec_[0];
   Mv_Xkp1_ = Mv_A_ * Mv_Xk_ + Mv_B_ * u_y;
-  u_v_ = Mv_C_ * Mv_Xkp1_;
+  u_v_ = (Mv_C_ * Mv_Xkp1_)(0);
   u_v_ = sat(u_v_, -max_lateral_speed_, max_lateral_speed_);
   Mv_Xk_ = Mv_Xkp1_;
-  //
-  // // Complex heading dynamic controller
+
+  // Complex heading dynamic controller
   float u_psi = k_r_ * state_est_vec_[2];
   Mr_Xkp1_ = Mr_A_ * Mr_Xk_ + Mr_B_ * u_psi;
-  u_r_ = Mr_C_ * Mr_Xkp1_;
+  u_r_ = (Mr_C_ * Mr_Xkp1_)(0);
   u_r_ = sat(u_r_, -max_yaw_rate_, max_yaw_rate_);
   Mr_Xk_ = Mr_Xkp1_;
 
   // Complex vertical dynamic controller
   float u_z = k_w_ * state_est_vec_[1];
   Mw_Xkp1_ = Mw_A_ * Mw_Xk_ + Mw_B_ * u_z;
-  u_w_ = Mw_C_ * Mw_Xkp1_;
+  u_w_ = (Mw_C_ * Mw_Xkp1_)(0);
   u_w_ = sat(u_w_, -max_vertical_speed_, max_vertical_speed_);
   Mw_Xk_ = Mw_Xkp1_;
 
