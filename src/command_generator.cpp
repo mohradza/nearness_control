@@ -29,7 +29,7 @@ void commandGenerator::init() {
   goal_point_.z = 1.5;
   goal_heading_ = 0.0;
 
-  forward_speed_ = 1.0;
+  forward_speed_ = 3.0;
 
   routine_ = "doublets";
   routine_ = "dynamic";
@@ -43,7 +43,7 @@ void commandGenerator::init() {
 
   k_u_ = 0.75;
   k_v_ = 1.0;
-  k_w_ = 1.5;
+  k_w_ = 2.0;
   k_r_ = 0.5;
 
   xv_k_ = 0.0;
@@ -252,9 +252,9 @@ void commandGenerator::generateCommandVel() {
     }
   }
 
-  if (cmd_vel_msg_.linear.x > 2.0) {
-    cmd_vel_msg_.linear.x = 2.0;
-  }
+  // if (cmd_vel_msg_.linear.x > 2.0) {
+  //   cmd_vel_msg_.linear.x = 2.0;
+  // }
 }
 
 void commandGenerator::generateDoubleConstCommands() {
@@ -279,13 +279,13 @@ void commandGenerator::generateDoubleConstCommands() {
     // Mw_Xk_ = Mw_Xkp1_;
 
     cmd_vel_msg_.linear.y = k_v_ * (goal_point_.y - current_pos_.y);
-    // cmd_vel_msg_.linear.y = 0.0;
+    // cmd_vel_msg_.linear.y = 1.0;
 
-    // cmd_vel_msg_.linear.z = k_w_*(goal_point_.z - current_pos_.z);
-    cmd_vel_msg_.linear.z = 0.5;
+    cmd_vel_msg_.linear.z = k_w_ * (goal_point_.z - current_pos_.z);
+    // cmd_vel_msg_.linear.z = 1.0;
 
     cmd_vel_msg_.angular.z = (k_r_ / 50.0) * (goal_heading_ - current_heading_);
-    // cmd_vel_msg_.angular.z = .5;
+    cmd_vel_msg_.angular.z = 1.0;
 
     // float e_r = (goal_heading_ - current_heading_)*c1_;
     // Mr_Xkp1_ = Mr_A_*Mr_Xk_ + Mr_B_*e_r;

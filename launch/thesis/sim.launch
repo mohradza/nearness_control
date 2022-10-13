@@ -1,6 +1,6 @@
 <launch>
 
-  <arg name="enable_debug"                 default="true"/>
+  <arg name="enable_debug"                 default="false"/>
   <arg name="enable_teleop"                default = "0"/>
 
   <group ns="OHRAD_X3">
