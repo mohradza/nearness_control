@@ -4,7 +4,7 @@
 
     <node name="command_generator_node" type="command_generator" pkg="nearness_control" output="screen">
       <remap from="command_generator/odometry" to="ground_truth/odom"/>
-      <remap from="command_generator/cmd_vel_out" to="nav_vel"/>
+      <remap from="command_generator/cmd_vel_out" to="cmd_vel"/>
       <remap from="command_generator/cmd_vel_out_stamped" to="cmd_vel_stamped"/>
     </node>
 
