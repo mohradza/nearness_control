@@ -98,11 +98,11 @@ private:
   double p_, q_, r_;
   double c1_, c2_;
 
-  Matrix<float, 10, 10> Mv_A_;
-  Matrix<float, 10, 2> Mv_B_;
-  Matrix<float, 1, 10> Mv_C_;
-  Matrix<float, 10, 1> Mv_Xkp1_;
-  Matrix<float, 10, 1> Mv_Xk_;
+  Matrix<float, 6, 6> Mv_A_;
+  Matrix<float, 6, 1> Mv_B_;
+  Matrix<float, 1, 6> Mv_C_;
+  Matrix<float, 6, 1> Mv_Xkp1_;
+  Matrix<float, 6, 1> Mv_Xk_;
 
   Matrix<float, 4, 4> Mr_A_;
   Matrix<float, 4, 1> Mr_B_;

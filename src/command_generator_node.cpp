@@ -1,20 +1,20 @@
 #include "nearness_control/command_generator.h"
 #include <string>
 
-int main(int argc, char** argv) {
-    std::string node_name = "command_generator";
-    ros::init(argc, argv, node_name);
-    ros::NodeHandle nh("command_generator");
-    ros::NodeHandle nh_private("~");
-    command_generator::commandGenerator command_generator_node(nh, nh_private);
+int main(int argc, char **argv) {
+  std::string node_name = "command_generator";
+  ros::init(argc, argv, node_name);
+  ros::NodeHandle nh("command_generator");
+  ros::NodeHandle nh_private("~");
+  command_generator::commandGenerator command_generator_node(nh, nh_private);
 
-    ros::Rate loop_rate(50);
+  ros::Rate loop_rate(20);
 
-    while(ros::ok()){
+  while (ros::ok()) {
 
-      command_generator_node.publishControlCommands();
+    command_generator_node.publishControlCommands();
 
-      ros::spinOnce();
-      loop_rate.sleep();
-    }
+    ros::spinOnce();
+    loop_rate.sleep();
+  }
 }

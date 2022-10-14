@@ -25,7 +25,7 @@ void commandGenerator::init() {
   starting_heading_ = 0.0;
 
   goal_point_.x = 0.0;
-  goal_point_.y = 0.0;
+  goal_point_.y = 0.5;
   goal_point_.z = 1.5;
   goal_heading_ = 0.0;
 
@@ -33,8 +33,8 @@ void commandGenerator::init() {
 
   routine_ = "doublets";
   routine_ = "dynamic";
-  routine_ = "const";
-  routine_ = "double_const";
+  // routine_ = "const";
+  // routine_ = "double_const";
   // routine_ = "swerve";
   swerve_dur_ = 4.0;
   start_doublets_ = false;
@@ -51,31 +51,21 @@ void commandGenerator::init() {
   c2_ = .3743;
 
   // Mv_Xk_ << 0.0, 0.0, 0.0, 0.0, 0.0;
-  Mv_Xk_ << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
+  Mv_Xk_ << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
   Mr_Xk_ << 0.0, 0.0, 0.0, 0.0;
   Mw_Xk_ << 0.0, 0.0, 0.0, 0.0;
 
   // Lateral - Mixed synthesis, 4x4 state model, 2 inputs
-  Mv_A_ << 1.0000, -0.0000, -0.0000, 0.0000, 0.0000, 0.0000, 0.0000, -0.0000,
-      0.0000, 0.0000, 0.0000, 0.9851, 0.0000, -0.0000, -0.0000, -0.0000,
-      -0.0000, 0.0000, -0.0000, -0.0000, 0.4686, -0.0003, 0.7534, -0.0367,
-      -0.0467, -0.0545, -1.1439, -0.0031, -0.0031, -0.0015, 0.3290, -0.0002,
-      0.2845, 0.8047, -0.1200, -0.0770, -0.8030, -0.0022, -0.0022, -0.0010,
-      0.0250, -0.0000, 0.0247, 0.1443, 0.9904, -0.0061, -0.0610, -0.0002,
-      -0.0002, -0.0001, 0.0006, -0.0000, 0.0007, 0.0060, 0.0797, 0.9998,
-      -0.0016, -0.0000, -0.0000, -0.0000, 0.0000, -0.0000, 0.0000, 0.0000,
-      0.0001, 0.0025, 1.0000, -0.0000, -0.0000, -0.0000, 0.1645, -0.0001,
-      0.1423, -0.0129, -0.0164, -0.0191, -0.4015, 0.8293, -0.0883, -0.0392,
-      0.0125, -0.0000, 0.0124, -0.0010, -0.0012, -0.0014, -0.0305, 0.1461,
-      0.9928, -0.0032, 0.0003, -0.0000, 0.0003, -0.0000, -0.0000, -0.0000,
-      -0.0008, 0.0060, 0.0798, 0.9999;
+  Mv_A_ << 0.99823, 0.049268, -0.012277, -0.00011805, -0.0029007, -0.00023763,
+      -0.10611, 0.95959, -0.43431, -0.0059537, -0.17439, -0.012569, 0.53047,
+      0.17545, 0.73238, 0.021092, 0.87249, 0.045573, 12.021, 4.2401, -7.1541,
+      0.18241, 19.77, 0.3846, -1.6708e-13, -4.9492e-14, 5.8172e-14, 5.6718e-15,
+      0.99994, -3.9501e-14, -1.5821, -0.54306, 0.64712, 0.065208, -2.6042,
+      0.13908;
 
-  Mv_B_ << 0.0100, 0.0000, -0.0000, 0.0099, 0.0025, -0.0000, 0.0016, -0.0000,
-      0.0001, -0.0000, 0.0000, -0.0000, -0.0000, 0.0000, 0.0008, -0.0000,
-      0.0000, -0.0000, 0.0000, -0.0000;
+  Mv_B_ << 1.6382e-05, 0.0012704, -0.010168, -0.4174, -0.024999, 0.092129;
 
-  Mv_C_ << 3.3970, -0.0024, 4.5351, -0.2622, -0.3348, -0.3904, -8.2916, -0.0230,
-      -0.0230, -0.0111;
+  Mv_C_ << -524.08, -155.72, 183.12, 17.868, -862.23, -114.53;
 
   // Heading - Mixed sythesis, 2x2 state model, 2 inputs, no modifications
   Mr_A_ << 0.9997, -0.0000, -0.0000, -0.0000, 6.3379, 0.1678, -0.3967, -10.4494,
@@ -155,22 +145,6 @@ void commandGenerator::generateCommandVel() {
     // Do nothing, just wait
   } else if (!state_.compare("start_test")) {
     // Start the test routine
-
-    if (!routine_.compare("const")) {
-      // cmd_vel_msg_.linear.x = k_u_*(starting_point_.x - current_pos_.x);
-      cmd_vel_msg_.linear.x = 0.5;
-
-      cmd_vel_msg_.linear.y = k_v_ * (starting_point_.y - current_pos_.y);
-      // cmd_vel_msg_.linear.y = 0.5;
-
-      cmd_vel_msg_.linear.z = k_w_ * (starting_point_.z - current_pos_.z);
-      // cmd_vel_msg_.linear.z = 0.5;
-
-      cmd_vel_msg_.angular.z =
-          (k_r_ / 50.0) * (starting_heading_ - current_heading_);
-      // cmd_vel_msg_.angular.z = 0.5;
-    }
-
     if (!routine_.compare("double_const")) {
       cmd_vel_msg_.linear.x = forward_speed_;
       // cmd_vel_msg_.linear.x = k_u_*(starting_point_.x - current_pos_.x);
@@ -213,7 +187,8 @@ void commandGenerator::generateCommandVel() {
 
     if (!routine_.compare("dynamic")) {
       cmd_vel_msg_.linear.x = k_u_ * (starting_point_.x - current_pos_.x);
-      cmd_vel_msg_.linear.y = k_v_ * (starting_point_.y - current_pos_.y);
+      cmd_vel_msg_.linear.x = forward_speed_;
+      // cmd_vel_msg_.linear.y = k_v_ * (starting_point_.y - current_pos_.y);
       cmd_vel_msg_.linear.z = k_w_ * (starting_point_.z - current_pos_.z);
       cmd_vel_msg_.angular.z =
           (k_r_ / 50.0) * (starting_heading_ - current_heading_);
@@ -223,11 +198,10 @@ void commandGenerator::generateCommandVel() {
       float u_psi = (goal_heading_ - current_heading_);
 
       // Complex lateral dynamic controller
-      // Vector2f a(u_y_, -p_);
-      // Mv_Xkp1_ = Mv_A_*Mv_Xk_ + Mv_B_*a;
-      // u_v_ = k_v_*Mv_C_*Mv_Xkp1_;
-      // Mv_Xk_ = Mv_Xkp1_;
-      // ROS_INFO("u_v: %f", u_v_);
+      Mv_Xkp1_ = Mv_A_ * Mv_Xk_ + Mv_B_ * u_y_;
+      u_v_ = k_v_ * Mv_C_ * Mv_Xkp1_;
+      Mv_Xk_ = Mv_Xkp1_;
+      ROS_INFO("u_v: %f", u_v_);
 
       // Complex heading dynamic controller
       // Vector2f a(u_psi, -r_);
@@ -237,24 +211,34 @@ void commandGenerator::generateCommandVel() {
       // ROS_INFO("u_r: %f, psi: %f", u_r_, u_psi);
 
       // Complex vertical dynamic controller
-      Mw_Xkp1_ = Mw_A_ * Mw_Xk_ + Mw_B_ * u_z_;
-      u_w_ = Mw_C_ * Mw_Xkp1_;
-      Mw_Xk_ = Mw_Xkp1_;
-      ROS_INFO("u_w: %f, ", u_w_);
+      // Mw_Xkp1_ = Mw_A_ * Mw_Xk_ + Mw_B_ * u_z_;
+      // u_w_ = Mw_C_ * Mw_Xkp1_;
+      // Mw_Xk_ = Mw_Xkp1_;
+      // ROS_INFO("u_w: %f, ", u_w_);
 
-      if (isnan(u_w_)) {
+      if (isnan(u_v_)) {
         state_ = "init";
       }
 
-      // cmd_vel_msg_.linear.y = u_v_;
+      cmd_vel_msg_.linear.y = u_v_;
       // cmd_vel_msg_.angular.z = u_r_;
-      cmd_vel_msg_.linear.z = u_w_;
+      // cmd_vel_msg_.linear.z = u_w_;
     }
-  }
 
-  // if (cmd_vel_msg_.linear.x > 2.0) {
-  //   cmd_vel_msg_.linear.x = 2.0;
-  // }
+  } else if (!state_.compare("const")) {
+    // cmd_vel_msg_.linear.x = k_u_*(starting_point_.x - current_pos_.x);
+    cmd_vel_msg_.linear.x = forward_speed_;
+
+    cmd_vel_msg_.linear.y = k_v_ * (starting_point_.y - current_pos_.y);
+    // cmd_vel_msg_.linear.y = 0.5;
+
+    cmd_vel_msg_.linear.z = k_w_ * (starting_point_.z - current_pos_.z);
+    // cmd_vel_msg_.linear.z = 0.5;
+
+    cmd_vel_msg_.angular.z =
+        (k_r_ / 50.0) * (starting_heading_ - current_heading_);
+    // cmd_vel_msg_.angular.z = 0.5;
+  }
 }
 
 void commandGenerator::generateDoubleConstCommands() {
