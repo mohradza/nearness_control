@@ -25,16 +25,16 @@ void commandGenerator::init() {
   starting_heading_ = 0.0;
 
   goal_point_.x = 0.0;
-  goal_point_.y = 0.5;
+  goal_point_.y = 0.0;
   goal_point_.z = 1.5;
   goal_heading_ = 0.0;
 
-  forward_speed_ = 3.0;
+  forward_speed_ = 2.0;
 
   routine_ = "doublets";
   routine_ = "dynamic";
   // routine_ = "const";
-  // routine_ = "double_const";
+  routine_ = "double_const";
   // routine_ = "swerve";
   swerve_dur_ = 4.0;
   start_doublets_ = false;
@@ -262,14 +262,14 @@ void commandGenerator::generateDoubleConstCommands() {
     // u_w_ = Mw_C_*Mw_Xkp1_;
     // Mw_Xk_ = Mw_Xkp1_;
 
-    cmd_vel_msg_.linear.y = k_v_ * (goal_point_.y - current_pos_.y);
+    // cmd_vel_msg_.linear.y = k_v_ * (goal_point_.y - current_pos_.y);
     // cmd_vel_msg_.linear.y = 1.0;
 
     cmd_vel_msg_.linear.z = k_w_ * (goal_point_.z - current_pos_.z);
-    // cmd_vel_msg_.linear.z = 1.0;
+    cmd_vel_msg_.linear.z = 1.0;
 
     cmd_vel_msg_.angular.z = (k_r_ / 50.0) * (goal_heading_ - current_heading_);
-    cmd_vel_msg_.angular.z = 1.0;
+    // cmd_vel_msg_.angular.z = 1.0;
 
     // float e_r = (goal_heading_ - current_heading_)*c1_;
     // Mr_Xkp1_ = Mr_A_*Mr_Xk_ + Mr_B_*e_r;
