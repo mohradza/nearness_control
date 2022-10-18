@@ -8,7 +8,6 @@ project(nearness_control)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  dynamic_reconfigure
   roscpp
   rospy
   sensor_msgs
@@ -23,12 +22,7 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 ## System dependencies are found with CMake's conventions
-find_package(Boost REQUIRED COMPONENTS thread)
 find_package(Eigen3 REQUIRED)
-
-if(cv_bridge_VERSION VERSION_GREATER "1.12.0")
-  add_compile_options(-std=c++11)
-endif()
 
 ## Generate messages in the 'msg' folder
 add_message_files(
@@ -62,47 +56,44 @@ catkin_package(
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
-  ${Boost_INCLUDE_DIRS}
   ${Eigen3_INCLUDE_DIRS}
 )
 
-#add_library(nearness_control src/nearness_control.cpp)
-#add_dependencies(nearness_control ${PROJECT_NAME}_generate_messages_cpp)
-#target_link_libraries(nearness_control ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${OpenCV_LIBS})
-
-#add_executable(nearness_control_node src/nearness_control_node.cpp)
-#target_link_libraries(nearness_control_node nearness_control ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${OpenCV_LIBS})
+add_library(projection_shape_generator src/projection_shape_generator.cpp)
+target_link_libraries(projection_shape_generator ${catkin_LIBRARIES})
 
 add_library(nearness_control_3d src/nearness_control_3d.cpp)
 add_dependencies(nearness_control_3d ${PROJECT_NAME}_generate_messages_cpp)
-target_link_libraries(nearness_control_3d ${catkin_LIBRARIES} ${Boost_LIBRARIES})
+target_link_libraries(nearness_control_3d projection_shape_generator ${catkin_LIBRARIES} ${Boost_LIBRARIES})
 
 add_executable(nearness_control_3d_node src/nearness_control_3d_node.cpp)
 target_link_libraries(nearness_control_3d_node nearness_control_3d ${catkin_LIBRARIES} ${Boost_LIBRARIES})
 
 add_library(control_mixer_node src/control_mixer_node.cpp)
-target_link_libraries(control_mixer_node ${catkin_LIBRARIES} ${Boost_LIBRARIES})
+target_link_libraries(control_mixer_node ${catkin_LIBRARIES})
 
 add_executable(control_mixer src/control_mixer.cpp)
-target_link_libraries(control_mixer control_mixer_node ${catkin_LIBRARIES} ${Boost_LIBRARIES})
+target_link_libraries(control_mixer control_mixer_node ${catkin_LIBRARIES})
 
 add_library(joy_teleop_mixer_node src/joy_teleop_mixer_node.cpp)
-target_link_libraries(joy_teleop_mixer_node ${catkin_LIBRARIES} ${Boost_LIBRARIES})
+target_link_libraries(joy_teleop_mixer_node ${catkin_LIBRARIES})
 
 add_executable(joy_teleop_mixer src/joy_teleop_mixer.cpp)
-target_link_libraries(joy_teleop_mixer joy_teleop_mixer_node ${catkin_LIBRARIES} ${Boost_LIBRARIES})
+target_link_libraries(joy_teleop_mixer joy_teleop_mixer_node ${catkin_LIBRARIES})
 
 add_executable(tf2odom src/tf2odom.cpp)
 target_link_libraries(tf2odom ${catkin_LIBRARIES})
 
 add_library(command_generator_node src/command_generator_node.cpp)
-target_link_libraries(command_generator_node ${catkin_LIBRARIES} ${Boost_LIBRARIES})
+target_link_libraries(command_generator_node ${catkin_LIBRARIES})
 
 add_executable(command_generator src/command_generator.cpp)
-target_link_libraries(command_generator command_generator_node ${catkin_LIBRARIES} ${Boost_LIBRARIES})
+target_link_libraries(command_generator command_generator_node ${catkin_LIBRARIES})
 
 add_library(data_collector_node src/data_collector_node.cpp)
-target_link_libraries(data_collector_node ${catkin_LIBRARIES} ${Boost_LIBRARIES})
+target_link_libraries(data_collector_node ${catkin_LIBRARIES})
 
 add_executable(data_collector src/data_collector.cpp)
-target_link_libraries(data_collector data_collector_node ${catkin_LIBRARIES} ${Boost_LIBRARIES})
+target_link_libraries(data_collector data_collector_node ${catkin_LIBRARIES})
+
+

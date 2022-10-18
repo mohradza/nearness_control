@@ -1,297 +1,216 @@
 #ifndef NEARNESS_CONTROL_3D_H
 #define NEARNESS_CONTROL_3D_H
 
-#include <ros/ros.h>
-#include <iostream>
 #include <random>
-
-#include <boost/version.hpp>
-#if ((BOOST_VERSION / 100) % 1000) >= 53
-#include <boost/thread/lock_guard.hpp>
-#endif
-#include <boost/circular_buffer.hpp>
-
-#include <std_msgs/Bool.h>
-#include <std_msgs/Header.h>
-#include <std_msgs/Float32MultiArray.h>
-#include <std_msgs/Float32.h>
-#include <std_msgs/Int32.h>
-#include <geometry_msgs/Twist.h>
-#include <geometry_msgs/Pose.h>
-#include <sensor_msgs/Joy.h>
-#include <sensor_msgs/Imu.h>
-#include <sensor_msgs/LaserScan.h>
-#include <sensor_msgs/PointCloud2.h>
-#include <nav_msgs/Odometry.h>
-#include <nearness_control_msgs/ProjectionWithOdomMsg.h>
-#include <visualization_msgs/Marker.h>
-#include <visualization_msgs/MarkerArray.h>
-#include <pcl_conversions/pcl_conversions.h>
-#include <pcl/point_cloud.h>
-#include <pcl/point_types.h>
-
-#include <pcl/ModelCoefficients.h>
-#include <pcl/io/pcd_io.h>
-#include <pcl/filters/extract_indices.h>
-#include <pcl/kdtree/kdtree.h>
-#include <pcl/sample_consensus/method_types.h>
-#include <pcl/segmentation/extract_clusters.h>
-
-#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
-#include <tf2/LinearMath/Quaternion.h>
-#include <tf/tf.h>
-
-#include <math.h>
-#include <numeric>
-#include <iterator>
 #include <vector>
-#include <algorithm>
-#include <cstdlib>
-#include <cv_bridge/cv_bridge.h>
-#include <tf2_ros/transform_broadcaster.h>
-#include <geometry_msgs/TransformStamped.h>
 
 #include <Eigen/Core>
+#include <geometry_msgs/Twist.h>
+#include <nav_msgs/Odometry.h>
+#include <pcl_conversions/pcl_conversions.h>
+#include <ros/ros.h>
+#include <std_msgs/Bool.h>
+#include <std_msgs/Float32MultiArray.h>
+#include <visualization_msgs/Marker.h>
+#include <visualization_msgs/MarkerArray.h>
 
-#include <std_msgs/String.h>
-#include <boost/thread.hpp>
+#include <nearness_control/projection_shape_generator.h>
 
-#include <nearness_control/NearnessControl3DConfig.h>
-using namespace cv_bridge;
-using namespace std;
+// using namespace cv_bridge;
 using namespace Eigen;
-namespace nearness_3d{
+namespace nearness_3d {
 
 class NearnessControl3D {
- public:
-    NearnessControl3D(const ros::NodeHandle &node_handle,
-                            const ros::NodeHandle &private_node_handle);
-    ~NearnessControl3D() = default;
+public:
+  NearnessControl3D(const ros::NodeHandle &node_handle,
+                    const ros::NodeHandle &private_node_handle);
+  ~NearnessControl3D() = default;
 
-    void init();
+  void init();
 
-    // FUNCTIONS //
-    void pclCb(const sensor_msgs::PointCloud2ConstPtr& pcl_msg);
-    void odomCb(const nav_msgs::OdometryConstPtr& odom_msg);
-    void enableControlCb(const std_msgs::Bool msg);
-    void generateViewingAngleVectors();
-    void generateProjectionShapes();
-    void generateCommandMarkers();
-    void publishProjectionShapes();
-    bool newPcl();
-    bool isObstructedPoint(const float t, const float p);
-    bool isSideZonePoint(const float t, const float p);
-    bool isVerticalZonePoint(const float t, const float p);
-    void checkFrontZone(const pcl::PointXYZ p);
-    void resetCommands();
+  // FUNCTIONS //
+  void enableControlCb(const std_msgs::Bool msg);
+  void odomCb(const nav_msgs::OdometryConstPtr &odom_msg);
+  void pclCb(const sensor_msgs::PointCloud2ConstPtr &pcl_msg);
 
- private:
-    // public ros node handle
-    ros::NodeHandle nh_;
-    // private ros node handle
-    ros::NodeHandle pnh_;
-    std::string node_name_{"node_name"};
+private:
+  // Init functions
+  void initRobustController();
+  void generateSphericalHarmonics();
+  void generateCommandMarkers();
 
-    // SUBSCRIBERS //
-    ros::Subscriber sub_pcl_;
-    ros::Subscriber sub_odom_;
-    ros::Subscriber sub_enable_control_;
+  // pclCb functions
+  void processIncomingPCL(const sensor_msgs::PointCloud2ConstPtr &pcl_msg);
+  void resetPCLProcessing();
+  void checkFrontZone(const pcl::PointXYZ p);
+  void updateZoneStats(const float dist, const int i, const int j);
+  bool isSideZonePoint(const float t, const float p);
+  bool isVerticalZonePoint(const float t, const float p);
+  void updateRadiusEstimates();
+  bool isObstructedPoint(const float t, const float p);
+  void projectNearness();
+  void resetCommands();
+  void generateWFControlCommands();
+  void publishPCLOuts();
+  void publishCommandMarkers();
 
-    // PUBLISHERS
-    ros::Publisher pub_pcl_;
-    ros::Publisher pub_mu_pcl_;
+  // public ros node handle
+  ros::NodeHandle nh_;
+  // private ros node handle
+  ros::NodeHandle pnh_;
+  std::string node_name_{"node_name"};
 
-    ros::Publisher pub_Y00_;
-    ros::Publisher pub_Y0p1_;
-    ros::Publisher pub_Yp1p1_;
-    ros::Publisher pub_Yn1p1_;
-    ros::Publisher pub_Y0p2_;
-    ros::Publisher pub_Yp1p2_;
-    ros::Publisher pub_Yn1p2_;
-    ros::Publisher pub_Yp2p2_;
-    ros::Publisher pub_Yn2p2_;
-    ros::Publisher pub_y_projection_shape_;
-    ros::Publisher pub_theta_projection_shape_;
-    ros::Publisher pub_z_projection_shape_;
-    ros::Publisher pub_y_projections_with_odom_;
+  // SUBSCRIBERS //
+  ros::Subscriber sub_pcl_;
+  ros::Subscriber sub_odom_;
+  ros::Subscriber sub_enable_control_;
 
-    ros::Publisher pub_control_commands_;
-    ros::Publisher pub_cmd_markers_;
+  // PUBLISHERS
+  ros::Publisher pub_pcl_;
+  ros::Publisher pub_mu_pcl_;
 
-    // FUNCTIONS //
-    float sgn(double v);
-    void saturateControls();
-    float wrapAngle(float angle);
-    float sat(float num, float min_val, float max_val);
-    int fact(int n);
+  ros::Publisher pub_y_projection_shape_;
+  ros::Publisher pub_theta_projection_shape_;
+  ros::Publisher pub_z_projection_shape_;
 
-    bool enable_debug_;
-    bool enable_control_ = false;
-    bool enable_speed_regulation_;
-    bool enable_cmd_scaling_;
-    double test_ring_;
-    bool new_pcl_ = false;
+  ros::Publisher pub_control_commands_;
+  ros::Publisher pub_cmd_markers_;
 
-    // GLOBAL VARIABLES //
-    float phi_start_;
-    float theta_start_;
-    float dphi_;
-    float dtheta_;
-    string frame_id_;
+  ProjectionShapeGenerator shape_generator_;
 
+  // NODE PARAMETERS
+  // Enable switches
+  bool enable_debug_;
+  bool enable_speed_regulation_;
+  bool enable_radius_scaling_;
+  bool add_noise_;
 
-    std::vector<float> phi_view_vec_;
-    std::vector<float> theta_view_vec_;
-    vector<vector<float>> viewing_angle_mat_;
+  // Spherical depth sensor params
+  int num_rings_;
+  int num_ring_points_;
+  int num_basis_shapes_;
+  double noise_std_dev_;
 
-    sensor_msgs::PointCloud2 pcl_out_msg_;
-    sensor_msgs::PointCloud2 mu_out_msg_;
+  // Forward speed params
+  double forward_speed_;
+  double max_forward_speed_;
+  double k_front_;
 
-    pcl::PointCloud<pcl::PointXYZ> new_cloud_;
-    pcl::PointCloud<pcl::PointXYZ> cloud_out_;
-    pcl::PointCloud<pcl::PointXYZ> mu_cloud_out_;
-    std::vector<float> mu_meas_;
-    int pcl_width_;
-    int pcl_height_;
-    std_msgs::Header pcl_header_;
-    int pcl_vertical_spread_;
-    int num_ring_points_;
-    int num_rings_;
-    int num_excluded_rings_;
-    int num_basis_shapes_;
-    int last_index_;
+  // Lateral speed params
+  double k_v_;
+  double max_lateral_speed_;
 
-    nav_msgs::Odometry current_odom_;
+  // Vertical speed params
+  double k_w_;
+  double max_vertical_speed_;
 
-    vector<float> y_full_;
-    vector<float> y_front_half_;
-    vector<float> y_bottom_half_;
-    std_msgs::Float32MultiArray y_projections_msg_;
-    nearness_control_msgs::ProjectionWithOdomMsg y_projections_with_odom_msg_;
+  // Yaw rate params
+  double max_yaw_rate_;
+  double k_r_;
 
-    pcl::PointCloud<pcl::PointXYZI> Y00_;
-    pcl::PointCloud<pcl::PointXYZI> Y0p1_;
-    pcl::PointCloud<pcl::PointXYZI> Yp1p1_;
-    pcl::PointCloud<pcl::PointXYZI> Yn1p1_;
-    pcl::PointCloud<pcl::PointXYZI> Y0p2_;
-    pcl::PointCloud<pcl::PointXYZI> Yp1p2_;
-    pcl::PointCloud<pcl::PointXYZI> Yn1p2_;
-    pcl::PointCloud<pcl::PointXYZI> Yp2p2_;
-    pcl::PointCloud<pcl::PointXYZI> Yn2p2_;
+  // OTHER VARIABLES
+  bool enable_control_ = false;
+  std::string frame_id_;
 
-    sensor_msgs::PointCloud2 Y00_msg_;
-    sensor_msgs::PointCloud2 Y0p1_msg_;
-    sensor_msgs::PointCloud2 Yp1p1_msg_;
-    sensor_msgs::PointCloud2 Yn1p1_msg_;
-    sensor_msgs::PointCloud2 Y0p2_msg_;
-    sensor_msgs::PointCloud2 Yp1p2_msg_;
-    sensor_msgs::PointCloud2 Yn1p2_msg_;
-    sensor_msgs::PointCloud2 Yn2p2_msg_;
-    sensor_msgs::PointCloud2 Yp2p2_msg_;
+  // Sensor viewing vectors
+  float dtheta_, dphi_;
+  std::vector<float> phi_view_vec_;
+  std::vector<float> theta_view_vec_;
+  std::vector<std::vector<float>> viewing_angle_mat_;
 
-    vector<vector<float>> shape_mat_;
+  // Helper vars for output debug
+  sensor_msgs::PointCloud2 pcl_out_msg_;
+  sensor_msgs::PointCloud2 mu_out_msg_;
+  pcl::PointCloud<pcl::PointXYZ> new_cloud_;
+  pcl::PointCloud<pcl::PointXYZ> cloud_out_;
+  pcl::PointCloud<pcl::PointXYZ> mu_cloud_out_;
+  std::vector<float> mu_meas_;
+  std_msgs::Header pcl_header_;
 
-    vector<float> Y00_vec_;
-    vector<float> Y0p1_vec_;
-    vector<float> Yp1p1_vec_;
-    vector<float> Yn1p1_vec_;
-    vector<float> Y0p2_vec_;
-    vector<float> Yp1p2_vec_;
-    vector<float> Yn1p2_vec_;
-    vector<float> Yp2p2_vec_;
-    vector<float> Yn2p2_vec_;
+  int num_excluded_rings_;
+  int last_index_;
 
-    vector<float> y_projection_shape_vec_;
-    vector<float> theta_projection_shape_vec_;
-    vector<float> z_projection_shape_vec_;
-    pcl::PointCloud<pcl::PointXYZI> y_projection_shape_;
-    pcl::PointCloud<pcl::PointXYZI> theta_projection_shape_;
-    pcl::PointCloud<pcl::PointXYZI> z_projection_shape_;
-    sensor_msgs::PointCloud2 y_projection_shape_msg_;
-    sensor_msgs::PointCloud2 theta_projection_shape_msg_;
-    sensor_msgs::PointCloud2 z_projection_shape_msg_;
+  nav_msgs::Odometry current_odom_;
 
-    // Control
-    vector<vector<float>> C_mat_;
-    vector<float> C_y_;
-    vector<float> C_z_;
-    vector<float> C_theta_;
-    vector<float> u_vec_;
-    vector<float> state_est_vec_;
-    double r_;
-    double u_u_, u_v_, u_r_, u_w_;
-    double k_v_, k_r_, k_w_;
-    geometry_msgs::Twist control_commands_;
-    geometry_msgs::Point current_pos_;
-    double current_roll_, current_pitch_, current_heading_;
-    double current_height_agl_;
-    double p_;
-    double reference_altitude_;
-    double max_forward_speed_, max_lateral_speed_;
-    double max_vertical_speed_, max_yaw_rate_;
-    double forward_speed_;
+  std::vector<float> y_full_;
+  std::vector<float> y_front_half_;
+  std::vector<float> y_bottom_half_;
+  std_msgs::Float32MultiArray y_projections_msg_;
 
-    visualization_msgs::Marker u_cmd_marker_;
-    visualization_msgs::Marker v_cmd_marker_;
-    visualization_msgs::Marker w_cmd_marker_;
-    visualization_msgs::Marker r_cmd_marker_;
-    visualization_msgs::MarkerArray cmd_markers_;
+  std::vector<std::vector<float>> shapes_vec_;
 
-    // Sensor noise
-    std::default_random_engine generator_;
-    double noise_std_dev_;
-    bool add_noise_;
+  // Control
+  std::vector<float> C_y_;
+  std::vector<float> C_z_;
+  std::vector<float> C_theta_;
+  std::vector<float> u_vec_;
+  std::vector<float> state_est_vec_;
+  double r_;
+  double u_u_, u_v_, u_r_, u_w_;
+  geometry_msgs::Twist control_commands_;
+  geometry_msgs::Point current_pos_;
+  double current_roll_, current_pitch_, current_heading_;
+  double current_height_agl_;
+  double p_;
 
-    float side_zone_dist_;
-    int side_zone_count_;
+  // Control visualization
+  visualization_msgs::Marker u_cmd_marker_;
+  visualization_msgs::Marker v_cmd_marker_;
+  visualization_msgs::Marker w_cmd_marker_;
+  visualization_msgs::Marker r_cmd_marker_;
+  visualization_msgs::MarkerArray cmd_markers_;
 
-    float vert_zone_dist_;
-    int vert_zone_count_;
+  // Sensor noise
+  std::default_random_engine generator_;
 
-    float average_radius_;
-    float average_lateral_radius_;
-    float average_vertical_radius_;
-    bool enable_radius_scaling_;
-    float max_dist_;
-    float min_dist_;
-    // Dynamic Control
-    bool enable_dynamic_control_ = false;
-    float xv_kp1_, xv_k_, uv_k_;
+  // Radius scaling
+  float side_zone_dist_;
+  int side_zone_count_;
+  float vert_zone_dist_;
+  int vert_zone_count_;
+  float average_radius_;
+  float average_lateral_radius_;
+  float average_vertical_radius_;
+  float max_dist_;
+  float min_dist_;
 
-    Matrix<float, 6, 6> Mv_A_;
-    Matrix<float, 6, 1> Mv_B_;
-    Matrix<float, 1, 6> Mv_C_;
-    Matrix<float, 6, 1> Mv_Xkp1_;
-    Matrix<float, 6, 1> Mv_Xk_;
+  // Dynamic Control
+  bool enable_dynamic_control_ = false;
+  float xv_kp1_, xv_k_, uv_k_;
 
-    Matrix<float, 4, 4> Mr_A_;
-    Matrix<float, 4, 1> Mr_B_;
-    Matrix<float, 1, 4> Mr_C_;
-    Matrix<float, 4, 1> Mr_Xkp1_;
-    Matrix<float, 4, 1> Mr_Xk_;
+  Matrix<float, 6, 6> Mv_A_;
+  Matrix<float, 6, 1> Mv_B_;
+  Matrix<float, 1, 6> Mv_C_;
+  Matrix<float, 6, 1> Mv_Xkp1_;
+  Matrix<float, 6, 1> Mv_Xk_;
 
-    Matrix<float, 4, 4> Mw_A_;
-    Matrix<float, 4, 1> Mw_B_;
-    Matrix<float, 1, 4> Mw_C_;
-    Matrix<float, 4, 1> Mw_Xkp1_;
-    Matrix<float, 4, 1> Mw_Xk_;
+  Matrix<float, 4, 4> Mr_A_;
+  Matrix<float, 4, 1> Mr_B_;
+  Matrix<float, 1, 4> Mr_C_;
+  Matrix<float, 4, 1> Mr_Xkp1_;
+  Matrix<float, 4, 1> Mr_Xk_;
 
-    Matrix<float, 8, 8> Mc_A_;
-    Matrix<float, 8, 2> Mc_B_;
-    Matrix<float, 2, 8> Mc_C_;
-    Matrix<float, 8, 1> Mc_Xkp1_;
-    Matrix<float, 8, 1> Mc_Xk_;
+  Matrix<float, 4, 4> Mw_A_;
+  Matrix<float, 4, 1> Mw_B_;
+  Matrix<float, 1, 4> Mw_C_;
+  Matrix<float, 4, 1> Mw_Xkp1_;
+  Matrix<float, 4, 1> Mw_Xk_;
 
-    ros::Time last_pcl_time_;
+  Matrix<float, 8, 8> Mc_A_;
+  Matrix<float, 8, 2> Mc_B_;
+  Matrix<float, 2, 8> Mc_C_;
+  Matrix<float, 8, 1> Mc_Xkp1_;
+  Matrix<float, 8, 1> Mc_Xk_;
 
-    // Front speed regulation
-    double front_x_lim_, front_y_lim_, front_z_lim_;
-    vector<pcl::PointXYZ> safety_zone_points_;
-    vector<float> safety_zone_distances_;
-    double k_front_;
+  ros::Time last_pcl_time_;
+
+  // Front speed regulation
+  double front_x_lim_, front_y_lim_, front_z_lim_;
+  std::vector<pcl::PointXYZ> safety_zone_points_;
+  std::vector<float> safety_zone_distances_;
 
 }; // class
 
-}  // namespace
+} // namespace nearness_3d
 
 #endif
