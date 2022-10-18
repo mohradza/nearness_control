@@ -169,7 +169,7 @@ void NearnessControl3D::initRobustController() {
 
   pnh_.param("Mw_B", in_vec, default_vec);
   in_vec_f = std::vector<float>(in_vec.begin(), in_vec.end());
-  Mr_B_ = Eigen::Map<VectorXf>(in_vec_f.data(), in_vec_f.size());
+  Mw_B_ = Eigen::Map<VectorXf>(in_vec_f.data(), in_vec_f.size());
 
   pnh_.param("Mw_C", in_vec, default_vec);
   in_vec_f = std::vector<float>(in_vec.begin(), in_vec.end());
@@ -539,7 +539,6 @@ void NearnessControl3D::resetCommands() {
 void NearnessControl3D::generateWFControlCommands() {
   u_vec_ = {0.0, 0.0, 0.0};
   state_est_vec_ = {0.0, 0.0, 0.0};
-
   for (int j = 0; j < num_basis_shapes_; j++) {
     state_est_vec_[0] += C_y_[j] * y_full_[j];
     state_est_vec_[1] += C_z_[j] * y_full_[j];
@@ -549,21 +548,21 @@ void NearnessControl3D::generateWFControlCommands() {
   // Complex lateral dynamic controller
   float u_y = k_v_ * state_est_vec_[0];
   Mv_Xkp1_ = Mv_A_ * Mv_Xk_ + Mv_B_ * u_y;
-  u_v_ = (Mv_C_ * Mv_Xkp1_)(0);
+  u_v_ = Mv_C_.dot(Mv_Xkp1_);
   u_v_ = sat(u_v_, -max_lateral_speed_, max_lateral_speed_);
   Mv_Xk_ = Mv_Xkp1_;
 
   // Complex heading dynamic controller
   float u_psi = k_r_ * state_est_vec_[2];
   Mr_Xkp1_ = Mr_A_ * Mr_Xk_ + Mr_B_ * u_psi;
-  u_r_ = (Mr_C_ * Mr_Xkp1_)(0);
+  u_r_ = Mr_C_.dot(Mr_Xkp1_);
   u_r_ = sat(u_r_, -max_yaw_rate_, max_yaw_rate_);
   Mr_Xk_ = Mr_Xkp1_;
 
   // Complex vertical dynamic controller
   float u_z = k_w_ * state_est_vec_[1];
   Mw_Xkp1_ = Mw_A_ * Mw_Xk_ + Mw_B_ * u_z;
-  u_w_ = (Mw_C_ * Mw_Xkp1_)(0);
+  u_w_ = Mw_C_.dot(Mw_Xkp1_);
   u_w_ = sat(u_w_, -max_vertical_speed_, max_vertical_speed_);
   Mw_Xk_ = Mw_Xkp1_;
 

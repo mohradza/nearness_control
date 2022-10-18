@@ -2,7 +2,7 @@
 
   <arg name="enable_debug"                 default="true"/>
   <arg name="enable_speed_regulation"      default="true"/>
-  <arg name="enable_radius_scaling"        default="true"/>
+  <arg name="enable_radius_scaling"        default="false"/>
   <arg name="enable_sensor_noise"          default="true"/>
   <arg name="vehicle_name"                 default="OHRAD_X3"/>
 
