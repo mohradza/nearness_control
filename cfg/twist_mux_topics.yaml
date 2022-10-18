@@ -15,9 +15,9 @@ topics:
   name    : teleop
   topic   : teleop/cmd_vel
   timeout : 0.1
-  priority: 100
--
-  name    : teleop2
-  topic   : joy_vel
+  priority: 1
+  
+  name    : cmd_gen
+  topic   : OHRAD_X3/cmd_gen_vel
   timeout : 0.1
-  priority: 100
+  priority: 5

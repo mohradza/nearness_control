@@ -1,0 +1,16 @@
+<launch>
+
+  <arg name="ns" default="OHRAD_X3"/>
+  <arg name="folder" default="/home/ohrad/thesis_datasets/FINALDATASETS/ModelGeneration"/>
+  <arg name="test" default="Vertical/ForwardSpeed_2mps/step_1mps"/>
+
+  <!-- Record Output Data  -->
+  <node pkg="rosbag" type="record" name="rosbag_record" output="screen" args="-o $(arg folder)/$(arg test)/bagfile
+      /tf
+      /tf_static
+      $(arg ns)/synced_odom
+      $(arg ns)/synced_cmds
+      ">
+  </node>
+
+</launch>

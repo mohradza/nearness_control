@@ -23,7 +23,6 @@ float sat(float num, float min_val, float max_val) {
     return num;
   }
 }
-
 } // namespace
 
 namespace nearness_3d {
@@ -361,7 +360,7 @@ void NearnessControl3D::resetPCLProcessing() {
   side_zone_count_ = 0;
   vert_zone_dist_ = 0.0;
   vert_zone_count_ = 0;
-}
+} // namespace nearness_3d
 
 void NearnessControl3D::checkFrontZone(const pcl::PointXYZ p) {
   // If the point exists inside our front safety zone, add it to
