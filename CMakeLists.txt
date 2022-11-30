@@ -12,11 +12,9 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   sensor_msgs
   std_msgs
-  message_generation
   tf2_ros
   pcl_conversions
   pcl_ros
-  nearness_control_msgs
   visualization_msgs
   geometry_msgs
 )
@@ -24,19 +22,10 @@ find_package(catkin REQUIRED COMPONENTS
 ## System dependencies are found with CMake's conventions
 find_package(Eigen3 REQUIRED)
 
-## Generate added messages and services with any dependencies listed here
-generate_messages(
-   DEPENDENCIES
-   sensor_msgs
-   geometry_msgs
-   std_msgs
-)
-
-
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES nearness_control
-  CATKIN_DEPENDS roscpp sensor_msgs std_msgs message_runtime tf2_ros pcl_ros geometry_msgs visualization_msgs
+  CATKIN_DEPENDS roscpp sensor_msgs std_msgs tf2_ros pcl_ros geometry_msgs visualization_msgs
   DEPENDS
 )
 
@@ -56,7 +45,6 @@ add_library(projection_shape_generator src/projection_shape_generator.cpp)
 target_link_libraries(projection_shape_generator ${catkin_LIBRARIES})
 
 add_library(nearness_control_3d src/nearness_control_3d.cpp)
-add_dependencies(nearness_control_3d ${PROJECT_NAME}_generate_messages_cpp)
 target_link_libraries(nearness_control_3d projection_shape_generator ${catkin_LIBRARIES} ${Boost_LIBRARIES})
 
 add_executable(nearness_control_3d_node src/nearness_control_3d_node.cpp)

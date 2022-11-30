@@ -1,2 +1,2 @@
 # nearness_control
-Generate control commands from depth sensors using wide-field integration methods and small-field Fourier residual processing.
+Generate control commands from depth sensors using bioinspired wide-field sensorimotor convergence methods.
