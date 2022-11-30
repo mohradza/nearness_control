@@ -56,6 +56,8 @@ private:
 
   void stateCb(const std_msgs::String state_msg);
   void odomCb(const nav_msgs::OdometryConstPtr &odom_msg);
+  void pclCb(const sensor_msgs::PointCloud2ConstPtr &pcl_msg);
+
   void generateCommandVel();
   void generateDoubletsCommand();
   void generateSwerveCommands();
@@ -63,6 +65,7 @@ private:
 
   ros::Subscriber sub_state_;
   ros::Subscriber sub_odom_;
+  ros::Subscriber sub_pcl_;
   ros::Publisher pub_cmd_vel_;
   ros::Publisher pub_cmd_vel_stamped_;
 

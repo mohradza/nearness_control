@@ -95,6 +95,7 @@ private:
   // Forward speed params
   double forward_speed_;
   double max_forward_speed_;
+  double min_forward_speed_;
   double k_front_;
 
   // Lateral speed params
@@ -135,6 +136,7 @@ private:
 
   std::vector<float> y_full_;
   std::vector<float> y_front_half_;
+  std::vector<float> y_front_half_speed_reg_;
   std::vector<float> y_bottom_half_;
   std_msgs::Float32MultiArray y_projections_msg_;
 

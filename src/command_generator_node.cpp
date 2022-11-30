@@ -8,11 +8,11 @@ int main(int argc, char **argv) {
   ros::NodeHandle nh_private("~");
   command_generator::commandGenerator command_generator_node(nh, nh_private);
 
-  ros::Rate loop_rate(20);
+  ros::Rate loop_rate(200);
 
   while (ros::ok()) {
 
-    command_generator_node.publishControlCommands();
+    // command_generator_node.publishControlCommands();
 
     ros::spinOnce();
     loop_rate.sleep();

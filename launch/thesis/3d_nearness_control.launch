@@ -3,11 +3,11 @@
   <arg name="enable_debug"                 default="true"/>
   <arg name="enable_speed_regulation"      default="true"/>
   <arg name="enable_radius_scaling"        default="false"/>
-  <arg name="enable_sensor_noise"          default="true"/>
+  <arg name="enable_sensor_noise"          default="false"/>
   <arg name="vehicle_name"                 default="OHRAD_X3"/>
 
   <!-- Launch the config file, which contains controller gains and other relevant parameters -->
-  <rosparam file="$(find nearness_control)/cfg/NearnessControl3D.yaml" command="load" ns="nearness_control_3d"/>
+  <rosparam file="$(find nearness_control)/cfg/NearnessControl3D_finals_20hz.yaml" command="load" ns="nearness_control_3d"/>
 
   <!-- Launch the nearness control node -->
   <node pkg="nearness_control" type="nearness_control_3d_node" name="nearness_control_3d" output="screen">

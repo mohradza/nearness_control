@@ -1,0 +1,70 @@
+# Sensor Model Parameters for a Spherical Depth Sensor Model
+num_rings: 64
+num_ring_points: 360
+num_basis_shapes: 9
+noise_std_dev: 0.03
+
+# Forward speed params
+forward_speed: 1.5
+forward_speed_max: 1.5
+forward_speed_min: -0.1
+forward_speed_obst_gain: 7.0
+
+# Lateral speed params
+lateral_speed_gain: -1.0
+lateral_speed_max: 1.5
+
+# Vertical speed params
+vertical_speed_gain: -1.0
+vertical_speed_max: 1.5
+
+# Yaw rate params
+yaw_rate_gain: -1.0
+yaw_rate_max: 1.5
+
+# Lateral Dynamic Controller Parameters
+Mv_size: 6
+Mv_A: [0.99616,0.048608,-0.011538,-6.0512e-05,-0.0059005,-0.00081648,
+-0.20648,0.92707,-0.39773,-0.0031739,-0.31731,-0.043044,
+0.82899,0.27801,0.61427,0.012726,1.2742,0.16328,
+11.88,4.5182,-7.6653,0.17166,18.244,1.8886,
+1.0543e-13,3.1911e-14,-3.5656e-14,-3.0491e-15,0.999,2.3875e-14,
+-1.3676,-0.4615,0.52096,0.045437,-2.102,0.54617
+]
+Mv_B: [3.6783e-05,
+0.0026248,
+-0.017985,
+-0.61975,
+-0.024988,
+0.059315
+]
+Mv_C: [-8242,-2495.7,2788.7,238.5,-12677,-1864.5]
+
+# Heading Dynamic Controller Parameters
+Mr_A: [0.79018,0.023617,-0.26263,-0.04563,
+-4.922,0.24648,-6.1506,-0.45156,
+-4.0432e-14,-2.9619e-15,0.99968,-2.3026e-14,
+-0.75571,-0.073155,-0.94516,0.13817
+]
+Mr_B: [0.0060966,
+0.25227,
+-0.049992,
+0.065115
+]
+Mr_C: [-475.28,-34.907,-594.54,-260.59]
+
+# Vertical Dynamic Controller Parameters
+Mw_A: [0.050544,-0.34305,-0.85925,-0.50059,
+-0.059989,0.88244,-0.055533,0.079769,
+-2.4102e-08,-9.9688e-09,0.99938,-1.2757e-08,
+-0.048747,-0.039602,-0.044169,0.88371
+]
+Mw_B: [-0.014861,
+0.020701,
+-0.024992,
+0.02456
+]
+Mw_C: [-16.766,-7.1305,-15.192,-7.3086]
+
+
+ 

@@ -11,6 +11,7 @@ void commandGenerator::init() {
   // SUBSCRIBERS
   sub_state_ = nh_.subscribe("state", 1, &commandGenerator::stateCb, this);
   sub_odom_ = nh_.subscribe("odometry", 1, &commandGenerator::odomCb, this);
+  sub_pcl_ = nh_.subscribe("pcl", 1, &commandGenerator::pclCb, this);
 
   // PUBLISHERS
   pub_cmd_vel_ = nh_.advertise<geometry_msgs::Twist>("cmd_vel_out", 10);
@@ -18,23 +19,24 @@ void commandGenerator::init() {
       nh_.advertise<geometry_msgs::TwistStamped>("cmd_vel_out_stamped", 10);
 
   state_ = "init";
+  state_ = "go_to_start";
 
-  starting_point_.x = 4.0;
+  starting_point_.x = -12.0;
   starting_point_.y = 0.0;
   starting_point_.z = 1.5;
   starting_heading_ = 0.0;
 
   goal_point_.x = 0.0;
-  goal_point_.y = 0.0;
+  goal_point_.y = 1.0;
   goal_point_.z = 1.5;
   goal_heading_ = 0.0;
 
-  forward_speed_ = 2.0;
+  forward_speed_ = 3.0;
 
-  routine_ = "doublets";
-  routine_ = "dynamic";
-  // routine_ = "const";
-  routine_ = "double_const";
+  // routine_ = "doublets";
+  // routine_ = "dynamic";
+  routine_ = "const";
+  // routine_ = "double_const";
   // routine_ = "swerve";
   swerve_dur_ = 4.0;
   start_doublets_ = false;
@@ -55,17 +57,17 @@ void commandGenerator::init() {
   Mr_Xk_ << 0.0, 0.0, 0.0, 0.0;
   Mw_Xk_ << 0.0, 0.0, 0.0, 0.0;
 
-  // Lateral - Mixed synthesis, 4x4 state model, 2 inputs
-  Mv_A_ << 0.99823, 0.049268, -0.012277, -0.00011805, -0.0029007, -0.00023763,
-      -0.10611, 0.95959, -0.43431, -0.0059537, -0.17439, -0.012569, 0.53047,
-      0.17545, 0.73238, 0.021092, 0.87249, 0.045573, 12.021, 4.2401, -7.1541,
-      0.18241, 19.77, 0.3846, -1.6708e-13, -4.9492e-14, 5.8172e-14, 5.6718e-15,
-      0.99994, -3.9501e-14, -1.5821, -0.54306, 0.64712, 0.065208, -2.6042,
-      0.13908;
+  // Lateral - Mixed synthesis, 4x4 state model,
+  Mv_A_ << 0.99792, 0.049163, -0.01216, -0.00011432, -0.0046166, -0.00031145,
+      -0.12322, 0.95365, -0.42757, -0.0057613, -0.274, -0.016244, 0.6054,
+      0.2029, 0.69903, 0.020168, 1.3471, 0.057507, 13.294, 4.7719, -7.9246,
+      0.15425, 29.576, 0.4204, -2.184e-13, -6.5292e-14, 7.2837e-14, 6.1935e-15,
+      0.99975, -5.7262e-14, -1.4579, -0.50038, 0.56574, 0.049338, -3.2458,
+      0.13832;
 
-  Mv_B_ << 1.6382e-05, 0.0012704, -0.010168, -0.4174, -0.024999, 0.092129;
+  Mv_B_ << 2.6494e-05, 0.0020258, -0.015925, -0.64552, -0.024997, 0.11417;
 
-  Mv_C_ << -524.08, -155.72, 183.12, 17.868, -862.23, -114.53;
+  Mv_C_ << -547.56, -164.11, 183.14, 15.581, -1218.9, -134.13;
 
   // Heading - Mixed sythesis, 2x2 state model, 2 inputs, no modifications
   Mr_A_ << 0.9997, -0.0000, -0.0000, -0.0000, 6.3379, 0.1678, -0.3967, -10.4494,
@@ -101,6 +103,10 @@ void commandGenerator::odomCb(const nav_msgs::OdometryConstPtr &odom_msg) {
 
   p_ = current_odom_.twist.twist.angular.x;
   r_ = current_odom_.twist.twist.angular.z;
+}
+
+void commandGenerator::pclCb(const sensor_msgs::PointCloud2ConstPtr &pcl_msg) {
+  publishControlCommands();
 }
 
 void commandGenerator::publishControlCommands() {
@@ -148,8 +154,8 @@ void commandGenerator::generateCommandVel() {
     if (!routine_.compare("double_const")) {
       cmd_vel_msg_.linear.x = forward_speed_;
       // cmd_vel_msg_.linear.x = k_u_*(starting_point_.x - current_pos_.x);
-      cmd_vel_msg_.linear.z = k_w_ * (goal_point_.z - current_pos_.z);
-      cmd_vel_msg_.linear.y = k_v_ * (goal_point_.y - current_pos_.y);
+      cmd_vel_msg_.linear.z = k_w_ * (starting_point_.z - current_pos_.z);
+      cmd_vel_msg_.linear.y = k_v_ * (starting_point_.y - current_pos_.y);
       // cmd_vel_msg_.linear.y = 0.5;
       cmd_vel_msg_.angular.z =
           (k_r_ / 50.0) * (starting_heading_ - current_heading_);
@@ -266,7 +272,7 @@ void commandGenerator::generateDoubleConstCommands() {
     // cmd_vel_msg_.linear.y = 1.0;
 
     cmd_vel_msg_.linear.z = k_w_ * (goal_point_.z - current_pos_.z);
-    cmd_vel_msg_.linear.z = 1.0;
+    // cmd_vel_msg_.linear.z = 1.0;
 
     cmd_vel_msg_.angular.z = (k_r_ / 50.0) * (goal_heading_ - current_heading_);
     // cmd_vel_msg_.angular.z = 1.0;
@@ -277,6 +283,13 @@ void commandGenerator::generateDoubleConstCommands() {
     // Mr_Xk_ = Mr_Xkp1_;
     // // ROS_INFO("u_r: %f, psi: %f", u_r_, u_psi);
     // cmd_vel_msg_.angular.z = u_r_;
+
+    float u_y = k_v_ * (goal_point_.y - current_pos_.y);
+    Mv_Xkp1_ = Mv_A_ * Mv_Xk_ + Mv_B_ * u_y;
+    u_v_ = Mv_C_.dot(Mv_Xkp1_);
+    Mv_Xk_ = Mv_Xkp1_;
+
+    cmd_vel_msg_.linear.y = u_v_;
   }
 }
 

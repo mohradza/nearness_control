@@ -1,13 +1,13 @@
 <launch>
 
-  <arg name="enable_debug"                 default="false"/>
+  <arg name="enable_debug"                 default="true"/>
   <arg name="enable_teleop"                default = "0"/>
 
   <group ns="OHRAD_X3">
 
     <include file="$(find nearness_control)/launch/thesis/3d_nearness_control.launch">
         <arg name="enable_debug"  value="$(arg enable_debug)"/>
-        <remap from="nearness_control_3d/cmd_vel" to="nav_vel"/>
+        <!-- <remap from="nearness_control_3d/cmd_vel" to="nav_vel"/> -->
     </include>
 
     <include file="$(find nearness_control)/launch/sim/command_generator.launch"/>

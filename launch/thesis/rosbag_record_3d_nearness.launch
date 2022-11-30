@@ -2,9 +2,9 @@
 
   <arg name="ns" default="OHRAD_X3"/>
 
-  <arg name="folder_name" default="thesis_datasets/cave/simple_cave_02"/>
-  <arg name="user" default="marble"/>
-  <arg name="record_sensors" default="0"/>
+  <arg name="folder_name" default="thesis_datasets/FINALDATASETS/FlightTests/finals_course/cave"/>
+  <arg name="user" default="ohrad"/>
+  <arg name="record_sensors" default="1"/>
   <arg name="record_outputs" default="1"/>
 
   <!-- Recording Split Parameters -->
@@ -17,8 +17,7 @@
       /tf
       /tf_static
       $(arg ns)/ouster_points
-      $(arg ns)/odometry/ground_truth
-      $(arg ns)/cmd_vel/ground_truth
+      $(arg ns)/imu
       ">
     </node>
   </group>
@@ -30,9 +29,8 @@
       args=" --split --duration=$(arg split_time) --max-splits $(arg split_number) --buffsize 0 --output-prefix /home/$(arg user)/$(arg folder_name)/outputs
       /tf
       /tf_static
-      $(arg ns)/odometry/ground_truth
-      $(arg ns)/cmd_vel/ground_truth
-      $(arg ns)/nearness_control_3d/y_projections_with_odom
+      $(arg ns)/synced_odom
+      $(arg ns)/synced_cmds
       ">
     </node>
   </group>

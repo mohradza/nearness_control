@@ -68,6 +68,7 @@ void NearnessControl3D::init() {
   // Forward speed params
   pnh_.param("forward_speed", forward_speed_, .5);
   pnh_.param("forward_speed_max", max_forward_speed_, .5);
+  pnh_.param("forward_speed_min", min_forward_speed_, .5);
   pnh_.param("forward_speed_obst_gain", k_front_, .25);
 
   // Lateral speed params
@@ -84,9 +85,9 @@ void NearnessControl3D::init() {
 
   // Front zone limits
   // TODO: Make these into parameters
-  front_x_lim_ = 1.5;
+  front_x_lim_ = 2.0;
   front_y_lim_ = 0.6;
-  front_z_lim_ = 0.25;
+  front_z_lim_ = 0.15;
 
   frame_id_ = "OHRAD_X3";
 
@@ -383,8 +384,8 @@ void NearnessControl3D::checkFrontZone(const pcl::PointXYZ p) {
 void NearnessControl3D::updateZoneStats(const float dist, const int i,
                                         const int j) {
   float distance = dist;
-  if (distance > 5.0) {
-    distance = 5.0;
+  if (distance > 15.0) {
+    distance = 15.0;
   }
   if (isSideZonePoint(theta_view_vec_[i], phi_view_vec_[j])) {
     side_zone_dist_ += distance;
@@ -492,12 +493,14 @@ void NearnessControl3D::projectNearness() {
   // Project measured nearness onto different shapes
   y_full_.clear();
   y_front_half_.clear();
+  y_front_half_speed_reg_.clear();
   float increment;
   float phi, theta;
 
   for (int j = 0; j < num_basis_shapes_; j++) {
     y_full_.push_back(0.0);
     y_front_half_.push_back(0.0);
+    y_front_half_speed_reg_.push_back(0.0);
     for (int i = 0; i < last_index_; i++) {
       // Pull angles out for conveniance
       phi = viewing_angle_mat_[i][1];
@@ -515,6 +518,15 @@ void NearnessControl3D::projectNearness() {
       // Front half only for steering
       if (phi < M_PI / 2 && phi > -M_PI / 2) {
         y_front_half_[j] += increment;
+      }
+
+      // Front 1/8th only for speed reg
+      const bool is_phi_front_zone = (phi < M_PI / 8 && phi > -M_PI / 8);
+      const bool is_theta_front_zone =
+          (theta > 3.0 * M_PI / 8 && theta < 5.0 * M_PI / 8);
+      const bool is_front_zone_sr = is_phi_front_zone && is_theta_front_zone;
+      if (is_front_zone_sr) {
+        y_front_half_speed_reg_[j] += increment;
       }
 
     } // End inner for loop
@@ -539,10 +551,14 @@ void NearnessControl3D::resetCommands() {
 void NearnessControl3D::generateWFControlCommands() {
   u_vec_ = {0.0, 0.0, 0.0};
   state_est_vec_ = {0.0, 0.0, 0.0};
+  float speed_reg_state = 0.0;
+  std::vector<float> C_front_ = {0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
   for (int j = 0; j < num_basis_shapes_; j++) {
-    state_est_vec_[0] += C_y_[j] * y_full_[j];
+    // state_est_vec_[0] += C_y_[j] * y_full_[j];
+    state_est_vec_[0] += C_y_[j] * y_front_half_[j];
     state_est_vec_[1] += C_z_[j] * y_full_[j];
     state_est_vec_[2] += C_theta_[j] * y_front_half_[j];
+    speed_reg_state += C_front_[j] * y_front_half_speed_reg_[j];
   }
 
   // Complex lateral dynamic controller
@@ -566,21 +582,29 @@ void NearnessControl3D::generateWFControlCommands() {
   u_w_ = sat(u_w_, -max_vertical_speed_, max_vertical_speed_);
   Mw_Xk_ = Mw_Xkp1_;
 
-  if (enable_radius_scaling_) {
-    u_v_ *= average_lateral_radius_ / 2.7;
-    u_r_ *= average_lateral_radius_ / 2.7;
-    u_w_ *= average_vertical_radius_ / 1.75;
-  }
+  // if (enable_radius_scaling_) {
+  //   u_v_ *= average_lateral_radius_ / 2.7;
+  //   u_r_ *= average_lateral_radius_ / 2.7;
+  //   u_w_ *= average_vertical_radius_ / 1.75;
+  // }
 
   float front_reg;
   if (enable_speed_regulation_) {
     // Need to process the safety zone points for speed regulation
-    if (safety_zone_distances_.size()) {
+    if (safety_zone_distances_.size() || true) {
       // Find the closest point and use that for speed reg
       float min_val = *min_element(safety_zone_distances_.begin(),
                                    safety_zone_distances_.end());
-      front_reg = k_front_ * (1 / min_val);
-      u_u_ = sat(forward_speed_ * (1.0 - front_reg), -0.5, max_forward_speed_);
+      // front_reg = (0.46 - speed_reg_state) * k_front_;
+      // front_reg = (0.9 - speed_reg_state) * k_front_;
+      // front_reg = (0.9 - speed_reg_state) * k_front_;
+      front_reg = (0.07 - speed_reg_state) * k_front_;
+      // ROS_INFO_THROTTLE(0.1, "speed reg: %f", speed_reg_state);
+      if (front_reg > 0.0) {
+        front_reg = 0.0;
+      }
+      u_u_ = sat(forward_speed_ * (1.0 + front_reg), min_forward_speed_,
+                 max_forward_speed_);
     } else {
       u_u_ = forward_speed_;
     }
@@ -588,11 +612,11 @@ void NearnessControl3D::generateWFControlCommands() {
     u_u_ = forward_speed_;
   }
   control_commands_.linear.x = u_u_;
-  control_commands_.linear.y = u_v_;
+  control_commands_.linear.y = u_v_ * 2.0;
   control_commands_.linear.z = u_w_;
-  control_commands_.angular.z = u_r_;
-  ROS_INFO_THROTTLE(0.25, "u_u: %f, u_v: %f, u_r: %f, u_w: %f", u_u_, u_v_,
-                    u_r_, u_w_);
+  control_commands_.angular.z = u_r_ * 2.0;
+  // ROS_INFO_THROTTLE(0.1, "u_u: %f, u_v: %f, u_r: %f, u_w: %f", u_u_, u_v_,
+  // u_r_, u_w_);
 }
 
 // end of class
