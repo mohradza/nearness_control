@@ -25,7 +25,6 @@ float sat(float num, float min_val, float max_val) {
 }
 } // namespace
 
-namespace nearness_3d {
 NearnessControl3D::NearnessControl3D(const ros::NodeHandle &node_handle,
                                      const ros::NodeHandle &private_node_handle)
     : nh_(node_handle), pnh_(private_node_handle) {
@@ -169,6 +168,7 @@ void NearnessControl3D::initRobustController() {
 }
 
 void NearnessControl3D::generateSphericalHarmonics() {
+  ProjectionShapeGenerator generator;
   ProjectionShapeGenerator::ShapeOptions projection_shape_options;
   projection_shape_options.selected_type =
       ProjectionShapeGenerator::ShapeOptions::spherical_harmonics;
@@ -235,24 +235,12 @@ void NearnessControl3D::enableControlCb(const std_msgs::Bool msg) {
 
 void NearnessControl3D::pclCb(const sensor_msgs::PointCloud2ConstPtr &pcl_msg) {
 
-  processIncomingPCL(pcl_msg);
-
-  projectNearness();
-
-  // Compute control commands
   if (enable_control_) {
-    resetCommands();
+    processIncomingPCL(pcl_msg);
+    projectNearness();
     generateAndPublishCommands();
-    generateWFControlCommands();
   } else {
     resetControllerStates();
-  }
-
-  if (enable_debug_) {
-    // Publish pcl outs
-    publishPCLOuts();
-    // Publish control command markers for visualization
-    publishCommandMarkers();
   }
 }
 
@@ -263,12 +251,8 @@ void NearnessControl3D::processIncomingPCL(
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_in(
       new pcl::PointCloud<pcl::PointXYZ>);
   pcl::fromROSMsg(*pcl_msg, *cloud_in);
-  size_t pcl_size = cloud_in->points.size();
-  new_cloud_ = *cloud_in;
-  pcl_header_ = pcl_msg->header;
-
-  // Reset counts and other vectors
-  resetPCLProcessing();
+  const std_msgs::Header pcl_header = pcl_msg->header;
+  const size_t pcl_size = cloud_in->points.size();
 
   // Generate random gaussian noise for the sensor model
   std::normal_distribution<double> noise(0.0, noise_std_dev_);
@@ -277,15 +261,17 @@ void NearnessControl3D::processIncomingPCL(
   float dist, mu_val;
   int index = 0;
 
+  pcl::PointCloud<pcl::PointXYZ> mu_cloud_out, depth_cloud_out;
+  mu_meas_.clear();
+
   // Process the pointcloud:
   // -- Add Noise
   // -- Convert to nearness
-  // -- Process front and side zone measurements
   for (int i = 1; i < num_rings_ - 1; i++) {
     for (int j = 0; j < num_ring_points_; j++) {
       // Rings are positive counterclockwise, so they are reversed on lookup
       index = i * num_ring_points_ + (num_ring_points_ - 1 - j);
-      p = new_cloud_.points[index];
+      p = cloud_in->points[index];
       dist = sqrt(pow(p.x, 2) + pow(p.y, 2) + pow(p.z, 2));
 
       if (add_noise_) {
@@ -301,49 +287,51 @@ void NearnessControl3D::processIncomingPCL(
         mu_p = {mu_val * sin(theta_view_vec_[i]) * cos(phi_view_vec_[j]),
                 mu_val * sin(theta_view_vec_[i]) * sin(phi_view_vec_[j]),
                 mu_val * cos(theta_view_vec_[i])};
-        mu_cloud_out_.push_back(mu_p);
-        cloud_out_.push_back(p);
+        mu_cloud_out.push_back(mu_p);
+        depth_cloud_out.push_back(p);
+
+        publishPCLOuts(mu_cloud_out, depth_cloud_out, pcl_header);
       }
     } // End inner for loop
   }   // End outer for loop
 }
 
-void NearnessControl3D::resetPCLProcessing() {
-  mu_meas_.clear();
-  cloud_out_.clear();
-  mu_cloud_out_.clear();
+void NearnessControl3D::publishPCLOuts(
+    const pcl::PointCloud<pcl::PointXYZ> &mu_cloud,
+    const pcl::PointCloud<pcl::PointXYZ> &depth_cloud,
+    const std_msgs::Header &pcl_header) {
+  sensor_msgs::PointCloud2 depth_pcl_out_msg, mu_pcl_out_msg;
+
+  pcl::toROSMsg(depth_cloud, depth_pcl_out_msg);
+  depth_pcl_out_msg.header = pcl_header;
+  pub_pcl_.publish(depth_pcl_out_msg);
+
+  pcl::toROSMsg(mu_cloud, mu_pcl_out_msg);
+  mu_pcl_out_msg.header = pcl_header;
+  pub_mu_pcl_.publish(mu_pcl_out_msg);
 }
 
-void NearnessControl3D::publishPCLOuts() {
-  pcl::toROSMsg(cloud_out_, pcl_out_msg_);
-  pcl_out_msg_.header = pcl_header_;
-  pub_pcl_.publish(pcl_out_msg_);
-
-  pcl::toROSMsg(mu_cloud_out_, mu_out_msg_);
-  mu_out_msg_.header = pcl_header_;
-  pub_mu_pcl_.publish(mu_out_msg_);
-}
-
-void NearnessControl3D::publishCommandMarkers() {
+void NearnessControl3D::publishCommandMarkers(float u_u, float u_v, float u_w,
+                                              float u_r) {
   // - Forward speed marker
   ros::Time time_now = ros::Time::now();
   u_cmd_marker_.header.stamp = time_now;
-  u_cmd_marker_.points[1].x = u_u_;
+  u_cmd_marker_.points[1].x = u_u;
   cmd_markers_.markers[0] = u_cmd_marker_;
 
   // - Lateral speed marker
   v_cmd_marker_.header.stamp = time_now;
-  v_cmd_marker_.points[1].y = u_v_;
+  v_cmd_marker_.points[1].y = u_v;
   cmd_markers_.markers[1] = v_cmd_marker_;
 
   // - Forward speed marker
   w_cmd_marker_.header.stamp = time_now;
-  w_cmd_marker_.points[1].z = u_w_;
+  w_cmd_marker_.points[1].z = u_w;
   cmd_markers_.markers[2] = w_cmd_marker_;
 
   // Turn rate marker
   r_cmd_marker_.header.stamp = time_now;
-  r_cmd_marker_.points[1].y = u_r_;
+  r_cmd_marker_.points[1].y = u_r;
   cmd_markers_.markers[3] = r_cmd_marker_;
 
   pub_cmd_markers_.publish(cmd_markers_);
@@ -414,47 +402,29 @@ void NearnessControl3D::projectNearness() {
   }   // End outer for loop
 }
 
-void NearnessControl3D::resetCommands() {
-  control_commands_.linear.x = 0.0;
-  control_commands_.linear.y = 0.0;
-  control_commands_.linear.z = 0.0;
-
-  control_commands_.angular.x = 0.0;
-  control_commands_.angular.y = 0.0;
-  control_commands_.angular.z = 0.0;
-
-  u_u_ = 0.0;
-  u_w_ = 0.0;
-  u_v_ = 0.0;
-  u_r_ = 0.0;
-}
-
 void NearnessControl3D::generateAndPublishCommands() {
-  generateWFControlCommands();
-  pub_control_commands_.publish(control_commands_);
-}
 
-void NearnessControl3D::generateWFControlCommands() {
+  float u_v, u_r, u_w, u_u;
 
   // Dynamic lateral controller
   float u_y = k_v_ * state_est_vec_[0];
   Mv_Xkp1_ = Mv_A_ * Mv_Xk_ + Mv_B_ * u_y;
-  u_v_ = Mv_C_.dot(Mv_Xkp1_);
-  u_v_ = sat(u_v_, -max_lateral_speed_, max_lateral_speed_);
+  u_v = Mv_C_.dot(Mv_Xkp1_);
+  u_v = sat(u_v, -max_lateral_speed_, max_lateral_speed_);
   Mv_Xk_ = Mv_Xkp1_;
 
   // Dynamic heading controller
   float u_psi = k_r_ * state_est_vec_[2];
   Mr_Xkp1_ = Mr_A_ * Mr_Xk_ + Mr_B_ * u_psi;
-  u_r_ = Mr_C_.dot(Mr_Xkp1_);
-  u_r_ = sat(u_r_, -max_yaw_rate_, max_yaw_rate_);
+  u_r = Mr_C_.dot(Mr_Xkp1_);
+  u_r = sat(u_r, -max_yaw_rate_, max_yaw_rate_);
   Mr_Xk_ = Mr_Xkp1_;
 
   // Dynamic vertical controller
   float u_z = k_w_ * state_est_vec_[1];
   Mw_Xkp1_ = Mw_A_ * Mw_Xk_ + Mw_B_ * u_z;
-  u_w_ = Mw_C_.dot(Mw_Xkp1_);
-  u_w_ = sat(u_w_, -max_vertical_speed_, max_vertical_speed_);
+  u_w = Mw_C_.dot(Mw_Xkp1_);
+  u_w = sat(u_w, -max_vertical_speed_, max_vertical_speed_);
   Mw_Xk_ = Mw_Xkp1_;
 
   float front_reg;
@@ -465,16 +435,23 @@ void NearnessControl3D::generateWFControlCommands() {
     if (front_reg > 0.0) {
       front_reg = 0.0;
     }
-    u_u_ = sat(forward_speed_ * (1.0 + front_reg), min_forward_speed_,
-               max_forward_speed_);
+    u_u = sat(forward_speed_ * (1.0 + front_reg), min_forward_speed_,
+              max_forward_speed_);
   } else {
-    u_u_ = forward_speed_;
+    u_u = forward_speed_;
   }
 
-  control_commands_.linear.x = u_u_;
-  control_commands_.linear.y = u_v_;
-  control_commands_.linear.z = u_w_;
-  control_commands_.angular.z = u_r_;
+  geometry_msgs::Twist control_commands;
+  control_commands.linear.x = u_u;
+  control_commands.linear.y = u_v;
+  control_commands.linear.z = u_w;
+  control_commands.angular.z = u_r;
+
+  pub_control_commands_.publish(control_commands);
+
+  if (enable_debug_) {
+    publishCommandMarkers(u_u, u_v, u_w, u_r);
+  }
 }
 
 void NearnessControl3D::resetControllerStates() {
@@ -503,4 +480,3 @@ void NearnessControl3D::generateStateEstimates() {
 }
 
 // end of class
-} // namespace nearness_3d

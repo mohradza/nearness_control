@@ -1,12 +1,12 @@
 #ifndef NEARNESS_CONTROL_3D_H
 #define NEARNESS_CONTROL_3D_H
 
+#include <memory>
 #include <random>
 #include <vector>
 
 #include <Eigen/Core>
 #include <geometry_msgs/Twist.h>
-#include <nav_msgs/Odometry.h>
 #include <pcl_conversions/pcl_conversions.h>
 #include <ros/ros.h>
 #include <std_msgs/Bool.h>
@@ -18,7 +18,6 @@
 
 // using namespace cv_bridge;
 using namespace Eigen;
-namespace nearness_3d {
 
 class NearnessControl3D {
 public:
@@ -33,23 +32,35 @@ public:
   void pclCb(const sensor_msgs::PointCloud2ConstPtr &pcl_msg);
 
 private:
-  // Init functions?
+  // Init functions
   void initRobustController();
   void generateSphericalHarmonics();
   void generateCommandMarkers();
 
   // pclCb functions
   void processIncomingPCL(const sensor_msgs::PointCloud2ConstPtr &pcl_msg);
-  void resetPCLProcessing();
+
+  // Project measured nearness onto the different basis shapes
   void projectNearness();
+
+  // Check to see if the measured point belongs to the set of points obstructed
+  // by the rotors of the quadrotor.
   bool isObstructedPoint(const float t, const float p);
-  void resetCommands();
+
   void resetControllerStates();
-  void generateAndPublishCommands();
+
+  // Pool projections to generate the environment relative state estimates
   void generateStateEstimates();
-  void generateWFControlCommands();
-  void publishPCLOuts();
-  void publishCommandMarkers();
+
+  // Use the state estimates from wide-field integration to create outer-loop
+  // control commands using a robust, dynamic, h-inifity controller
+  void generateAndPublishCommands();
+
+  // Debug functions for displaying useful data
+  void publishPCLOuts(const pcl::PointCloud<pcl::PointXYZ> &mu_pcl,
+                      const pcl::PointCloud<pcl::PointXYZ> &depth_pc,
+                      const std_msgs::Header &pcl_header);
+  void publishCommandMarkers(float u_u, float u_v, float u_w, float u_r);
 
   // Public ros node handle
   ros::NodeHandle nh_;
@@ -60,16 +71,11 @@ private:
 
   // SUBSCRIBERS
   ros::Subscriber sub_pcl_;
-  ros::Subscriber sub_odom_;
   ros::Subscriber sub_enable_control_;
 
   // PUBLISHERS
   ros::Publisher pub_pcl_;
   ros::Publisher pub_mu_pcl_;
-
-  ros::Publisher pub_y_projection_shape_;
-  ros::Publisher pub_theta_projection_shape_;
-  ros::Publisher pub_z_projection_shape_;
 
   ros::Publisher pub_control_commands_;
   ros::Publisher pub_cmd_markers_;
@@ -113,45 +119,23 @@ private:
 
   // Sensor viewing vectors
   float dtheta_, dphi_;
-  std::vector<float> phi_view_vec_;
-  std::vector<float> theta_view_vec_;
+  std::vector<float> phi_view_vec_, theta_view_vec_;
   std::vector<std::vector<float>> viewing_angle_mat_;
 
-  // Helper vars for output debug
-  sensor_msgs::PointCloud2 pcl_out_msg_;
-  sensor_msgs::PointCloud2 mu_out_msg_;
-  pcl::PointCloud<pcl::PointXYZ> new_cloud_;
-  pcl::PointCloud<pcl::PointXYZ> cloud_out_;
-  pcl::PointCloud<pcl::PointXYZ> mu_cloud_out_;
   std::vector<float> mu_meas_;
-  std_msgs::Header pcl_header_;
 
   int num_excluded_rings_;
   int last_index_;
 
-  nav_msgs::Odometry current_odom_;
-
   std::vector<float> y_full_;
   std::vector<float> y_front_half_;
   std::vector<float> y_front_half_speed_reg_;
-  std::vector<float> y_bottom_half_;
-  std_msgs::Float32MultiArray y_projections_msg_;
 
   std::vector<std::vector<float>> shapes_vec_;
 
   // Control
-  std::vector<float> C_y_;
-  std::vector<float> C_z_;
-  std::vector<float> C_theta_;
-  std::vector<float> u_vec_;
+  std::vector<float> C_y_, C_z_, C_theta_;
   std::vector<float> state_est_vec_;
-  double r_;
-  float u_u_, u_v_, u_r_, u_w_;
-  geometry_msgs::Twist control_commands_;
-  geometry_msgs::Point current_pos_;
-  double current_roll_, current_pitch_, current_heading_;
-  double current_height_agl_;
-  double p_;
 
   // Control visualization
   visualization_msgs::Marker u_cmd_marker_;
@@ -183,7 +167,5 @@ private:
   std::vector<float> C_front_;
 
 }; // class
-
-} // namespace nearness_3d
 
 #endif
