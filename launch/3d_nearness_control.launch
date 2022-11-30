@@ -15,7 +15,6 @@
 
       <!-- Subscribed Topics -->
       <remap from="nearness_control_3d/points"   to="ouster_points"/>
-      <remap from="nearness_control_3d/odometry" to="/odometry/ground_truth"/>
       <remap from="nearness_control_3d/control_commands" to="nav_vel"/>
 
       <!-- Vehicle name for frame id's -->

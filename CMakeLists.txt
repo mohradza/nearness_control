@@ -50,10 +50,5 @@ target_link_libraries(nearness_control_3d projection_shape_generator ${catkin_LI
 add_executable(nearness_control_3d_node src/nearness_control_3d_node.cpp)
 target_link_libraries(nearness_control_3d_node nearness_control_3d ${catkin_LIBRARIES} ${Boost_LIBRARIES})
 
-add_library(data_collector_node src/data_collector_node.cpp)
-target_link_libraries(data_collector_node ${catkin_LIBRARIES})
-
-add_executable(data_collector src/data_collector.cpp)
-target_link_libraries(data_collector data_collector_node ${catkin_LIBRARIES})
 
 
