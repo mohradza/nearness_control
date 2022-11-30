@@ -30,38 +30,35 @@ public:
 
   // FUNCTIONS //
   void enableControlCb(const std_msgs::Bool msg);
-  void odomCb(const nav_msgs::OdometryConstPtr &odom_msg);
   void pclCb(const sensor_msgs::PointCloud2ConstPtr &pcl_msg);
 
 private:
-  // Init functions
+  // Init functions?
   void initRobustController();
-  void importControllerMatrices();
   void generateSphericalHarmonics();
   void generateCommandMarkers();
 
   // pclCb functions
   void processIncomingPCL(const sensor_msgs::PointCloud2ConstPtr &pcl_msg);
   void resetPCLProcessing();
-  void checkFrontZone(const pcl::PointXYZ p);
-  void updateZoneStats(const float dist, const int i, const int j);
-  bool isSideZonePoint(const float t, const float p);
-  bool isVerticalZonePoint(const float t, const float p);
-  void updateRadiusEstimates();
-  bool isObstructedPoint(const float t, const float p);
   void projectNearness();
+  bool isObstructedPoint(const float t, const float p);
   void resetCommands();
+  void resetControllerStates();
+  void generateAndPublishCommands();
+  void generateStateEstimates();
   void generateWFControlCommands();
   void publishPCLOuts();
   void publishCommandMarkers();
 
-  // public ros node handle
+  // Public ros node handle
   ros::NodeHandle nh_;
-  // private ros node handle
+
+  // Private ros node handle
   ros::NodeHandle pnh_;
   std::string node_name_{"node_name"};
 
-  // SUBSCRIBERS //
+  // SUBSCRIBERS
   ros::Subscriber sub_pcl_;
   ros::Subscriber sub_odom_;
   ros::Subscriber sub_enable_control_;
@@ -166,45 +163,24 @@ private:
   // Sensor noise
   std::default_random_engine generator_;
 
-  // Radius scaling
-  float side_zone_dist_;
-  int side_zone_count_;
-  float vert_zone_dist_;
-  int vert_zone_count_;
-  float average_radius_;
-  float average_lateral_radius_;
-  float average_vertical_radius_;
-  float max_dist_;
-  float min_dist_;
-
   // Dynamic Control
-  bool enable_dynamic_control_ = false;
-  float xv_kp1_, xv_k_, uv_k_;
-
   MatrixXf Mv_A_;
-  VectorXf Mv_B_;
-  VectorXf Mv_C_;
-  VectorXf Mv_Xk_;
-  VectorXf Mv_Xkp1_;
+  VectorXf Mv_B_, Mv_C_;
+  VectorXf Mv_Xk_, Mv_Xkp1_;
 
   MatrixXf Mr_A_;
-  VectorXf Mr_B_;
-  VectorXf Mr_C_;
-  VectorXf Mr_Xk_;
-  VectorXf Mr_Xkp1_;
+  VectorXf Mr_B_, Mr_C_;
+  VectorXf Mr_Xk_, Mr_Xkp1_;
 
   MatrixXf Mw_A_;
-  VectorXf Mw_B_;
-  VectorXf Mw_C_;
-  VectorXf Mw_Xk_;
-  VectorXf Mw_Xkp1_;
+  VectorXf Mw_B_, Mw_C_;
+  VectorXf Mw_Xk_, Mw_Xkp1_;
 
   ros::Time last_pcl_time_;
 
   // Front speed regulation
-  double front_x_lim_, front_y_lim_, front_z_lim_;
-  std::vector<pcl::PointXYZ> safety_zone_points_;
-  std::vector<float> safety_zone_distances_;
+  float speed_reg_state_;
+  std::vector<float> C_front_;
 
 }; // class
 

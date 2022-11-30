@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8.3)
 project(nearness_control)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-# add_compile_options(-std=c++11)
+add_compile_options(-std=c++11)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -23,13 +23,6 @@ find_package(catkin REQUIRED COMPONENTS
 
 ## System dependencies are found with CMake's conventions
 find_package(Eigen3 REQUIRED)
-
-## Generate messages in the 'msg' folder
-add_message_files(
-   FILES
-   FourierCoefsMsg.msg
-   ClusterMsg.msg
-   )
 
 ## Generate added messages and services with any dependencies listed here
 generate_messages(
@@ -68,27 +61,6 @@ target_link_libraries(nearness_control_3d projection_shape_generator ${catkin_LI
 
 add_executable(nearness_control_3d_node src/nearness_control_3d_node.cpp)
 target_link_libraries(nearness_control_3d_node nearness_control_3d ${catkin_LIBRARIES} ${Boost_LIBRARIES})
-
-add_library(control_mixer_node src/control_mixer_node.cpp)
-target_link_libraries(control_mixer_node ${catkin_LIBRARIES})
-
-add_executable(control_mixer src/control_mixer.cpp)
-target_link_libraries(control_mixer control_mixer_node ${catkin_LIBRARIES})
-
-add_library(joy_teleop_mixer_node src/joy_teleop_mixer_node.cpp)
-target_link_libraries(joy_teleop_mixer_node ${catkin_LIBRARIES})
-
-add_executable(joy_teleop_mixer src/joy_teleop_mixer.cpp)
-target_link_libraries(joy_teleop_mixer joy_teleop_mixer_node ${catkin_LIBRARIES})
-
-add_executable(tf2odom src/tf2odom.cpp)
-target_link_libraries(tf2odom ${catkin_LIBRARIES})
-
-add_library(command_generator_node src/command_generator_node.cpp)
-target_link_libraries(command_generator_node ${catkin_LIBRARIES})
-
-add_executable(command_generator src/command_generator.cpp)
-target_link_libraries(command_generator command_generator_node ${catkin_LIBRARIES})
 
 add_library(data_collector_node src/data_collector_node.cpp)
 target_link_libraries(data_collector_node ${catkin_LIBRARIES})

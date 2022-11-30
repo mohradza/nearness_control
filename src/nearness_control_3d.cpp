@@ -36,7 +36,6 @@ void NearnessControl3D::init() {
 
   // SUBSCRIBERS
   sub_pcl_ = nh_.subscribe("points", 1, &NearnessControl3D::pclCb, this);
-  sub_odom_ = nh_.subscribe("odometry", 1, &NearnessControl3D::odomCb, this);
   sub_enable_control_ = nh_.subscribe(
       "enable_control", 1, &NearnessControl3D::enableControlCb, this);
 
@@ -83,12 +82,6 @@ void NearnessControl3D::init() {
   pnh_.param("yaw_rate_gain", k_r_, -0.1);
   pnh_.param("yaw_rate_max", max_yaw_rate_, 1.0);
 
-  // Front zone limits
-  // TODO: Make these into parameters
-  front_x_lim_ = 2.0;
-  front_y_lim_ = 0.6;
-  front_z_lim_ = 0.15;
-
   frame_id_ = "OHRAD_X3";
 
   // We want to exclude the top and bottom rings
@@ -100,6 +93,7 @@ void NearnessControl3D::init() {
   C_y_ = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0};
   C_z_ = {0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
   C_theta_ = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0};
+  C_front_ = {0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 
   // Initialize dynamic controllers
   initRobustController();
@@ -107,28 +101,26 @@ void NearnessControl3D::init() {
   // Generate the Laplace spherical harmonic basis shapes
   generateSphericalHarmonics();
 
-  // Initialize command markers
-  generateCommandMarkers();
+  // Initialize command markers for debug visualization
+  if (enable_debug_) {
+    generateCommandMarkers();
+  }
 
 } // End of init
-
-void NearnessControl3D::importControllerMatrices() {}
 
 void NearnessControl3D::initRobustController() {
   std::vector<double> in_vec;
   std::vector<float> in_vec_f;
   std::vector<double> default_vec;
 
-  // 10hz model
-  // Lateral - Mixed synthesis, projection version with new model
-  constexpr int Mvsize = 6;
-
-  Mv_Xk_ = Eigen::VectorXf::Zero(Mvsize);
+  // Lateral Controller (Lateral Speed)
+  constexpr int Mv_size = 6;
+  Mv_Xk_ = Eigen::VectorXf::Zero(Mv_size);
   Mv_Xkp1_ = Mv_Xk_;
 
   pnh_.param("Mv_A", in_vec, default_vec);
   in_vec_f = std::vector<float>(in_vec.begin(), in_vec.end());
-  Mv_A_ = Eigen::Map<Eigen::Matrix<float, Mvsize, Mvsize, RowMajor>>(
+  Mv_A_ = Eigen::Map<Eigen::Matrix<float, Mv_size, Mv_size, RowMajor>>(
       in_vec_f.data());
 
   pnh_.param("Mv_B", in_vec, default_vec);
@@ -139,15 +131,14 @@ void NearnessControl3D::initRobustController() {
   in_vec_f = std::vector<float>(in_vec.begin(), in_vec.end());
   Mv_C_ = Eigen::Map<VectorXf>(in_vec_f.data(), in_vec_f.size());
 
-  // Heading - Mixed sythensis, projection version with new model
-  constexpr int Mrsize = 4;
-
-  Mr_Xk_ = Eigen::VectorXf::Zero(Mrsize);
+  // Steering Controller (Heading Rate)
+  constexpr int Mr_size = 4;
+  Mr_Xk_ = Eigen::VectorXf::Zero(Mr_size);
   Mr_Xkp1_ = Mr_Xk_;
 
   pnh_.param("Mr_A", in_vec, default_vec);
   in_vec_f = std::vector<float>(in_vec.begin(), in_vec.end());
-  Mr_A_ = Eigen::Map<Eigen::Matrix<float, Mrsize, Mrsize, RowMajor>>(
+  Mr_A_ = Eigen::Map<Eigen::Matrix<float, Mr_size, Mr_size, RowMajor>>(
       in_vec_f.data());
 
   pnh_.param("Mr_B", in_vec, default_vec);
@@ -158,14 +149,14 @@ void NearnessControl3D::initRobustController() {
   in_vec_f = std::vector<float>(in_vec.begin(), in_vec.end());
   Mr_C_ = Eigen::Map<VectorXf>(in_vec_f.data(), in_vec_f.size());
 
-  // Vertical - Mixed sythesis, 2x2 state model, 1 input, no modifications
-  constexpr int Mwsize = 4;
-  Mw_Xk_ = Eigen::VectorXf::Zero(Mrsize);
+  // Vertical Controller (Vertical Speed)
+  constexpr int Mw_size = 4;
+  Mw_Xk_ = Eigen::VectorXf::Zero(Mw_size);
   Mw_Xkp1_ = Mr_Xk_;
 
   pnh_.param("Mw_A", in_vec, default_vec);
   in_vec_f = std::vector<float>(in_vec.begin(), in_vec.end());
-  Mw_A_ = Eigen::Map<Eigen::Matrix<float, Mwsize, Mwsize, RowMajor>>(
+  Mw_A_ = Eigen::Map<Eigen::Matrix<float, Mw_size, Mw_size, RowMajor>>(
       in_vec_f.data());
 
   pnh_.param("Mw_B", in_vec, default_vec);
@@ -212,7 +203,6 @@ void NearnessControl3D::generateCommandMarkers() {
   u_cmd_marker_.color.b = 0.0;
   u_cmd_marker_.header.frame_id = "OHRAD_X3";
   u_cmd_marker_.points.push_back(origin_point);
-  u_cmd_marker_.points.push_back(origin_point);
   u_cmd_marker_.scale.x = .05;
   u_cmd_marker_.scale.y = .075;
   u_cmd_marker_.pose.orientation = origin_quat;
@@ -243,20 +233,6 @@ void NearnessControl3D::enableControlCb(const std_msgs::Bool msg) {
   enable_control_ = msg.data;
 }
 
-void NearnessControl3D::odomCb(const nav_msgs::OdometryConstPtr &odom_msg) {
-  current_odom_ = *odom_msg;
-  current_pos_ = current_odom_.pose.pose.position;
-  // current_odom_.pose.pose.position.z = current_height_agl_;
-  geometry_msgs::Quaternion vehicle_quat_msg =
-      current_odom_.pose.pose.orientation;
-  tf::Quaternion vehicle_quat_tf;
-  tf::quaternionMsgToTF(vehicle_quat_msg, vehicle_quat_tf);
-  tf::Matrix3x3(vehicle_quat_tf)
-      .getRPY(current_roll_, current_pitch_, current_heading_);
-  p_ = current_odom_.twist.twist.angular.x;
-  r_ = current_odom_.twist.twist.angular.z;
-}
-
 void NearnessControl3D::pclCb(const sensor_msgs::PointCloud2ConstPtr &pcl_msg) {
 
   processIncomingPCL(pcl_msg);
@@ -264,10 +240,12 @@ void NearnessControl3D::pclCb(const sensor_msgs::PointCloud2ConstPtr &pcl_msg) {
   projectNearness();
 
   // Compute control commands
-  resetCommands();
   if (enable_control_) {
+    resetCommands();
+    generateAndPublishCommands();
     generateWFControlCommands();
-    pub_control_commands_.publish(control_commands_);
+  } else {
+    resetControllerStates();
   }
 
   if (enable_debug_) {
@@ -295,9 +273,6 @@ void NearnessControl3D::processIncomingPCL(
   // Generate random gaussian noise for the sensor model
   std::normal_distribution<double> noise(0.0, noise_std_dev_);
 
-  // Exclude the first and last rings, because they don't contain much
-  // information
-
   pcl::PointXYZ p, mu_p;
   float dist, mu_val;
   int index = 0;
@@ -313,26 +288,13 @@ void NearnessControl3D::processIncomingPCL(
       p = new_cloud_.points[index];
       dist = sqrt(pow(p.x, 2) + pow(p.y, 2) + pow(p.z, 2));
 
-      if (dist < 2.0 && dist > 0.27) {
-        checkFrontZone(p);
-      }
-
       if (add_noise_) {
         dist += noise(generator_);
-      }
-
-      // This is within the vehicle frame, remove (set to large value)
-      if (dist < 0.3) {
-        dist = 1000;
       }
 
       // Compute nearness
       mu_val = 1.0 / dist;
       mu_meas_.push_back(mu_val);
-
-      if (enable_radius_scaling_) {
-        updateZoneStats(dist, i, j);
-      }
 
       if (enable_debug_) {
         // Convert back to cartesian for viewing
@@ -344,73 +306,12 @@ void NearnessControl3D::processIncomingPCL(
       }
     } // End inner for loop
   }   // End outer for loop
-
-  if (enable_radius_scaling_) {
-    updateRadiusEstimates();
-  }
 }
 
 void NearnessControl3D::resetPCLProcessing() {
   mu_meas_.clear();
   cloud_out_.clear();
   mu_cloud_out_.clear();
-  safety_zone_points_.clear();
-  safety_zone_distances_.clear();
-
-  side_zone_dist_ = 0.0;
-  side_zone_count_ = 0;
-  vert_zone_dist_ = 0.0;
-  vert_zone_count_ = 0;
-} // namespace nearness_3d
-
-void NearnessControl3D::checkFrontZone(const pcl::PointXYZ p) {
-  // If the point exists inside our front safety zone, add it to
-  // the collection of current safety zone violation points
-  if (p.z < front_z_lim_ && p.z > -front_z_lim_) {
-    if (p.x > 0.0 && p.x < front_x_lim_) {
-      if (p.y < front_y_lim_ && p.y > -front_y_lim_) {
-        // The point violates the safety zone
-        // Need to consider it for speed regulation.
-        safety_zone_points_.push_back(p);
-
-        // Really we just need the raw distance
-        safety_zone_distances_.push_back(
-            sqrt(pow(p.x, 2) + pow(p.y, 2) + pow(p.z, 2)));
-      }
-    }
-  }
-}
-
-void NearnessControl3D::updateZoneStats(const float dist, const int i,
-                                        const int j) {
-  float distance = dist;
-  if (distance > 15.0) {
-    distance = 15.0;
-  }
-  if (isSideZonePoint(theta_view_vec_[i], phi_view_vec_[j])) {
-    side_zone_dist_ += distance;
-    side_zone_count_ += 1;
-  }
-  if (isVerticalZonePoint(theta_view_vec_[i], phi_view_vec_[j])) {
-    vert_zone_dist_ += distance;
-    vert_zone_count_ += 1;
-  }
-}
-
-void NearnessControl3D::updateRadiusEstimates() {
-  // TODO: Make these into parameters!!
-  average_lateral_radius_ = 2.7;
-  average_vertical_radius_ = 1.75;
-  // Compute the average radius
-  if (side_zone_count_ && vert_zone_count_) {
-    average_lateral_radius_ = side_zone_dist_ / side_zone_count_;
-    average_vertical_radius_ = vert_zone_dist_ / vert_zone_count_;
-    ROS_INFO_THROTTLE(2.0, "Side: %f, Vert: %f", average_lateral_radius_,
-                      average_vertical_radius_);
-  } else {
-    ROS_INFO_THROTTLE(1.0, "Missing zone counts: side: %d, vert: %d",
-                      side_zone_count_, vert_zone_count_);
-  }
 }
 
 void NearnessControl3D::publishPCLOuts() {
@@ -448,45 +349,25 @@ void NearnessControl3D::publishCommandMarkers() {
   pub_cmd_markers_.publish(cmd_markers_);
 }
 
-bool NearnessControl3D::isSideZonePoint(const float t, const float p) {
-  float side_delta_p = M_PI / 16.0;
-  float side_delta_t = M_PI / 32.0;
-  // Point is in the left side zone
-  if (p < (-M_PI / 2.0 + side_delta_p) && p > (-M_PI / 2.0 - side_delta_p)) {
-    if (t > (M_PI / 2.0 - side_delta_t) && t < (M_PI / 2.0 + side_delta_t)) {
-      return true;
-    }
-  }
-  // Point is in the right side zone
-  if (p > (M_PI / 2.0 - side_delta_p) && p < (M_PI / 2.0 + side_delta_p)) {
-    if (t > (M_PI / 2.0 - side_delta_t) && t < (M_PI / 2.0 + side_delta_t)) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
-bool NearnessControl3D::isVerticalZonePoint(const float t, const float p) {
-  float vert_delta_t = M_PI / 8.0;
-  // Point is in the top or bottom zone
-  if (t < (vert_delta_t) || t > (M_PI - vert_delta_t)) {
-    return true;
-  }
-
-  return false;
-}
-
 bool NearnessControl3D::isObstructedPoint(const float t, const float p) {
   bool obstructed = false;
+  constexpr float kThetaUpperLim = 1.768;
+  constexpr float kThetaLowerLim = 1.473;
+  constexpr float phiLimRotor1Upper = 2.165;
+  constexpr float phiLimRotor1Lower = 2.145;
+  constexpr float phiLimRotor2Upper = 1.065;
+  constexpr float phiLimRotor2Lower = 1.048;
 
-  if (t < 1.768 && t > 1.473) {
-    if ((p < 2.165 && p > 2.145) || (p < 1.065 && p > 1.046) ||
-        (p < -1.028 && p > -1.048) || (p < -2.145 && p > -2.165)) {
-      obstructed = true;
-    }
-  }
-  return obstructed;
+  const bool is_within_inclination_range =
+      (t < kThetaUpperLim) && (t > kThetaLowerLim);
+
+  const bool is_rotor_1 = (p < phiLimRotor1Upper) && (p > phiLimRotor1Lower);
+  const bool is_rotor_2 = (p < phiLimRotor2Upper) && (p > phiLimRotor2Lower);
+  const bool is_rotor_3 = (p < -phiLimRotor2Upper) && (p > -phiLimRotor2Lower);
+  const bool is_rotor_4 = (p < -phiLimRotor2Lower) && (p > -phiLimRotor2Upper);
+  const bool is_a_rotor =
+      (is_rotor_1 || is_rotor_2 || is_rotor_3 || is_rotor_4);
+  return is_within_inclination_range && is_a_rotor;
 }
 
 void NearnessControl3D::projectNearness() {
@@ -548,75 +429,77 @@ void NearnessControl3D::resetCommands() {
   u_r_ = 0.0;
 }
 
-void NearnessControl3D::generateWFControlCommands() {
-  u_vec_ = {0.0, 0.0, 0.0};
-  state_est_vec_ = {0.0, 0.0, 0.0};
-  float speed_reg_state = 0.0;
-  std::vector<float> C_front_ = {0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-  for (int j = 0; j < num_basis_shapes_; j++) {
-    // state_est_vec_[0] += C_y_[j] * y_full_[j];
-    state_est_vec_[0] += C_y_[j] * y_front_half_[j];
-    state_est_vec_[1] += C_z_[j] * y_full_[j];
-    state_est_vec_[2] += C_theta_[j] * y_front_half_[j];
-    speed_reg_state += C_front_[j] * y_front_half_speed_reg_[j];
-  }
+void NearnessControl3D::generateAndPublishCommands() {
+  generateWFControlCommands();
+  pub_control_commands_.publish(control_commands_);
+}
 
-  // Complex lateral dynamic controller
+void NearnessControl3D::generateWFControlCommands() {
+
+  // Dynamic lateral controller
   float u_y = k_v_ * state_est_vec_[0];
   Mv_Xkp1_ = Mv_A_ * Mv_Xk_ + Mv_B_ * u_y;
   u_v_ = Mv_C_.dot(Mv_Xkp1_);
   u_v_ = sat(u_v_, -max_lateral_speed_, max_lateral_speed_);
   Mv_Xk_ = Mv_Xkp1_;
 
-  // Complex heading dynamic controller
+  // Dynamic heading controller
   float u_psi = k_r_ * state_est_vec_[2];
   Mr_Xkp1_ = Mr_A_ * Mr_Xk_ + Mr_B_ * u_psi;
   u_r_ = Mr_C_.dot(Mr_Xkp1_);
   u_r_ = sat(u_r_, -max_yaw_rate_, max_yaw_rate_);
   Mr_Xk_ = Mr_Xkp1_;
 
-  // Complex vertical dynamic controller
+  // Dynamic vertical controller
   float u_z = k_w_ * state_est_vec_[1];
   Mw_Xkp1_ = Mw_A_ * Mw_Xk_ + Mw_B_ * u_z;
   u_w_ = Mw_C_.dot(Mw_Xkp1_);
   u_w_ = sat(u_w_, -max_vertical_speed_, max_vertical_speed_);
   Mw_Xk_ = Mw_Xkp1_;
 
-  // if (enable_radius_scaling_) {
-  //   u_v_ *= average_lateral_radius_ / 2.7;
-  //   u_r_ *= average_lateral_radius_ / 2.7;
-  //   u_w_ *= average_vertical_radius_ / 1.75;
-  // }
-
   float front_reg;
   if (enable_speed_regulation_) {
     // Need to process the safety zone points for speed regulation
-    if (safety_zone_distances_.size() || true) {
-      // Find the closest point and use that for speed reg
-      float min_val = *min_element(safety_zone_distances_.begin(),
-                                   safety_zone_distances_.end());
-      // front_reg = (0.46 - speed_reg_state) * k_front_;
-      // front_reg = (0.9 - speed_reg_state) * k_front_;
-      // front_reg = (0.9 - speed_reg_state) * k_front_;
-      front_reg = (0.07 - speed_reg_state) * k_front_;
-      // ROS_INFO_THROTTLE(0.1, "speed reg: %f", speed_reg_state);
-      if (front_reg > 0.0) {
-        front_reg = 0.0;
-      }
-      u_u_ = sat(forward_speed_ * (1.0 + front_reg), min_forward_speed_,
-                 max_forward_speed_);
-    } else {
-      u_u_ = forward_speed_;
+    constexpr float kNominalProjectionVal = 0.07;
+    front_reg = (kNominalProjectionVal - speed_reg_state_) * k_front_;
+    if (front_reg > 0.0) {
+      front_reg = 0.0;
     }
+    u_u_ = sat(forward_speed_ * (1.0 + front_reg), min_forward_speed_,
+               max_forward_speed_);
   } else {
     u_u_ = forward_speed_;
   }
+
   control_commands_.linear.x = u_u_;
-  control_commands_.linear.y = u_v_ * 2.0;
+  control_commands_.linear.y = u_v_;
   control_commands_.linear.z = u_w_;
-  control_commands_.angular.z = u_r_ * 2.0;
-  // ROS_INFO_THROTTLE(0.1, "u_u: %f, u_v: %f, u_r: %f, u_w: %f", u_u_, u_v_,
-  // u_r_, u_w_);
+  control_commands_.angular.z = u_r_;
+}
+
+void NearnessControl3D::resetControllerStates() {
+  constexpr int Mv_size = 6;
+  Mv_Xk_ = Eigen::VectorXf::Zero(Mv_size);
+  Mv_Xkp1_ = Mv_Xk_;
+
+  constexpr int Mr_size = 4;
+  Mr_Xk_ = Eigen::VectorXf::Zero(Mr_size);
+  Mr_Xkp1_ = Mr_Xk_;
+
+  constexpr int Mw_size = 4;
+  Mw_Xk_ = Eigen::VectorXf::Zero(Mw_size);
+  Mw_Xkp1_ = Mr_Xk_;
+}
+
+void NearnessControl3D::generateStateEstimates() {
+  state_est_vec_ = {0.0, 0.0, 0.0};
+  speed_reg_state_ = 0.0;
+  for (int j = 0; j < num_basis_shapes_; j++) {
+    state_est_vec_[0] += C_y_[j] * y_front_half_[j];
+    state_est_vec_[1] += C_z_[j] * y_full_[j];
+    state_est_vec_[2] += C_theta_[j] * y_front_half_[j];
+    speed_reg_state_ += C_front_[j] * y_front_half_speed_reg_[j];
+  }
 }
 
 // end of class
